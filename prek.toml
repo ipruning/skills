@@ -21,6 +21,7 @@ hooks = [
         id = "end-of-file-fixer",
         name = "fix end of file fixer",
         stages = ["pre-commit"],
+        exclude = "^skillshare/",
         priority = 10
     },
     {
@@ -180,6 +181,7 @@ hooks = [
         entry = "shellcheck",
         language = "system",
         types = ["shell"],
+        exclude = "^skillshare/",
         stages = ["pre-commit"],
         priority = 20
     },
