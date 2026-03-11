@@ -1,0 +1,232 @@
+# Configuration file for `prek`, a git hook framework written in Rust.
+# See https://prek.j178.dev for more information.
+#:schema https://www.schemastore.org/prek.json
+
+default_install_hook_types = ["pre-commit", "pre-push"]
+default_stages = ["pre-commit", "pre-push"]
+fail_fast = false
+
+# =============================================================================
+# Priority Layout:
+#   0          — Gate checks (fast, fail-fast guards)
+#   10, 11, 12 — Fixers (modify files, each gets unique priority to run serially)
+#   20         — All read-only checks (run concurrently)
+# =============================================================================
+
+[[repos]]
+repo = "https://github.com/pre-commit/pre-commit-hooks"
+rev = "v6.0.0"
+hooks = [
+    {
+        id = "no-commit-to-branch",
+        name = "block commit to main",
+        args = ["--branch", "main"],
+        stages = ["pre-commit"],
+        priority = 0
+    },
+    {
+        id = "end-of-file-fixer",
+        name = "fix end of file fixer",
+        stages = ["pre-commit"],
+        priority = 10
+    },
+    {
+        id = "trailing-whitespace",
+        name = "fix trailing whitespace",
+        stages = ["pre-commit"],
+        priority = 11
+    },
+    {
+        id = "check-yaml",
+        name = "check YAML files",
+        stages = ["pre-commit", "pre-push"],
+        priority = 20
+    },
+    {
+        id = "check-ast",
+        name = "check ast",
+        stages = ["pre-commit", "pre-push"],
+        priority = 20
+    },
+    {
+        id = "check-merge-conflict",
+        name = "check merge conflict",
+        stages = ["pre-commit", "pre-push"],
+        priority = 20
+    },
+    {
+        id = "check-shebang-scripts-are-executable",
+        name = "check shebang scripts are executable",
+        stages = ["pre-commit"],
+        priority = 20
+    },
+    {
+        id = "check-added-large-files",
+        name = "check added large files",
+        stages = ["pre-commit", "pre-push"],
+        args = ["--maxkb=4096"],
+        priority = 20
+    },
+    {
+        id = "check-symlinks",
+        name = "check symlinks",
+        stages = ["pre-commit", "pre-push"],
+        priority = 20
+    },
+    {
+        id = "destroyed-symlinks",
+        name = "destroyed symlinks",
+        stages = ["pre-commit", "pre-push"],
+        priority = 20
+    },
+    {
+        id = "detect-private-key",
+        name = "detect private key",
+        stages = ["pre-commit", "pre-push"],
+        priority = 20
+    }
+]
+
+[[repos]]
+repo = "https://github.com/astral-sh/ruff-pre-commit"
+rev = "v0.15.4"
+hooks = [
+    {
+        id = "ruff-check",
+        name = "ruff check",
+        stages = ["pre-commit"],
+        priority = 20
+    },
+    {
+        id = "ruff-format",
+        name = "ruff format",
+        args = ["--check"],
+        stages = ["pre-commit"],
+        priority = 20
+    }
+]
+
+[[repos]]
+repo = "https://github.com/biomejs/pre-commit"
+rev = "v2.4.5"
+hooks = [
+    {
+        id = "biome-ci",
+        name = "biome check",
+        stages = ["pre-push"],
+        priority = 20
+    }
+]
+
+[[repos]]
+repo = "https://github.com/DavidAnson/markdownlint-cli2"
+rev = "v0.21.0"
+hooks = [
+    {
+        id = "markdownlint-cli2",
+        name = "markdownlint-cli2",
+        pass_filenames = false,
+        stages = ["pre-push"],
+        priority = 20
+    }
+]
+
+[[repos]]
+repo = "https://github.com/sirwart/ripsecrets"
+rev = "v0.1.11"
+hooks = [
+    {
+        id = "ripsecrets",
+        name = "ripsecrets",
+        args = [
+            "--strict-ignore",
+            "--additional-pattern",
+            "sk-proj-[A-Za-z0-9_-]{20,}",
+            "--additional-pattern",
+            "xai-[A-Za-z0-9]{20,}",
+            "--additional-pattern",
+            "fc-[A-Za-z0-9]{20,}",
+            "--additional-pattern",
+            "tpuf_[A-Za-z0-9]{20,}",
+            "--additional-pattern",
+            "pylf_v1_[a-z]+_[A-Za-z0-9]{20,}"
+        ],
+        require_serial = true,
+        stages = ["pre-commit", "pre-push"],
+        priority = 20
+    }
+]
+
+[[repos]]
+repo = "https://github.com/crate-ci/typos"
+rev = "v1.44.0"
+hooks = [{ id = "typos", name = "typos", stages = ["pre-push"], priority = 20 }]
+
+[[repos]]
+repo = "https://github.com/kynan/nbstripout"
+rev = "0.9.1"
+hooks = [
+    {
+        id = "nbstripout",
+        name = "nbstripout",
+        args = [
+            "--keep-output",
+            "--extra-keys=metadata.kernelspec metadata.language_info.version"
+        ],
+        stages = ["pre-commit"],
+        priority = 12
+    }
+]
+
+[[repos]]
+repo = "local"
+hooks = [
+    {
+        id = "shellcheck",
+        name = "shellcheck",
+        entry = "shellcheck",
+        language = "system",
+        types = ["shell"],
+        stages = ["pre-commit"],
+        priority = 20
+    },
+    {
+        id = "autocorrect",
+        name = "autocorrect",
+        entry = "autocorrect --lint . .agents/ .mise/",
+        language = "system",
+        pass_filenames = false,
+        stages = ["pre-push"],
+        priority = 20
+    },
+    {
+        id = "tombi",
+        name = "tombi",
+        entry = "uvx tombi lint .",
+        language = "system",
+        pass_filenames = false,
+        types = ["toml"],
+        stages = ["pre-push"],
+        priority = 20
+    },
+    {
+        id = "ls-lint",
+        name = "ls-lint",
+        entry = "ls-lint .",
+        language = "system",
+        pass_filenames = false,
+        always_run = true,
+        stages = ["pre-push"],
+        priority = 20
+    },
+    {
+        id = "ty",
+        name = "ty",
+        entry = "uv run ty check .",
+        language = "system",
+        pass_filenames = false,
+        types = ["python"],
+        stages = ["pre-push"],
+        priority = 20
+    },
+]
