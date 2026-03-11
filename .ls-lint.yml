@@ -1,0 +1,12 @@
+ls:
+    apps:
+        .py: snake_case
+        .yaml: snake_case
+    data:
+        .db: snake_case
+    demos:
+        .py: snake_case
+        .yaml: snake_case
+    packages:
+        .py: snake_case
+        .yaml: snake_case
