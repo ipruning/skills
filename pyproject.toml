@@ -49,3 +49,6 @@ python-version = "3.13"
 
 [tool.ty.rules]
 unresolved-import = "warn"
+
+[tool.ty.src]
+exclude = ["external-skills"]
