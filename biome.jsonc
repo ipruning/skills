@@ -1,5 +1,5 @@
 {
-    "$schema": "https://biomejs.dev/schemas/2.4.5/schema.json",
+    "$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
     "css": {
         "parser": {
             "cssModules": true,
@@ -7,17 +7,7 @@
         }
     },
     "files": {
-        "includes": [
-            "**",
-            "!apps/spider/src/**/js",
-            "!demos/auto_price",
-            "!demos/auto_ps",
-            "!demos/auto_psa/**/*.jsx",
-            "!demos/auto_psa/templates/**/*.html",
-            "!demos/auto_video",
-            "!demos/draw",
-            "!apps/eye/src/dev/tests"
-        ],
+        "includes": ["**", "!**/.skillshare-meta.json"],
         "ignoreUnknown": true
     },
     "formatter": {
