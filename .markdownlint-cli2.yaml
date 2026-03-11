@@ -4,7 +4,7 @@ globs:
     - "**/*.md"
 
 ignores:
-    - "skillshare/**"
+    - "external-skills/**"
 
 config:
     MD013: false
