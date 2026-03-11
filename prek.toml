@@ -18,13 +18,6 @@ repo = "https://github.com/pre-commit/pre-commit-hooks"
 rev = "v6.0.0"
 hooks = [
     {
-        id = "no-commit-to-branch",
-        name = "block commit to main",
-        args = ["--branch", "main"],
-        stages = ["pre-commit"],
-        priority = 0
-    },
-    {
         id = "end-of-file-fixer",
         name = "fix end of file fixer",
         stages = ["pre-commit"],
@@ -108,7 +101,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/biomejs/pre-commit"
-rev = "v2.4.5"
+rev = "v2.4.6"
 hooks = [
     {
         id = "biome-ci",

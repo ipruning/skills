@@ -29,6 +29,7 @@ skillshare sync -g             # Force global mode
 - `symlink`: whole target directory symlinked to source.
 
 Copy mode note:
+
 - `skillshare doctor` duplicate checks ignore manifest-managed copy entries (expected mirrors of source).
 - Duplicate warnings in copy mode are for true local copies that collide with source skill names.
 
@@ -43,6 +44,7 @@ skillshare sync extras --force    # Overwrite conflicts
 ```
 
 Config example:
+
 ```yaml
 extras:
   - name: rules

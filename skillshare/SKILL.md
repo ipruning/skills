@@ -22,13 +22,16 @@ Auto-detects project mode when `.skillshare/config.yaml` exists. Force with `-p`
 ## Recipes
 
 ### Getting Started
+
 ```bash
 skillshare init --no-copy --all-targets --git --skill  # Fresh global setup
 skillshare init -p --targets "claude,cursor"            # Fresh project setup
 skillshare init --copy-from claude --all-targets --git  # Import from existing CLI
 skillshare init --discover --select "windsurf"          # Add new AI tool later
 ```
+
 ### Installing Skills
+
 ```bash
 skillshare install user/repo -s pdf,commit       # Select specific skills
 skillshare install user/repo --all               # Install everything
@@ -41,20 +44,26 @@ skillshare sync                                  # Always sync after install
 skillshare sync extras                           # Sync non-skill extras (rules, commands)
 skillshare sync --all                            # Sync skills + extras together
 ```
+
 ### Creating & Discovering Skills
+
 ```bash
 skillshare new my-skill                          # Create a new skill from template
 skillshare search "react testing"                # Search GitHub for skills
 skillshare collect                               # Pull target-local changes back to source
 ```
+
 ### Removing Skills
+
 ```bash
 skillshare uninstall my-skill                    # Remove one (moves to trash)
 skillshare uninstall skill-a skill-b             # Remove multiple
 skillshare uninstall -G frontend                 # Remove entire group
 skillshare sync                                  # Always sync after uninstall
 ```
+
 ### Team / Organization
+
 ```bash
 # Creator: init project (see Getting Started) → add skills → commit .skillshare/
 skillshare install -p && skillshare sync                  # Member: clone → install → sync
@@ -62,7 +71,9 @@ skillshare install github.com/team/repo --track -p        # Track shared repo
 skillshare push                                           # Cross-machine: push on A
 skillshare pull                                           # Cross-machine: pull on B
 ```
+
 ### Skill Hubs
+
 ```bash
 skillshare hub add https://example.com/hub.json          # Save a hub source
 skillshare hub add https://example.com/hub.json --label my-hub  # With custom label
@@ -71,22 +82,29 @@ skillshare hub default my-hub                            # Set default hub
 skillshare hub remove my-hub                             # Remove a hub
 skillshare hub index --source ~/.config/skillshare/skills/ --full --audit  # Build hub index
 ```
+
 ### Controlling Where Skills Go
+
 ```bash
 # SKILL.md frontmatter: targets: [claude]        → only syncs to Claude
 skillshare target claude --add-include "team-*"   # glob filter
 skillshare target claude --add-exclude "_legacy*"  # exclude pattern
 skillshare target codex --mode copy && skillshare sync --force  # copy mode
 ```
+
 See [targets.md](references/targets.md) for details.
+
 ### Updates & Maintenance
+
 ```bash
 skillshare check                              # See what has updates
 skillshare update my-skill && skillshare sync  # Update one
 skillshare update --all && skillshare sync     # Update all
 skillshare update --all --diff                 # Show what changed
 ```
+
 ### Scripting & CI/CD
+
 ```bash
 skillshare status --json                       # Full status as JSON
 skillshare check --json                        # Update status as JSON
@@ -101,7 +119,9 @@ skillshare list --json                         # Skill list as JSON
 skillshare search react --json                 # Search results as JSON
 skillshare audit --format json                 # Audit results as JSON
 ```
+
 ### Recovery & Troubleshooting
+
 ```bash
 skillshare trash restore <name> && skillshare sync  # Undo delete
 skillshare sync                                     # Skill missing? Re-sync
@@ -109,9 +129,11 @@ skillshare doctor && skillshare status              # Diagnose issues
 skillshare install user/repo --force                 # Override audit block
 skillshare install user/repo --skip-audit            # Bypass scan entirely
 ```
+
 See [TROUBLESHOOTING.md](references/TROUBLESHOOTING.md) for more.
 
 ## Quick Lookup
+
 | Commands | Project? | `--json`? |
 |----------|:--------:|:---------:|
 | `status`, `diff`, `list`, `doctor` | ✓ (auto) | ✓ (except doctor) |
@@ -123,6 +145,7 @@ See [TROUBLESHOOTING.md](references/TROUBLESHOOTING.md) for more.
 | `ui` | ✓ (`-p`) | ✗ |
 
 ## AI Caller Rules
+
 1. **Non-interactive** — AI cannot answer prompts. Use `--force`, `--all`, `-s`, `--targets`, `--no-copy`, `--all-targets`, `--yes`.
 2. **Sync after mutations** — `install`, `uninstall`, `update`, `collect`, `target` all need `sync`.
 3. **Audit** — `install` auto-scans; CRITICAL blocks. `--force` to override, `--skip-audit` to bypass. Detects hardcoded secrets (API keys, tokens, private keys).
@@ -130,6 +153,7 @@ See [TROUBLESHOOTING.md](references/TROUBLESHOOTING.md) for more.
 5. **Output** — `--json` for structured data (12 commands support it, see Quick Lookup). `--no-tui` for plain text on TUI commands (`list`, `log`, `audit`, `diff`, `trash list`, `backup list`). `tui off` disables TUI globally. `--dry-run` to preview.
 
 ## References
+
 | Topic | File |
 |-------|------|
 | Init flags | [init.md](references/init.md) |

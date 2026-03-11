@@ -57,7 +57,7 @@ skillshare install anthropics/skills -s pdf -p        # Selective + project mode
 skillshare install user/repo --skip-audit             # Skip security scan
 ```
 
-### Flags
+### Install Flags
 
 | Flag | Description |
 |------|-------------|
@@ -134,7 +134,7 @@ skillshare update --all -p          # All project remote/tracked skills
 skillshare update _repo --force -p  # Discard local changes
 ```
 
-### Flags
+### Update Flags
 
 | Flag | Description |
 |------|-------------|
