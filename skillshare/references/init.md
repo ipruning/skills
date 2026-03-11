@@ -6,7 +6,7 @@ Initialize skillshare configuration (global or project).
 
 **Source:** `~/.config/skillshare/skills` by default. Respects `$XDG_CONFIG_HOME` — if set, uses `$XDG_CONFIG_HOME/skillshare/skills`. Use `--source` only if user explicitly requests a custom path.
 
-### Global Flags
+### Flags
 
 | Flag | Description |
 |------|-------------|
@@ -25,7 +25,7 @@ Initialize skillshare configuration (global or project).
 | `--no-skill` | Skip built-in skill installation |
 | `-n, --dry-run` | Preview changes |
 
-### Global AI Usage (Non-Interactive)
+### AI Usage (Non-Interactive)
 
 ```bash
 # Step 1: Check for existing skills
@@ -53,7 +53,7 @@ skillshare init --discover --select "windsurf,kilocode"
 
 Creates `.skillshare/` in current directory with `config.yaml`, `.gitignore`, and `skills/`.
 
-### Project Flags
+### Flags
 
 | Flag | Description |
 |------|-------------|
@@ -65,7 +65,7 @@ Creates `.skillshare/` in current directory with `config.yaml`, `.gitignore`, an
 
 **Note:** `--copy-from`, `--git`, `--source` are not available in project mode.
 
-### Project AI Usage (Non-Interactive)
+### AI Usage (Non-Interactive)
 
 ```bash
 # Initialize with specific targets

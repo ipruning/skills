@@ -64,7 +64,6 @@ skillshare search <query> -n 10     # Limit results (default: 20)
 **Requires:** GitHub auth (`gh` CLI or `GITHUB_TOKEN` env var).
 
 **Query examples:**
-
 - `react performance` - Performance optimization
 - `pr review` - Code review skills
 - `commit` - Git commit helpers
