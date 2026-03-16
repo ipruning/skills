@@ -7,7 +7,7 @@ source "$(dirname "$0")/_task.sh"
 task_summary_start "Lint"
 
 # uv sync is the only step NOT covered by prek.toml
-task_summary_run "uv sync" uv sync --python 3.13 --frozen
+task_summary_run "uv sync" uv sync --frozen
 
 # All other checks are configured in prek.toml with priority-based parallelism.
 # Running prek instead of serial steps cuts lint time roughly in half.

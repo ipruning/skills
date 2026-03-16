@@ -6,7 +6,7 @@ source "$(dirname "$0")/_task.sh"
 
 task_summary_start "Format"
 
-task_summary_run "uv sync --python 3.13 --frozen" uv sync --python 3.13 --frozen
+task_summary_run "uv sync --frozen" uv sync --frozen
 
 task_summary_run "ruff format ." uv run ruff format .
 
