@@ -1,7 +1,7 @@
 {
   "source": "https://github.com/vercel-labs/agent-browser/skills/electron",
   "type": "github-subdir",
-  "installed_at": "2026-03-16T19:39:50.018737+08:00",
+  "installed_at": "2026-03-16T19:46:31.023741+08:00",
   "repo_url": "https://github.com/vercel-labs/agent-browser.git",
   "subdir": "skills/electron",
   "version": "8163f6c",

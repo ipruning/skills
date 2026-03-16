@@ -4,7 +4,7 @@
 
 default_install_hook_types = ["pre-commit", "pre-push"]
 default_stages = ["pre-commit", "pre-push"]
-# exclude = "^external-skills/"
+exclude = "^agent-browser/|^electron/|^skillshare/"
 fail_fast = false
 
 # =============================================================================
@@ -22,7 +22,6 @@ hooks = [
         id = "end-of-file-fixer",
         name = "fix end of file fixer",
         stages = ["pre-commit"],
-        exclude = "^external-skills/",
         priority = 10
     },
     {
@@ -182,7 +181,6 @@ hooks = [
         entry = "shellcheck",
         language = "system",
         types = ["shell"],
-        exclude = "^external-skills/",
         stages = ["pre-commit"],
         priority = 20
     },
