@@ -4,7 +4,9 @@ globs:
     - "**/*.md"
 
 ignores:
-    - "external-skills/"
+    - "agent-browser/"
+    - "electron/"
+    - "skillshare/"
 
 config:
     MD013: false
