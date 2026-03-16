@@ -1,0 +1,13 @@
+{
+  "source": "https://github.com/pasky/chrome-cdp-skill/skills/chrome-cdp",
+  "type": "github-subdir",
+  "installed_at": "2026-03-16T15:57:43.69379+08:00",
+  "repo_url": "https://github.com/pasky/chrome-cdp-skill.git",
+  "subdir": "skills/chrome-cdp",
+  "version": "3e3e1f0",
+  "tree_hash": "f08bd1e574907d0a86afc5da0f8c5f952406a71f",
+  "file_hashes": {
+    "SKILL.md": "sha256:a682214143bdab2051f1d1b579748e85ed9f86f8ad7f4fd9a05f6739ae2b179d",
+    "scripts/cdp.mjs": "sha256:7f011209083ecb1d7f6aa8fc81d59ae642ab416b1cd74856eaf83b51dc9701bc"
+  }
+}
