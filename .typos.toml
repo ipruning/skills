@@ -1,5 +1,10 @@
 [files]
-extend-exclude = ["agent-browser/", "electron/", "skillshare/"]
+extend-exclude = [
+    "agent-browser/",
+    "electron/",
+    "skill-creator/",
+    "skillshare/"
+]
 
 [default.extend-words]
 adress = "adress"  # not `address`; legacy field name card_adress kept for backward compat

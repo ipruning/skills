@@ -4,7 +4,7 @@
 
 default_install_hook_types = ["pre-commit", "pre-push"]
 default_stages = ["pre-commit", "pre-push"]
-exclude = "^agent-browser/|^electron/|^skillshare/"
+exclude = "^agent-browser/|^electron/|^skill-creator/|^skillshare/"
 fail_fast = false
 
 # =============================================================================

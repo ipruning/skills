@@ -12,6 +12,7 @@
             "!**/.skillshare-meta.json",
             "!!agent-browser/",
             "!!electron/",
+            "!!skill-creator/",
             "!!skillshare/"
         ],
         "ignoreUnknown": true
