@@ -7,7 +7,11 @@
         }
     },
     "files": {
-        "includes": ["**", "!**/.skillshare-meta.json"],
+        "includes": [
+            "**",
+            "!**/.skillshare-meta.json",
+            "!!external-skills/"
+        ],
         "ignoreUnknown": true
     },
     "formatter": {

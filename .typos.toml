@@ -1,3 +1,6 @@
+[files]
+extend-exclude = ["external-skills/"]
+
 [default.extend-words]
 adress = "adress"  # not `address`; legacy field name card_adress kept for backward compat
 brin = "brin"  # not `bring`; lowercase form of BRIN index type
