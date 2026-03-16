@@ -1,4 +1,8 @@
+# macOS
 .DS_Store
+
+# Python
+.ruff_cache/
 .venv/
 
 # BEGIN SKILLSHARE MANAGED - DO NOT EDIT
