@@ -3,7 +3,8 @@ extend-exclude = [
     "agent-browser/",
     "electron/",
     "skill-creator/",
-    "skillshare/"
+    "skillshare/",
+    "stl-cli/"
 ]
 
 [default.extend-words]

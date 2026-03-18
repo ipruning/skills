@@ -8,6 +8,7 @@ ignores:
     - "electron/"
     - "skill-creator/"
     - "skillshare/"
+    - "stl-cli/"
 
 config:
     MD013: false

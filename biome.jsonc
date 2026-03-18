@@ -13,7 +13,8 @@
             "!!agent-browser/",
             "!!electron/",
             "!!skill-creator/",
-            "!!skillshare/"
+            "!!skillshare/",
+            "!!stl-cli/"
         ],
         "ignoreUnknown": true
     },

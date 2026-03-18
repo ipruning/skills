@@ -51,4 +51,10 @@ python-version = "3.14"
 unresolved-import = "warn"
 
 [tool.ty.src]
-exclude = ["agent-browser/", "electron/", "skillshare/"]
+exclude = [
+    "agent-browser/",
+    "electron/",
+    "skill-creator/",
+    "skillshare/",
+    "stl-cli/"
+]
