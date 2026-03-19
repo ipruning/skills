@@ -1,6 +1,6 @@
 ---
 name: skillshare
-version: v0.17.2
+version: v0.17.5
 description: |
   Manages and syncs AI CLI skills across 50+ tools from a single source.
   Use this skill whenever the user mentions "skillshare", runs skillshare commands,
@@ -56,7 +56,8 @@ skillshare sync --all                                # Sync skills + extras toge
 See [extras.md](references/extras.md) for details.
 ### Creating & Discovering Skills
 ```bash
-skillshare new my-skill                          # Create a new skill from template
+skillshare new my-skill                          # Create with interactive pattern selection
+skillshare new my-skill -P reviewer              # Use reviewer pattern directly
 skillshare search "react testing"                # Search GitHub for skills
 skillshare collect                               # Pull target-local changes back to source
 ```
@@ -90,6 +91,10 @@ skillshare hub index --source ~/.config/skillshare/skills/ --full --audit  # Bui
 skillshare target claude --add-include "team-*"   # glob filter
 skillshare target claude --add-exclude "_legacy*"  # exclude pattern
 skillshare target codex --mode copy && skillshare sync --force  # copy mode
+# .skillignore — hide skills/dirs from discovery (gitignore syntax)
+#   Root-level: <source>/.skillignore (affects all commands)
+#   Repo-level: <source>/_repo/.skillignore (scoped to that repo)
+#   .skillignore.local — local override (not committed), negation overrides base
 ```
 See [targets.md](references/targets.md) for details.
 ### Updates & Maintenance
@@ -113,6 +118,7 @@ skillshare target list --json                  # Target list as JSON
 skillshare list --json                         # Skill list as JSON
 skillshare search react --json                 # Search results as JSON
 skillshare audit --format json                 # Audit results as JSON
+skillshare doctor --json                       # Health check as JSON (exit 1 on errors)
 ```
 ### Recovery & Troubleshooting
 ```bash
@@ -127,7 +133,7 @@ See [TROUBLESHOOTING.md](references/TROUBLESHOOTING.md) for more.
 ## Quick Lookup
 | Commands | Project? | `--json`? |
 |----------|:--------:|:---------:|
-| `status`, `diff`, `list`, `doctor` | ✓ (auto) | ✓ (except doctor) |
+| `status`, `diff`, `list`, `doctor` | ✓ (auto) | ✓ |
 | `sync`, `collect` | ✓ (auto) | ✓ |
 | `install`, `uninstall`, `update`, `check`, `search`, `new` | ✓ (`-p`) | ✓ (except new) |
 | `target`, `audit`, `trash`, `log`, `hub` | ✓ (`-p`) | ✓ (target list, audit, log) |
