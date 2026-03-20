@@ -8,20 +8,4 @@ extend-exclude = [
 ]
 
 [default.extend-words]
-adress = "adress"  # not `address`; legacy field name card_adress kept for backward compat
-brin = "brin"  # not `bring`; lowercase form of BRIN index type
-BRIN = "BRIN"  # PostgreSQL Block Range INdex type
-hel = "hel"  # hetzner location code: Helsinki (Finland)
-INSER = "INSER"  # typos matches INSER in INSERTs
-SELEC = "SELEC"  # typos matches SELEC in SELECTs
-nd = "nd"  # ordinal suffix (e.g. 2nd)
-nin = "nin"  # not `inn`; numpy ufunc.nin attribute
-PN662742 = "PN662742"  # dorasuta product_number example
-PNXXXXXX = "PNXXXXXX"  # dorasuta product_number format placeholder
-RTO = "RTO"  # Recovery Time Objective
-Serie = "Serie"  # not `Series`; capitalized form in German TCG card set names
-serie = "serie"  # not `series`; valid singular in Italian/German TCG card set names
-teched = "teched"  # TCG term: to include a targeted counter card (tech card)
-THS = "THS"  # MTG set code: Theros (e.g. THS-062)
-thw = "thw"  # Qwen VL: Temporal, Height, Width grid dimensions
-UDID = "UDID"  # not `UUID`; Apple Unique Device Identifier
+UDID = "UDID"  # Apple Unique Device Identifier
