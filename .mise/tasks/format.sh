@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="运行格式化"
+#MISE description="Run formatters"
 
 set -euo pipefail
 

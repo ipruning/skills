@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="运行 Lint 流程"
+#MISE description="Run linters"
 
 set -euo pipefail
 
