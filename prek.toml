@@ -70,6 +70,7 @@ hooks = [
     {
         id = "destroyed-symlinks",
         name = "destroyed symlinks",
+        require_serial = true,
         stages = ["pre-commit", "pre-push"],
         priority = 20
     },
@@ -83,7 +84,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/astral-sh/ruff-pre-commit"
-rev = "v0.15.4"
+rev = "v0.15.7"
 hooks = [
     {
         id = "ruff-check",
@@ -102,7 +103,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/biomejs/pre-commit"
-rev = "v2.4.6"
+rev = "v2.4.8"
 hooks = [
     {
         id = "biome-ci",
