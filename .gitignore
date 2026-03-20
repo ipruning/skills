@@ -1,12 +1,12 @@
+# BEGIN SKILLSHARE MANAGED - DO NOT EDIT
+_garrytan-gstack/
+_jihuanshe-skills/
+_planetscale-database-skills/
+# END SKILLSHARE MANAGED
+
 # macOS
 .DS_Store
 
 # Python
 .ruff_cache/
 .venv/
-
-# BEGIN SKILLSHARE MANAGED - DO NOT EDIT
-_garrytan-gstack/
-_jihuanshe-skills/
-_planetscale-database-skills/
-# END SKILLSHARE MANAGED

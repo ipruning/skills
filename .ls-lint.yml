@@ -1,12 +1,7 @@
 ls:
-    apps:
+    .mise:
+        .bash: snake_case
         .py: snake_case
+        .sh: snake_case
         .yaml: snake_case
-    data:
-        .db: snake_case
-    demos:
-        .py: snake_case
-        .yaml: snake_case
-    packages:
-        .py: snake_case
-        .yaml: snake_case
+        .zsh: snake_case
