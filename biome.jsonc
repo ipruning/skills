@@ -12,9 +12,10 @@
             "!**/.skillshare-meta.json",
             "!!agent-browser/",
             "!!electron/",
+            "!!exe.dev/",
             "!!skill-creator/",
             "!!skillshare/",
-            "!!stl-cli/"
+            "!!stl/"
         ],
         "ignoreUnknown": true
     },

@@ -10,3 +10,9 @@ trim_trailing_whitespace = true
 
 [*.{md, mdc}]
 indent_size = 2
+
+[*.{yaml, yml}]
+indent_size = 4
+
+[*.{json, jsonc}]
+indent_size = 2

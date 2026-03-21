@@ -6,9 +6,10 @@ globs:
 ignores:
     - "agent-browser/"
     - "electron/"
+    - "exe.dev/"
     - "skill-creator/"
     - "skillshare/"
-    - "stl-cli/"
+    - "stl/"
 
 config:
     MD013: false

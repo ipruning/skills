@@ -1,5 +1,5 @@
 ---
-name: surge-proxy
+name: surge-cli
 description: "macOS network proxy diagnostics via Surge (China). Triggers: macOS + network hang/timeout (brew, npm, docker, curl), proxy misconfiguration, enhanced mode toggle. Not for Linux servers."
 metadata:
   version: "1"
