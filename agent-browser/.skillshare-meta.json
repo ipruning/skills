@@ -1,13 +1,13 @@
 {
-  "source": "https://github.com/vercel-labs/agent-browser.git/skills/agent-browser",
+  "source": "https://github.com/vercel-labs/agent-browser/skills/agent-browser",
   "type": "github-subdir",
-  "installed_at": "2026-03-19T17:01:01.310885+08:00",
+  "installed_at": "2026-03-22T01:33:03.677003+08:00",
   "repo_url": "https://github.com/vercel-labs/agent-browser.git",
   "subdir": "skills/agent-browser",
-  "version": "9837b9c",
-  "tree_hash": "d22b7962fb118a40f0e2e27af2fdeab12f2651a8",
+  "version": "84c6e6f",
+  "tree_hash": "d601c797f9bbb8e999d98ff25d0ebdfb3acbd6aa",
   "file_hashes": {
-    "SKILL.md": "sha256:ba291a269a6810a529d90abf827a1f6864e5967ab094fb6410b75c23f4b57da3",
+    "SKILL.md": "sha256:25aacfdbee524b626418925bd083473151a617f67e4eeacec1cdd6bd1f240f58",
     "references/authentication.md": "sha256:8ccc30f2613523630cf3771a07d71339676d93c63623631a4206521c6d78d2e5",
     "references/commands.md": "sha256:2199f7815a1c65d4cefa9a3848a1b7fa273f35b9f11e08d6aef859b40fbd95a8",
     "references/profiling.md": "sha256:15f1e6c7994d7471a274dc1476992d0ec178acd91f8b626e0d6f24a4dbef738f",
