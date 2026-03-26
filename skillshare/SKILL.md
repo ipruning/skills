@@ -1,6 +1,5 @@
 ---
 name: skillshare
-version: v0.17.8
 description: |
   Manages and syncs AI CLI skills across 50+ tools from a single source.
   Use this skill whenever the user mentions "skillshare", runs skillshare commands,
@@ -12,6 +11,8 @@ description: |
   or trash recovery, piping skillshare output to scripts (--json), setting up CI/CD
   audit pipelines, or building/sharing skill hubs (hub index, hub add).
 argument-hint: "[command] [target] [--json] [--dry-run] [-p|-g]"
+metadata:
+  version: v0.17.11
 ---
 
 # Skillshare CLI
@@ -52,7 +53,9 @@ skillshare extras list                               # Show status per target
 skillshare extras list --json                        # JSON with source_type field
 skillshare extras collect rules                      # Pull local files into source
 skillshare extras remove rules                       # Remove from config (source preserved)
+skillshare extras init agents --target ~/.claude/agents --flatten  # Flatten subdirs into root
 skillshare extras rules --mode copy                  # Change sync mode of a target
+skillshare extras agents --flatten                   # Enable flatten on existing target
 skillshare sync extras                               # Sync all extras to targets
 skillshare sync extras --dry-run --force             # Preview / overwrite conflicts
 skillshare sync --all                                # Sync skills + extras together
