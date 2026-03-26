@@ -25,9 +25,10 @@ dev = [
 exclude = [
     "agent-browser/",
     "electron/",
+    "exe.dev/",
     "skill-creator/",
     "skillshare/",
-    "stl-cli/",
+    "stl/",
 ]
 indent-width = 4
 line-length = 120
@@ -61,7 +62,8 @@ unresolved-import = "warn"
 exclude = [
     "agent-browser/",
     "electron/",
+    "exe.dev/",
     "skill-creator/",
     "skillshare/",
-    "stl-cli/"
+    "stl/",
 ]
