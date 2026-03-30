@@ -11,7 +11,6 @@
 ```text
 ~/.config/skillshare/
 ├── config.yaml              # Targets, sync mode, ignore rules
-├── registry.yaml            # Installed external skill registry
 └── skills/                  # Source dir (= this Git repo)
     ├── <skill-name>/        # Your own skills
     ├── _<org>-skills/       # Org skills (gitignored, --track installed)
