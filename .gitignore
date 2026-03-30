@@ -9,3 +9,6 @@ _planetscale-database-skills/
 # Python
 .ruff_cache/
 .venv/
+
+# Local skillshare config that belongs outside this repo
+registry.yaml
