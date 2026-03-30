@@ -1,13 +1,13 @@
 {
-  "source": "https://github.com/runkids/skillshare.git/skills/skillshare",
+  "source": "github.com/runkids/skillshare/skills/skillshare",
   "type": "github-subdir",
-  "installed_at": "2026-03-26T15:41:14.425505+08:00",
+  "installed_at": "2026-03-30T15:27:21.404858+08:00",
   "repo_url": "https://github.com/runkids/skillshare.git",
   "subdir": "skills/skillshare",
-  "version": "68111d2",
-  "tree_hash": "f9e9a3fe707e479b32ea8e3466d0a57cd837f551",
+  "version": "1791899",
+  "tree_hash": "8776af451040ac477ee696d7c16c08e2b4882c70",
   "file_hashes": {
-    "SKILL.md": "sha256:34ce7127a86ca895a23e511b0762e13b503b17c1511ffd8430688484b1e6c42b",
+    "SKILL.md": "sha256:f9ba2a08db3a064ebccf78f01ed82e6359a97eb8d435f3abad6b7f3e30a48504",
     "references/TROUBLESHOOTING.md": "sha256:14855dbd2f20ad7042941959f257c79f768d103e89e55d74d8c3b3d38f9ff5ee",
     "references/audit.md": "sha256:85a31c32f17f39ce2baa5189a8004c6adec506e5fcf7d20378caa103b015fd5d",
     "references/backup.md": "sha256:96e2e8d5e2d7cfb8765c2eebb4e6d733b79258de8b3d974fca8972557f7326a6",
