@@ -4,7 +4,7 @@
   "installed_at": "2026-03-18T17:52:33.688393+08:00",
   "repo_url": "https://github.com/stainless-api/stainless-api-cli.git",
   "subdir": "pkg/cmd/skill/stl-cli",
-  "version": "97ac418",
+  "version": "752571b",
   "tree_hash": "39c624a6c39499aacbb0739e2ca94b647adca581",
   "file_hashes": {
     "SKILL.md": "sha256:5d118313a643ccb0b0068e0f07d1c5ea0db23ab00e681c2ada1398864d3525b4"

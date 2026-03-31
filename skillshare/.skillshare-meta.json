@@ -4,7 +4,7 @@
   "installed_at": "2026-03-30T15:27:21.404858+08:00",
   "repo_url": "https://github.com/runkids/skillshare.git",
   "subdir": "skills/skillshare",
-  "version": "1791899",
+  "version": "f0f15ce",
   "tree_hash": "8776af451040ac477ee696d7c16c08e2b4882c70",
   "file_hashes": {
     "SKILL.md": "sha256:f9ba2a08db3a064ebccf78f01ed82e6359a97eb8d435f3abad6b7f3e30a48504",

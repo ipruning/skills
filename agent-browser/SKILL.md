@@ -6,7 +6,7 @@ allowed-tools: Bash(npx agent-browser:*), Bash(agent-browser:*)
 
 # Browser Automation with agent-browser
 
-The CLI uses Chrome/Chromium via CDP directly. Install via `npm i -g agent-browser`, `brew install agent-browser`, or `cargo install agent-browser`. Run `agent-browser install` to download Chrome. Run `agent-browser upgrade` to update to the latest version.
+The CLI uses Chrome/Chromium via CDP directly. Install via `npm i -g agent-browser`, `brew install agent-browser`, or `cargo install agent-browser`. Run `agent-browser install` to download Chrome. Existing Chrome, Brave, Playwright, and Puppeteer installations are detected automatically. Run `agent-browser upgrade` to update to the latest version.
 
 ## Core Workflow
 
@@ -110,6 +110,7 @@ See [references/authentication.md](references/authentication.md) for OAuth, 2FA,
 # Navigation
 agent-browser open <url>              # Navigate (aliases: goto, navigate)
 agent-browser close                   # Close browser
+agent-browser close --all             # Close all active sessions
 
 # Snapshot
 agent-browser snapshot -i             # Interactive elements with refs (recommended)
@@ -183,7 +184,10 @@ agent-browser clipboard write "Hello, World!"     # Write text to clipboard
 agent-browser clipboard copy                      # Copy current selection
 agent-browser clipboard paste                     # Paste from clipboard
 
-# Dialogs (alert, confirm, prompt)
+# Dialogs (alert, confirm, prompt, beforeunload)
+# By default, alert and beforeunload dialogs are auto-accepted so they never block the agent.
+# confirm and prompt dialogs still require explicit handling.
+# Use --no-auto-dialog (or AGENT_BROWSER_NO_AUTO_DIALOG=1) to disable automatic handling.
 agent-browser dialog accept              # Accept dialog
 agent-browser dialog accept "my input"   # Accept prompt dialog with text
 agent-browser dialog dismiss             # Dismiss/cancel dialog
@@ -198,11 +202,9 @@ agent-browser diff url <url1> <url2> --wait-until networkidle  # Custom wait str
 agent-browser diff url <url1> <url2> --selector "#main"  # Scope to element
 ```
 
-## Runtime Streaming
+## Streaming
 
-Use `agent-browser stream enable` when you need a live WebSocket preview for an already-running session. This is the preferred runtime path because it does not require restarting the daemon. `stream enable` creates the server, `stream status` reports the bound port and connection state, and `stream disable` tears it down cleanly.
-
-If streaming must be present from the first daemon command, `AGENT_BROWSER_STREAM_PORT` still works at daemon startup, but that environment variable is not retroactive for sessions that are already running.
+Every session automatically starts a WebSocket stream server on an OS-assigned port. Use `agent-browser stream status` to see the bound port and connection state. Use `stream disable` to tear it down, and `stream enable --port <port>` to re-enable on a specific port.
 
 ## Batch Execution
 
@@ -578,9 +580,10 @@ Always close your browser session when done to avoid leaked processes:
 ```bash
 agent-browser close                    # Close default session
 agent-browser --session agent1 close   # Close specific session
+agent-browser close --all              # Close all active sessions
 ```
 
-If a previous session was not closed properly, the daemon may still be running. Use `agent-browser close` to clean it up before starting new work.
+If a previous session was not closed properly, the daemon may still be running. Use `agent-browser close` to clean it up, or `agent-browser close --all` to shut down every session at once.
 
 To auto-shutdown the daemon after a period of inactivity (useful for ephemeral/CI environments):
 
@@ -711,6 +714,26 @@ Supported engines:
 - `lightpanda` -- Lightpanda headless browser via CDP (10x faster, 10x less memory than Chrome)
 
 Lightpanda does not support `--extension`, `--profile`, `--state`, or `--allow-file-access`. Install Lightpanda from https://lightpanda.io/docs/open-source/installation.
+
+## Observability Dashboard
+
+The dashboard is a standalone background server that shows live browser viewports, command activity, and console output for all sessions.
+
+```bash
+# Install the dashboard once
+agent-browser dashboard install
+
+# Start the dashboard server (background, port 4848)
+agent-browser dashboard start
+
+# All sessions are automatically visible in the dashboard
+agent-browser open example.com
+
+# Stop the dashboard
+agent-browser dashboard stop
+```
+
+The dashboard runs independently of browser sessions on port 4848 (configurable with `--port`). All sessions automatically stream to the dashboard. Sessions can also be created from the dashboard UI with local engines or cloud providers.
 
 ## Ready-to-Use Templates
 
