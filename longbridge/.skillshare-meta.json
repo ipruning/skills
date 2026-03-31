@@ -1,0 +1,26 @@
+{
+  "source": "https://github.com/longbridge/developers/skills/longbridge",
+  "type": "github-subdir",
+  "installed_at": "2026-03-31T15:09:26.689056+08:00",
+  "repo_url": "https://github.com/longbridge/developers.git",
+  "subdir": "skills/longbridge",
+  "version": "c15e95c",
+  "tree_hash": "73a33113df8f99567e46e9cf1b9e9923696005d5",
+  "file_hashes": {
+    "SKILL.md": "sha256:b8157931bb5311b5cacd1cad44acb2c4b2e571dd3117eefe923cd31a431c2b9a",
+    "references/cli/overview.md": "sha256:02591313155404e3d6d106dcbf1e283511601f9e5d6e03b9327008910b3fe9f0",
+    "references/llm.md": "sha256:a7069264e6129c66949a4aa0b526fc9409609b253519387a9aa323a2e1b2e7b1",
+    "references/mcp.md": "sha256:abfb786485c7c0c3287e2045d763afd063d63f19859f01f0810d55dd1e6b816c",
+    "references/python-sdk/content-context.md": "sha256:976516a40ea5ab58e24d0fc88ea86ab513f46f1306c2ef262bc0ca1957ea39e7",
+    "references/python-sdk/overview.md": "sha256:7e6c571e8d744cef9599d5813b9e4d38a23f3fb68805622fe816ad18716be3bd",
+    "references/python-sdk/quote-context.md": "sha256:2442e6917d2dfcad1af91737adcf38a916731c7f7daa50cac126c6043de91d09",
+    "references/python-sdk/trade-context.md": "sha256:e19926766424f7a0cd379dfb3c0fb87e112738ef9f349b5b4e30eb454a407ed2",
+    "references/python-sdk/types.md": "sha256:8557c7b01d0e8c1bcb079e5ac3686d6813faccaa2b866c5b188c1aa36663744a",
+    "references/rust-sdk/content.md": "sha256:1e59a376ee5948edcd84561137d69cd3de8f92a692209b645aa9937c6c7259da",
+    "references/rust-sdk/overview.md": "sha256:b54a0625bba89285e06fb2ff2a65f0197ea150a9cf489a5fb1d937e046f8e5e7",
+    "references/rust-sdk/quote-context.md": "sha256:e7676b79be0c6f0cc51855902cf4748bdbcc701be69e77be79d1e601b222a158",
+    "references/rust-sdk/trade-context.md": "sha256:ab9186019c5b319d0ecb6151c04acd240aa8580a359838a5409cb69bbb3fe42e",
+    "references/rust-sdk/types.md": "sha256:12835378cb84a600121ec224f3e79cf76141c1a37aa79e9439b2cbfad3689b52",
+    "references/setup.md": "sha256:3d216b89e3bfd3d93ee4ba69b360c72b069893337d1b5777d4acdc3551861919"
+  }
+}
