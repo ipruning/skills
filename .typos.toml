@@ -3,6 +3,7 @@ extend-exclude = [
     "agent-browser/",
     "electron/",
     "exe.dev/",
+    "longbridge/",
     "skill-creator/",
     "skillshare/",
     "stl/",

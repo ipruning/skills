@@ -1,5 +1,5 @@
 {
-    "$schema": "https://biomejs.dev/schemas/2.4.8/schema.json",
+    "$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
     "css": {
         "parser": {
             "cssModules": true,
@@ -13,6 +13,7 @@
             "!!agent-browser/",
             "!!electron/",
             "!!exe.dev/",
+            "!!longbridge/",
             "!!skill-creator/",
             "!!skillshare/",
             "!!stl/"
