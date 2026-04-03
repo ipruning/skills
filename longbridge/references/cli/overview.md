@@ -21,9 +21,19 @@ Do not rely on hardcoded documentation for command syntax or flags — use `--he
 # macOS (Homebrew — recommended)
 brew install --cask longbridge/tap/longbridge-terminal
 
-# Any platform (install script)
+# macOS / Linux (install script)
 curl -sSL https://github.com/longbridge/longbridge-terminal/raw/main/install | sh
 # Installs `longbridge` binary to /usr/local/bin
+```
+
+Windows (Scoop or PowerShell):
+
+```powershell
+# Scoop
+scoop install https://github.com/longbridge/longbridge-terminal/raw/refs/heads/main/.scoop/longbridge.json
+
+# Or PowerShell install script
+iwr https://github.com/longbridge/longbridge-terminal/raw/main/install.ps1 | iex
 ```
 
 ## Update
@@ -51,8 +61,8 @@ longbridge check    # Verify connectivity and token (no auth required)
 
 ## Environment Variables
 
-| Variable         | Value     | Description                                                        |
-| ---------------- | --------- | ------------------------------------------------------------------ |
+| Variable         | Value     | Description                                                                                                                 |
+| ---------------- | --------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `LONGBRIDGE_ENV` | `staging` | Switch all endpoints to the staging environment (`openapi.longbridge.xyz`). Useful for testing against non-production data. |
 
 ```bash
@@ -95,17 +105,17 @@ longbridge kline TSLA.US --period day --count 30 & longbridge kline NVDA.US --pe
 
 ```bash
 # Step 1: discover filing IDs
-longbridge filings TSLA.US
+longbridge filing list TSLA.US
 # Step 2: pull full Markdown content of a specific filing
-longbridge filing-detail TSLA.US 610186794100660481 --file-index 0
+longbridge filing detail TSLA.US 610186794100660481 --file-index 0
 ```
 
 ## Extended Hours (Pre/Post Market)
 
-`quote`, `intraday`, `kline`, `kline-history` all support extended-hours data. Use `longbridge <command> --help` for exact flags — key points:
+`quote`, `intraday`, `kline`, `kline history` all support extended-hours data. Use `longbridge <command> --help` for exact flags — key points:
 
 - **`quote`**: always returns `pre_market_quote` / `post_market_quote` / `overnight_quote` when available (US only). Table format appends an "Extended Hours" section; JSON includes them as nested objects.
-- **`intraday` / `kline` / `kline-history`**: default to intraday session only; pass `--session all` to include pre/post-market data. `kline`/`kline-history` add a **Session** column when `--session all` is used.
+- **`intraday` / `kline` / `kline history`**: default to intraday session only; pass `--session all` to include pre/post-market data. `kline`/`kline history` add a **Session** column when `--session all` is used.
 
 ## Rate Limits
 
