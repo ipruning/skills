@@ -2,54 +2,38 @@
 
 ## Architecture
 
-- Mono-repo of coding agent skills (SKILL.md files) managed by `skillshare`.
-- Each top-level directory is one skill (e.g. `demand-audit-v2/`, `prek/`).
-- `_`-prefixed dirs are externally synced (gitignored) — never edit them.
+Each top-level directory is one skill. A skill contains a SKILL.md and optional supporting files. `skillshare` syncs them to AI tool config directories via symlinks.
 
-## Repo Layout
+Directories prefixed with `_` are externally synced, gitignored, and overwritten on update. Never edit them.
 
 ```text
 ~/.config/skillshare/
 ├── config.yaml              # Targets, sync mode, ignore rules
-└── skills/                  # Source dir (= this Git repo)
+└── skills/                  # This Git repo
     ├── <skill-name>/        # Your own skills
-    ├── _<org>-skills/       # Org skills (gitignored, --track installed)
+    ├── _<org>-skills/       # Org skills (gitignored)
     └── _<community>/        # Community skills (gitignored)
 ```
 
 ## Code Style
 
-- 4-space indent everywhere (2-space for `.md`). LF line endings. Final newline required.
-- Python: Ruff rules E/W/F/UP/B/SIM/I/TID, line-length 120, target py314.
-- JS/JSON: Biome with double quotes, 4-space indent.
-- TOML: `tombi` formatter, 4-space indent.
+4-space indent everywhere, 2-space for Markdown. LF line endings. Final newline required.
 
-## Lint
+- **Python** — Ruff (rules E/W/F/UP/B/SIM/I/TID, line-length 120, target py314). Format: `uv run ruff format --check .`. Lint: `uv run ruff check .`. Type-check: `uv run ty check .`.
+- **JS / JSON** — Biome (double quotes, 4-space indent). Lint: `biome ci .`.
+- **TOML** — `tombi` formatter, 4-space indent.
+- **Markdown** — `markdownlint-cli2`.
+- **Spelling** — `typos`.
+- **Pre-commit** — `prek` (see `prek.toml`).
 
-- Python: `uv run ruff check .` / `uv run ruff format --check .`
-- Type-check: `uv run ty check .`
-- Markdown: `markdownlint-cli2` | JSON/JS: `biome ci .` | Spell: `typos`
-- Pre-commit: `prek` (see `prek.toml`)
+## Excluding external skills from linting
 
-## Synced Skills Ignore Rules
-
-Any dir with `.skillshare-meta.json` is externally synced — exclude it from ALL lint configs.
-
-**Discovery command** (run from repo root):
+Directories containing `.skillshare-meta.json` are externally synced and must be excluded from all lint configs. Find them with:
 
 ```bash
 fd -H -t f '.skillshare-meta.json' -x dirname {} | sed 's|^\./||' | sort -u
 ```
 
-**Checklist — when a new external skill appears, add its directory to ALL of these:**
+Add each directory to all seven configs: `.typos.toml` (`[files].extend-exclude`), `.markdownlint-cli2.yaml` (`ignores`), `biome.jsonc` (`files.includes` with `!!dir/` negation), `pyproject.toml` (`[tool.ruff].exclude` and `[tool.ty.src].exclude`), `prek.toml` (top-level `exclude` regex), and `.autocorrectignore`.
 
-1. `.typos.toml` → `[files].extend-exclude`
-2. `.markdownlint-cli2.yaml` → `ignores`
-3. `biome.jsonc` → `files.includes` (use `!!dir/` negation)
-4. `pyproject.toml` → `[tool.ruff].exclude`
-5. `pyproject.toml` → `[tool.ty.src].exclude`
-6. `prek.toml` → top-level `exclude` regex
-7. `.autocorrectignore` → append directory
-
-**Note:** `_`-prefixed dirs (org/community skills) are gitignored and never checked in,
-so they don't need lint ignores. Only non-`_` dirs with `.skillshare-meta.json` need them.
+`_`-prefixed directories are gitignored and never checked in, so they don't need lint excludes. Only non-`_` directories with `.skillshare-meta.json` need them.

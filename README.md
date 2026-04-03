@@ -1,63 +1,52 @@
 # Skills
 
-Coding agent skills mono-repo, managed by [skillshare](https://github.com/runkids/skillshare). Write once, sync everywhere.
+A skill is a SKILL.md file that teaches a coding agent how to do one thing well. This repo holds all your skills and syncs them to every AI tool you use — Amp, Codex, Claude Code, Cursor, and others — with [skillshare](https://github.com/runkids/skillshare).
 
-## Why This Workflow
+Each top-level directory is one skill. Directories prefixed with `_` are installed from external repos; skillshare manages them and git ignores them.
 
-- **Write once, sync to all coding agents** — One `skillshare sync` distributes skills to Amp, Codex, Claude Code, Cursor, etc. via symlinks.
-- **Three-layer stacking** — Personal + org + community skills coexist in one repo. External repos are auto-gitignored with `_` prefix.
-- **One command on a new machine** — `skillshare init --remote <repo>` pulls everything down.
-- **Security audit on install** — Auto-scans for dangerous patterns. CRITICAL findings block installation.
+## Setup
 
-## Setup (macOS)
+macOS:
 
 ```bash
-# Install skillshare
-brew install skillshare # or: mise use -g github:runkids/skillshare@latest
+brew install skillshare
+```
 
-# Init with your repo
+Linux:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/runkids/skillshare/main/install.sh | sh
+```
+
+Then point skillshare at this repo and sync:
+
+```bash
 skillshare init \
   --source ~/.config/skillshare/skills \
   --remote https://github.com/<you>/skills \
   --all-targets --mode merge --subdir . --no-skill
 
-# Install shared skills
-skillshare install https://github.com/<org>/skills --track
-
-# Sync to all coding agents
-skillshare sync
-```
-
-> Drop `--no-skill` and `--all-targets` to get the interactive TUI instead.
-
-## Setup (Linux / Cloud VM)
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/runkids/skillshare/main/install.sh | sh
-
-skillshare init \
-  --source ~/.config/skillshare/skills \
-  --remote https://github.com/<you>/skills \
-  --targets codex --mode merge --subdir . --no-skill
-
 skillshare install https://github.com/<org>/skills --track
 skillshare sync
 ```
 
-## Daily Use
+Drop `--no-skill` and `--all-targets` for the interactive TUI.
+
+## Daily use
 
 ```bash
-skillshare sync                             # After writing/editing a skill
-skillshare push                             # Push to Git (machine A)
-skillshare pull && skillshare sync          # Pull on machine B
-skillshare update --all && skillshare sync  # Update external skills
+skillshare sync                             # after writing or editing a skill
+skillshare push                             # push to git
+skillshare pull && skillshare sync          # pull on another machine
+skillshare update --all && skillshare sync  # update external skills
 ```
 
-## Gotchas
+## Things that will bite you
 
-1. **`sync` is manual** — Run it after every `install` / `uninstall` / `update`.
-2. **Don't `rm -rf` skills** — Use `skillshare uninstall`. It trashes (7-day retention), recoverable via `trash restore`.
-3. **Don't edit `_`-prefixed dirs** — Managed by skillshare, gitignored, overwritten on `update`.
-4. **HIGH audit ≠ blocked** — Only CRITICAL blocks. HIGH is a warning. `--force` to override.
-5. **Use `merge` mode** — `replace` wipes the target dir. `merge` symlinks alongside your local skills.
-6. **`skillshare doctor`** — First thing to run when skills aren't showing up.
+`sync` is manual. Run it after every `install`, `uninstall`, or `update`.
+
+Remove skills with `skillshare uninstall`, not `rm -rf`. Uninstall puts them in trash with 7-day retention.
+
+Never edit `_`-prefixed directories. They are overwritten on `update`.
+
+`skillshare doctor` is the first thing to run when skills don't show up.
