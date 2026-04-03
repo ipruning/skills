@@ -37,3 +37,7 @@ fd -H -t f '.skillshare-meta.json' -x dirname {} | sed 's|^\./||' | sort -u
 Add each directory to all seven configs: `.typos.toml` (`[files].extend-exclude`), `.markdownlint-cli2.yaml` (`ignores`), `biome.jsonc` (`files.includes` with `!!dir/` negation), `pyproject.toml` (`[tool.ruff].exclude` and `[tool.ty.src].exclude`), `prek.toml` (top-level `exclude` regex), and `.autocorrectignore`.
 
 `_`-prefixed directories are gitignored and never checked in, so they don't need lint excludes. Only non-`_` directories with `.skillshare-meta.json` need them.
+
+## Running skillshare
+
+Always use non-interactive flags (`--force`, `--all`, `--yes`). AI agents cannot answer prompts. Always run `skillshare sync` after any mutation (`install`, `uninstall`, `update`, `collect`, `target`). Use `--json` when you need to parse output.

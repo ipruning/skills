@@ -41,6 +41,8 @@ skillshare pull && skillshare sync          # pull on another machine
 skillshare update --all && skillshare sync  # update external skills
 ```
 
+skillshare also works per-repo (`.skillshare/` in any project root). See the skillshare skill for details.
+
 ## Things that will bite you
 
 `sync` is manual. Run it after every `install`, `uninstall`, or `update`.
@@ -48,5 +50,7 @@ skillshare update --all && skillshare sync  # update external skills
 Remove skills with `skillshare uninstall`, not `rm -rf`. Uninstall puts them in trash with 7-day retention.
 
 Never edit `_`-prefixed directories. They are overwritten on `update`.
+
+Use `merge` mode, not `replace`. `replace` wipes the target directory.
 
 `skillshare doctor` is the first thing to run when skills don't show up.
