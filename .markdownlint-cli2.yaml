@@ -4,6 +4,7 @@ globs:
     - "**/*.md"
 
 ignores:
+    - "actionbook/"
     - "agent-browser/"
     - "electron/"
     - "exe.dev/"

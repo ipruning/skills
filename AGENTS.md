@@ -34,4 +34,22 @@
 ## Synced Skills Ignore Rules
 
 Any dir with `.skillshare-meta.json` is externally synced — exclude it from ALL lint configs.
-Find them: `fd -H -t f '.skillshare-meta.json' -x dirname {} | sed 's|^\./||' | sort -u`
+
+**Discovery command** (run from repo root):
+
+```bash
+fd -H -t f '.skillshare-meta.json' -x dirname {} | sed 's|^\./||' | sort -u
+```
+
+**Checklist — when a new external skill appears, add its directory to ALL of these:**
+
+1. `.typos.toml` → `[files].extend-exclude`
+2. `.markdownlint-cli2.yaml` → `ignores`
+3. `biome.jsonc` → `files.includes` (use `!!dir/` negation)
+4. `pyproject.toml` → `[tool.ruff].exclude`
+5. `pyproject.toml` → `[tool.ty.src].exclude`
+6. `prek.toml` → top-level `exclude` regex
+7. `.autocorrectignore` → append directory
+
+**Note:** `_`-prefixed dirs (org/community skills) are gitignored and never checked in,
+so they don't need lint ignores. Only non-`_` dirs with `.skillshare-meta.json` need them.

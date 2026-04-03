@@ -1,5 +1,6 @@
 [files]
 extend-exclude = [
+    "actionbook/",
     "agent-browser/",
     "electron/",
     "exe.dev/",

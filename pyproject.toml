@@ -23,6 +23,7 @@ dev = [
 
 [tool.ruff]
 exclude = [
+    "actionbook/",
     "agent-browser/",
     "electron/",
     "exe.dev/",
@@ -61,6 +62,7 @@ unresolved-import = "warn"
 
 [tool.ty.src]
 exclude = [
+    "actionbook/",
     "agent-browser/",
     "electron/",
     "exe.dev/",

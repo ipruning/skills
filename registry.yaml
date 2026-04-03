@@ -3,13 +3,13 @@ skills:
   - name: _jihuanshe-skills
     source: https://github.com/jihuanshe/skills.git
     tracked: true
+    branch: main
   - name: _planetscale-database-skills
     source: https://github.com/planetscale/database-skills.git
     tracked: true
+    branch: main
   - name: electron
     source: https://github.com/vercel-labs/agent-browser.git/skills/electron
-  - name: skill
-    source: https://github.com/boldsoftware/exe.dev/skill
   - name: skill-creator
     source: https://github.com/anthropics/skills/skills/skill-creator
   - name: skillshare
@@ -22,3 +22,5 @@ skills:
     source: https://github.com/vercel-labs/agent-browser.git/skills/agent-browser
   - name: longbridge
     source: https://github.com/longbridge/developers/skills/longbridge
+  - name: actionbook
+    source: https://github.com/actionbook/actionbook/packages/openclaw-plugin/skills/actionbook
