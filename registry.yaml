@@ -1,13 +1,5 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/runkids/skillshare/main/schemas/registry.schema.json
 skills:
-  - name: _jihuanshe-skills
-    source: https://github.com/jihuanshe/skills.git
-    tracked: true
-    branch: main
-  - name: _planetscale-database-skills
-    source: https://github.com/planetscale/database-skills.git
-    tracked: true
-    branch: main
   - name: electron
     source: https://github.com/vercel-labs/agent-browser.git/skills/electron
   - name: skill-creator
