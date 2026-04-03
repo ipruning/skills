@@ -1,14 +1,13 @@
 ---
-name: exe-backup
+name: shelley-backup
 description: >-
-  Backup Shelley chat history from all exe.dev VMs. Use when the user asks to
-  "backup shelley", "backup exe VMs", "save chat history from exe.dev",
-  "备份 shelley", or wants to preserve AI conversation data from exe.dev servers.
+  Backup Shelley chat history from exe.dev VMs.
+  Triggers: backup shelley, save shelley, 备份 shelley.
 ---
 
-# exe-backup
+# shelley-backup
 
-Backup Shelley SQLite databases from all exe.dev VMs to local `~/Databases/backup/shelley/<date>/` with a `latest` symlink.
+Each exe.dev VM keeps Shelley chat history in a SQLite database. This skill copies them all to `~/Databases/backup/shelley/`, one dated folder per run, with a `latest` symlink pointing to the most recent.
 
 ## Instructions
 
@@ -20,7 +19,7 @@ ssh exe.dev ls --json 2>&1 | jq -r '.vms[].ssh_dest'
 
 ### Step 2: Backup
 
-Run this script — it checkpoints WAL, rsyncs in parallel, and updates the `latest` symlink:
+The script flushes each database's write-ahead log so the file is self-contained, then copies all VMs in parallel:
 
 ```bash
 BACKUP_ROOT=~/Databases/backup/shelley
@@ -76,7 +75,6 @@ done
 
 ## Notes
 
-- `rsync -az` enables incremental + compression — repeat runs only transfer changed blocks.
-- `PRAGMA wal_checkpoint(TRUNCATE)` flushes WAL before copy for data integrity.
-- VMs without Shelley installed are skipped with `⬜`.
-- All SSH connections use `StrictHostKeyChecking=accept-new` to avoid interactive prompts.
+- Repeat runs are fast — rsync only transfers changed blocks.
+- VMs without Shelley are skipped (marked `⬜`).
+- SSH accepts new host keys automatically so the script runs without prompts.

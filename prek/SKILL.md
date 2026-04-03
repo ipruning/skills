@@ -7,23 +7,23 @@ metadata:
 
 # Optimizing prek Hooks
 
-Guide for configuring, testing, and optimizing prek (pre-commit) hooks for maximum speed and correctness.
+prek is a pre-commit hook runner. It runs hooks in parallel when they share the same priority, and sequentially across different priorities. Most speed gains come from keeping independent hooks at the same priority and removing unnecessary wrapper overhead.
 
 ## Core Concepts
 
-### Priority-Based Parallelism
+### How priorities work
 
-prek runs hooks concurrently when they share the same `priority` value. Different priorities run sequentially from lowest to highest.
+Hooks with the same priority run concurrently. Different priorities run sequentially, lowest first.
 
 ```toml
-# Hooks at priority 20 run concurrently with each other
+# These two run at the same time
 { id = "ruff-check", priority = 20 }
 { id = "typos", priority = 20 }
-# This hook waits for all priority-20 hooks to finish first
+# This waits for both to finish
 { id = "integration-test", priority = 30 }
 ```
 
-**Key rule: splitting a parallel group into sequential phases is never faster.** `max(A) + max(B) >= max(A ∪ B)`. Keep all independent checks at the same priority unless there is a correctness reason to separate them.
+Splitting a parallel group into sequential phases is never faster — the total wall time can only stay the same or increase. Keep all independent checks at the same priority unless correctness requires otherwise.
 
 ### Three Hook Categories
 
@@ -37,9 +37,9 @@ Fixers **must** run before checks so that checks validate the fixed state.
 
 ## Configuration Patterns
 
-### Official Repo Hooks vs Local System Hooks
+### Prefer official repo hooks
 
-Prefer official pre-commit repo hooks when available. They manage their own toolchain and are faster.
+Official pre-commit repo hooks bundle their own toolchain and start faster than local system hooks.
 
 ```toml
 # ✅ Official repo — manages its own ruff binary
@@ -54,9 +54,9 @@ repo = "local"
 hooks = [{ id = "ruff", entry = "mise exec -- uv run ruff check .", language = "system" }]
 ```
 
-### Check-Only vs Auto-Fix
+### Keep format hooks check-only
 
-Format hooks in official repos often **modify files by default**. For pre-commit (check-only) use, add `--check`:
+Format hooks in official repos modify files by default. Add `--check` so they only report problems:
 
 ```toml
 # ruff-format default: formats in place
@@ -66,19 +66,18 @@ Format hooks in official repos often **modify files by default**. For pre-commit
 
 Verify with: commit a badly formatted file, run the hook, then check `git status` and file hash — no changes should appear.
 
-### pass_filenames Tuning
+### When to disable pass_filenames
 
-| Scenario | Setting | Why |
-|---|---|---|
-| Tool needs full-project context (type checkers like ty, mypy) | `pass_filenames = false` | Must analyze cross-file dependencies |
-| Tool has high startup overhead (Node.js-based: markdownlint, eslint) | `pass_filenames = false` | Avoids N × startup cost from file batching |
-| Tool is fast per-file, low startup (ruff, typos, shellcheck, ripsecrets) | `pass_filenames = true` (default) | Incremental: only checks changed files |
+By default prek passes changed file paths to each hook. Disable this (`pass_filenames = false`) when:
 
-**Pitfall**: prek splits file lists into batches when they exceed OS command-line length limits. Each batch triggers a separate process. For Node.js tools (~1s startup), 12 batches = 12s instead of 1.2s.
+- The tool needs full-project context (type checkers like ty, mypy).
+- The tool has high startup cost (Node.js tools like markdownlint, eslint) — prek splits long file lists into batches, and each batch spawns a new process. Twelve batches at ~1s startup each means 12s instead of 1.2s.
 
-### types Filter for Skipping
+Keep it enabled for fast, low-startup tools (ruff, typos, shellcheck) so they only check changed files.
 
-Use `types` to skip hooks when no relevant files changed:
+### Skip hooks with types
+
+Use `types` so a hook only runs when relevant files changed:
 
 ```toml
 # Only triggers when Python files are in the changeset
@@ -87,9 +86,9 @@ Use `types` to skip hooks when no relevant files changed:
 { id = "shellcheck", types = ["shell"] }
 ```
 
-Remove `always_run = true` when adding `types` — they are mutually exclusive in intent.
+Don't combine `always_run = true` with `types` — they contradict each other.
 
-### Removing Wrapper Overhead
+### Remove wrapper overhead
 
 Each wrapper layer adds startup latency:
 
@@ -100,7 +99,7 @@ uv run ty check .                 # ~2.5s (uv overhead only)
 ty check .                        # ~1.7s (if on PATH)
 ```
 
-For hooks in prek, the environment is already set up. Prefer direct invocation:
+Inside prek the environment is already set up, so the wrappers are unnecessary:
 
 ```toml
 # ❌ Slow
@@ -111,21 +110,18 @@ entry = "uv run ty check ."
 entry = "ty check ."
 ```
 
-### Hidden Files (.dotfiles)
+### Watch out for dotfiles
 
-Some tools skip dotfiles by default (e.g., `autocorrect --fix .` skips `.agents/`, `.mise/`). But prek passes individual file paths including dotfiles.
-
-**Symptom**: hook fails in prek but passes when run manually.
-**Fix**: explicitly include dotfile directories in manual/CI commands:
+Some tools skip dotfiles by default (e.g., `autocorrect --fix .` ignores `.agents/`, `.mise/`), but prek passes dotfile paths directly. This means a hook can fail in prek yet pass when run by hand. To fix the manual/CI side, list the dotfile directories explicitly:
 
 ```bash
 autocorrect --fix . .agents/ .mise/
 autocorrect --lint . .agents/ .mise/
 ```
 
-### require_serial Clarification
+### What require_serial actually does
 
-`require_serial = true` controls **within-hook** file batching (one batch at a time), NOT inter-hook exclusivity. A `require_serial` hook still runs concurrently with other hooks at the same priority. For true exclusivity, assign a unique priority.
+`require_serial = true` makes a hook process its file batches one at a time, but it still runs concurrently with other hooks at the same priority. If you need a hook to run alone, give it a unique priority.
 
 ## Testing Workflow
 
@@ -206,13 +202,7 @@ CPU intensity = user time / wall time:
 
 ## Common Pitfalls
 
-1. **Format hooks modify files**: Always add `--check` to format hooks in pre-commit. Without it, hooks silently rewrite staged files, creating unstaged changes.
-2. **Node.js batch explosion**: Tools like markdownlint-cli2 with default `pass_filenames = true` get split into many batches. Each Node.js startup costs ~1s. Use `pass_filenames = false`.
-3. **Priority splitting fallacy**: Splitting checks into CPU-heavy (priority 20) and IO-bound (priority 21) groups is **always slower** than running everything at the same priority. The math: `max(group_A) + max(group_B) >= max(all_together)`.
-4. **`always_run` with `types`**: Using both is contradictory. `always_run = true` overrides `types` filtering. Pick one.
-5. **Stale tool versions**: Official repo hooks pin their own tool version via `rev`. Local system hooks use whatever is on PATH — version skew can cause CI vs local differences.
-6. **Hidden file mismatch**: prek passes dotfile paths to hooks, but some tools skip dotfiles when run manually with `.` as argument. This causes "passes locally, fails in prek" or vice versa.
-7. **`mise exec` overhead in hooks**: Each `mise exec --` adds ~1-2s of startup. Since prek already runs in an activated environment, the wrapper is unnecessary.
+1. **Stale tool versions**: Official repo hooks pin their version via `rev`. Local system hooks use whatever is on PATH, so CI and local can drift apart.
 
 ## Recommended Priority Layout
 

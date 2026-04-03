@@ -1,20 +1,20 @@
 ---
-name: surge-cli
-description: "macOS network proxy diagnostics via Surge (China). Triggers: macOS + network hang/timeout (brew, npm, docker, curl), proxy misconfiguration, enhanced mode toggle. Not for Linux servers."
+name: network-triage
+description: "Diagnose and fix network connectivity on a macOS machine behind Surge in mainland China. Covers shell proxy, enhanced mode, HTTP API toggles, and the symptom-to-fix decision tree."
 metadata:
-  version: "1"
+  version: "2"
 ---
 
-# Surge Skill
+# Network Triage (macOS / China)
 
-This machine is in mainland China. International traffic (GitHub, Homebrew, npm, Docker Hub, etc.) will fail without a proxy. Surge is the network control plane — it runs as a macOS app with a CLI and HTTP API.
+This machine is in mainland China. International traffic (GitHub, Homebrew, npm, Docker Hub, etc.) fails without a proxy. Surge is the network control plane.
 
 ## Two Proxy Layers
 
-| Layer | Mechanism | Scope | Toggle |
-|---|---|---|---|
-| Shell env vars | `http_proxy`/`https_proxy`/`all_proxy` | Per-shell, only tools that respect env vars | `set-all-proxy` / `unset-all-proxy` (see below) |
-| Surge Enhanced Mode | System-wide TUN (virtual NIC) | ALL traffic, every process | HTTP API only (see below) |
+| Layer               | Mechanism                              | Scope                                       | Toggle                                          |
+| ------------------- | -------------------------------------- | ------------------------------------------- | ----------------------------------------------- |
+| Shell env vars      | `http_proxy`/`https_proxy`/`all_proxy` | Per-shell, only tools that respect env vars | `set-all-proxy` / `unset-all-proxy` (see below) |
+| Surge Enhanced Mode | System-wide TUN (virtual NIC)          | ALL traffic, every process                  | HTTP API only (see below)                       |
 
 **Neither is always correct:**
 
@@ -22,58 +22,36 @@ This machine is in mainland China. International traffic (GitHub, Homebrew, npm,
 - Env vars set + Surge unhealthy → worse than no proxy (everything hangs on dead upstream).
 - Enhanced mode on → great coverage but intercepts everything, breaks direct-connection debugging.
 
-## Step 1: Diagnose Before Acting
+## Diagnose First
 
-Always check current state before changing anything:
+Check current state:
 
 ```bash
 # Network health (DNS, proxy RTT, UDP relay) — no auth needed
-/Applications/Surge.app/Contents/Applications/surge-cli diagnostics
+surge diagnostics
 
 # What outbound mode? (0=direct, 1=global, 2=rule)
-/Applications/Surge.app/Contents/Applications/surge-cli environment
+surge environment
 
 # Shell proxy vars set?
 env | grep -i proxy
 ```
 
-## Step 2: Identify the Scenario
+## Symptom → Fix
 
-| Symptom | Likely Cause | Fix |
-|---|---|---|
-| `brew install` / `npm install` / `docker pull` hangs | No proxy for international traffic | Set shell proxy OR enable enhanced mode |
-| `curl` to a remote server hangs despite proxy vars | Surge upstream is dead | Run `surge diagnostics`, check proxy RTT |
-| Need direct connection (e.g. debugging latency to a server) | Enhanced mode is intercepting | Disable enhanced mode, unset proxy vars |
-| Everything suddenly broken | Surge crashed or proxy nodes down | `surge diagnostics` first |
-| Intermittent timeouts | Wrong outbound mode (direct instead of rule) | Switch outbound to `rule` |
+| Symptom                                                     | Likely Cause                                 | Fix                                      |
+| ----------------------------------------------------------- | -------------------------------------------- | ---------------------------------------- |
+| `brew install` / `npm install` / `docker pull` hangs        | No proxy for international traffic           | Set shell proxy OR enable enhanced mode  |
+| `curl` to a remote server hangs despite proxy vars          | Surge upstream is dead                       | Run `surge diagnostics`, check proxy RTT |
+| Need direct connection (e.g. debugging latency to a server) | Enhanced mode is intercepting                | Disable enhanced mode, unset proxy vars  |
+| Everything suddenly broken                                  | Surge crashed or proxy nodes down            | `surge diagnostics` first                |
+| Intermittent timeouts                                       | Wrong outbound mode (direct instead of rule) | Switch outbound to `rule`                |
 
-## Surge CLI (no auth, always available)
+## Surge HTTP API
 
-The CLI is at `/Applications/Surge.app/Contents/Applications/surge-cli`, aliased as `surge`.
-
-```bash
-surge diagnostics              # full network health check
-surge dump active              # active connections (process name, host, speed)
-surge dump request             # recent 200 requests
-surge dump dns                 # DNS cache
-surge dump policy              # all proxies and policy groups
-surge dump event               # event log
-surge test-policy <name>       # test single proxy node latency
-surge test-all-policies        # test ALL nodes
-surge flush dns                # clear DNS cache
-surge reload                   # reload config file
-surge switch-profile <name>    # switch to another profile
-surge watch request            # BLOCKING: live stream of all requests (use tmux)
-surge --raw dump <subcommand>  # JSON output for scripting
-```
-
-## Surge HTTP API (required for toggling features)
-
-The CLI **cannot** toggle features like enhanced mode — only the HTTP API can.
+The CLI cannot toggle features like enhanced mode. The HTTP API can.
 
 ### Extract API Key
-
-The key is in the Surge config file. Extract it inline:
 
 ```bash
 x_key=$(perl -ne 'print $1 if /http-api = (.*?)@/' "$HOME/Library/Application Support/Surge/Profiles/default.conf")
