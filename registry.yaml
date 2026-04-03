@@ -13,7 +13,7 @@ skills:
   - name: skill-creator
     source: https://github.com/anthropics/skills/skills/skill-creator
   - name: skillshare
-    source: github.com/runkids/skillshare/skills/skillshare
+    source: https://github.com/runkids/skillshare.git/skills/skillshare
   - name: stl
     source: https://github.com/stainless-api/stainless-api-cli/pkg/cmd/skill/stl-cli
   - name: exe.dev
@@ -21,6 +21,16 @@ skills:
   - name: agent-browser
     source: https://github.com/vercel-labs/agent-browser.git/skills/agent-browser
   - name: longbridge
-    source: https://github.com/longbridge/developers/skills/longbridge
+    source: https://github.com/longbridge/developers.git/skills/longbridge
   - name: actionbook
     source: https://github.com/actionbook/actionbook/packages/openclaw-plugin/skills/actionbook
+  - name: conventional-commits
+    source: https://github.com/tigrisdata/skills/skills/conventional-commits
+  - name: tigris-bucket-management
+    source: https://github.com/tigrisdata/skills/skills/tigris-bucket-management
+  - name: tigris-object-operations
+    source: https://github.com/tigrisdata/skills/skills/tigris-object-operations
+  - name: tigris-snapshots-forking
+    source: https://github.com/tigrisdata/skills/skills/tigris-snapshots-forking
+  - name: tigris-snapshots-recovery
+    source: https://github.com/tigrisdata/skills/skills/tigris-snapshots-recovery

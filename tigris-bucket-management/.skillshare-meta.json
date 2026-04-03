@@ -1,0 +1,14 @@
+{
+  "source": "https://github.com/tigrisdata/skills/skills/tigris-bucket-management",
+  "type": "github-subdir",
+  "installed_at": "2026-04-03T14:19:16.544584+08:00",
+  "repo_url": "https://github.com/tigrisdata/skills.git",
+  "subdir": "skills/tigris-bucket-management",
+  "version": "501490d",
+  "tree_hash": "bf6592f26056b42bdf45bd50ac6ea6e230277f94",
+  "file_hashes": {
+    "README.md": "sha256:67b1f6da8f9f6c9b3d72bd4308d52c8f0509271dcb304725c7fa1bbc2467b2ce",
+    "SKILL.md": "sha256:f001b0d093466bb99a81266eb6579ab4289f6a95fcc9d827f0953887b6b35802",
+    "metadata.json": "sha256:f0e1137a5d54c8a9d08a1ff0f9f9e5bebf61ec8215c2ff3f244f75987bf03249"
+  }
+}

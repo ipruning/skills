@@ -1,0 +1,17 @@
+{
+  "source": "https://github.com/tigrisdata/skills/skills/tigris-snapshots-recovery",
+  "type": "github-subdir",
+  "installed_at": "2026-04-03T14:19:16.629696+08:00",
+  "repo_url": "https://github.com/tigrisdata/skills.git",
+  "subdir": "skills/tigris-snapshots-recovery",
+  "version": "501490d",
+  "tree_hash": "d7694932bcb21a8a9c6b51577775d43caf72556d",
+  "file_hashes": {
+    "README.md": "sha256:857281adcdd39e1682ffff575c63d0fbda3d759aa9a0f9811e00c2346bae4d9f",
+    "SKILL.md": "sha256:a37c317a9128ff9f3d4f581d3a435bc712792c70bb260757607419de9a59a9f1",
+    "metadata.json": "sha256:de5f4bf660a5eab6791e8e9f4ec48ac130afc56f08d320cb28340371802f1dea",
+    "resources/go-examples.md": "sha256:e2fa143f582e1a8c7e92a9a33ad0e2e50810765149348d810db04396a6babc90",
+    "resources/python-examples.md": "sha256:80bd2ba6796577809675b4fd3cb46def926dd202c34501714fb8d3f9895f743e",
+    "resources/restore-workflows.md": "sha256:653e6eeb953388e143988dbf1e9d821773ae9ec6fe5d3471d3ab698fba74225c"
+  }
+}

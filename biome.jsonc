@@ -12,12 +12,17 @@
             "!**/.skillshare-meta.json",
             "!!actionbook/",
             "!!agent-browser/",
+            "!!conventional-commits/",
             "!!electron/",
             "!!exe.dev/",
             "!!longbridge/",
             "!!skill-creator/",
             "!!skillshare/",
-            "!!stl/"
+            "!!stl/",
+            "!!tigris-bucket-management/",
+            "!!tigris-object-operations/",
+            "!!tigris-snapshots-forking/",
+            "!!tigris-snapshots-recovery/"
         ],
         "ignoreUnknown": true
     },

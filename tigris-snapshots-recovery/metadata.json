@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "organization": "Tigris Data",
+  "date": "March 2026",
+  "abstract": "Point-in-time recovery for Tigris object storage. Covers creating snapshot-enabled buckets (must be done at creation time), automatic change tracking (every put/delete is preserved without explicit snapshots), recovering deleted files, reverting overwritten files, bulk restoring entire prefixes or buckets to any timestamp, and taking named snapshots as bookmarks. Includes TypeScript, Go, and Python (tigris-boto3-ext) examples.",
+  "references": [
+    "https://www.tigrisdata.com/docs/buckets/snapshots-and-forks/",
+    "https://www.tigrisdata.com/docs/sdks/tigris/"
+  ]
+}

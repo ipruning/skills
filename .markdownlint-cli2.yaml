@@ -6,12 +6,17 @@ globs:
 ignores:
     - "actionbook/"
     - "agent-browser/"
+    - "conventional-commits/"
     - "electron/"
     - "exe.dev/"
     - "longbridge/"
     - "skill-creator/"
     - "skillshare/"
     - "stl/"
+    - "tigris-bucket-management/"
+    - "tigris-object-operations/"
+    - "tigris-snapshots-forking/"
+    - "tigris-snapshots-recovery/"
 
 config:
     MD013: false
