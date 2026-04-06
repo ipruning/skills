@@ -21,7 +21,7 @@ For Debian/Ubuntu servers. Use `apt-get`, not `apt`. Apply steps use noninteract
 
 5. Audit and apply are separate phases. Audit uses read-only commands. Package installs, file writes, service reloads, and `nft -f` belong in apply and need human approval.
 
-6. All customizations go into dedicated override files — SSH in `sshd_config.d/`, sysctl in `/etc/sysctl.d/`, fail2ban in `jail.local`, systemd in unit drop-ins. Never modify package-managed defaults. Rollback is always `rm <override> + reload`, and package upgrades never produce conffile conflicts.
+6. All customizations go into dedicated override files — SSH in `sshd_config.d/`, sysctl in `/etc/sysctl.d/`, fail2ban in `jail.local`, systemd in unit drop-ins. Never modify package-managed defaults. Rollback is `rm <override> + reload` for services that re-read config on reload; for sysctl, deleted parameters persist in memory until reboot — see the sysctl section for full revert steps. Package upgrades never produce conffile conflicts.
 
 ## 1. Routine Maintenance
 
@@ -89,7 +89,7 @@ apt-get -y \
 
 Use `full-upgrade` only for same-release dependency changes. Stop and escalate for major-version upgrades.
 
-`needrestart` below 3.8 has local privilege escalation (CVE-2024-48990), so verify the version before using it:
+`needrestart` has known local privilege escalation vulnerabilities (CVE-2024-48990 and related). Debian and Ubuntu backport fixes to their own version numbers (e.g., Debian 12: `3.6-4+deb12u3`, Ubuntu 22.04: `3.5-5ubuntu2.2`), so check your distro's security tracker rather than comparing against the upstream version:
 
 ```bash
 needrestart --version
@@ -99,7 +99,7 @@ NEEDRESTART_MODE=l needrestart -r l
 If the running kernel differs from the installed one, schedule a reboot:
 
 ```bash
-echo "Running: $(uname -r)" && echo "Installed: $(dpkg -l "linux-image-$(dpkg --print-architecture)" 2>/dev/null | awk '/^ii/{print $3}')"
+echo "Running: $(uname -r)" && echo "Installed: $(dpkg -l 'linux-image-*' 2>/dev/null | awk '/^ii.*linux-image-[0-9]/{print $2, $3}' | sort -V | tail -1)"
 ```
 
 ### 1.3 Post-Maintenance
@@ -311,7 +311,7 @@ Fix in this order:
 1. SSH — `PasswordAuthentication no`, `PermitRootLogin prohibit-password` (then `no` after non-root admin works), `X11Forwarding no`, `PermitUserRC no`, restrict via `AllowUsers`
 2. Firewall — default drop, allow only required ports, align allow rules with actual listeners, verify persistence
 3. Anti-brute-force — fail2ban or CrowdSec; optional if SSH is key-only and source-restricted
-4. Updates — enable unattended-upgrades, verify apt-daily timers fire, confirm Allowed-Origins covers security updates, require needrestart >= 3.8
+4. Updates — enable unattended-upgrades, verify apt-daily timers fire, confirm Allowed-Origins covers security updates, verify needrestart is patched per distro security tracker
 5. Hardening — sysctl tuning, AppArmor, centralized logging, monitoring, backup
 
 ## Reference
@@ -332,7 +332,7 @@ Prefer these settings in `/etc/ssh/sshd_config.d/hardening.conf`:
 
 Debian's openssh-server defaults favor usability over security. After overriding via `sshd_config.d/`, always verify the effective config with `sshd -T`.
 
-To drop legacy algorithms, append the following to `hardening.conf`. The post-quantum KEX algorithms require OpenSSH 9.x+; clients that do not support them will negotiate `curve25519-sha256` instead:
+To drop legacy algorithms, append the following to `hardening.conf`. Post-quantum KEX version requirements: `sntrup761x25519-sha512@openssh.com` requires OpenSSH ≥ 8.9; `mlkem768x25519-sha256` and the non-`@openssh.com` `sntrup761x25519-sha512` require OpenSSH ≥ 9.9. Debian 12 ships OpenSSH 9.2, so only the `@openssh.com` variant works there — remove the other two PQ entries on older versions. Unsupported algorithms are ignored during negotiation and clients will fall back to `curve25519-sha256`:
 
 ```
 KexAlgorithms mlkem768x25519-sha256,sntrup761x25519-sha512,sntrup761x25519-sha512@openssh.com,curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512
@@ -340,7 +340,11 @@ Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.
 MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256
 ```
 
-Verify the server supports all listed algorithms before applying with `sshd -T | grep kexalgorithms`.
+Verify the server supports all listed algorithms before applying:
+
+```bash
+sshd -T | grep -E 'kexalgorithms|ciphers|macs'
+```
 
 ### Firewall Modification with Rollback
 
@@ -393,7 +397,12 @@ Persist in `/etc/nftables.conf` and verify with `nft -c -f /etc/nftables.conf`. 
 
 ### ufw Firewall with Docker/Container Compatibility
 
-ufw defaults to `deny routed`, which blocks Docker FORWARD traffic even though Docker's own iptables rules exist. Allow routed traffic on each container bridge interface:
+Docker with ufw has two independent problems:
+
+1. **Published ports bypass ufw** — when Docker publishes a container port (`-p`), it inserts `nat`/`DOCKER` iptables rules that redirect traffic before it reaches ufw's `INPUT`/`OUTPUT` chains. As a result, published ports are reachable from the network even if ufw has no matching allow rule.
+2. **FORWARD policy blocks bridge traffic** — ufw defaults to `deny routed`, which drops inter-container and container-to-internet traffic on bridge interfaces even though Docker adds its own FORWARD rules.
+
+For problem 1, avoid `-p 0.0.0.0:PORT:PORT`; bind to `127.0.0.1` and reverse-proxy, or use Docker's `iptables: false` mode (then manage all rules yourself). For problem 2, allow routed traffic on each container bridge interface:
 
 ```bash
 ufw route allow in on <BRIDGE_IFACE>
@@ -500,13 +509,13 @@ Services that need a privileged port (< 1024) can use `AmbientCapabilities=CAP_N
 
 ### Kernel Network Tuning
 
-LXC and OpenVZ containers share the host kernel and cannot modify its parameters. Check first:
+LXC and OpenVZ containers share the host kernel. Node-level (non-namespaced) sysctls like `net.core.default_qdisc` cannot be changed from inside a container. However, many `net.*` sysctls are namespaced (e.g., `net.ipv4.ip_local_port_range`, `net.ipv4.tcp_syncookies`) and can be set per container. Check first:
 
 ```bash
 systemd-detect-virt
 ```
 
-If the result is `lxc` or `openvz`, skip this section. Only `kvm`, `vmware`, `xen`, or `none` (bare metal) support sysctl tuning.
+If the result is `lxc` or `openvz`, review each parameter below — apply only the namespaced ones. On `kvm`, `vmware`, `xen`, or `none` (bare metal), all parameters can be tuned.
 
 BBR requires kernel ≥ 4.9 and the `tcp_bbr` module. Verify before writing the config:
 
@@ -545,7 +554,7 @@ The following parameters appear in many tuning guides but should not be set with
 
 | Parameter | Why not |
 |---|---|
-| `tcp_fastopen = 3` | The server-side bit requires `setsockopt(TCP_FASTOPEN)` in the application; the sysctl alone has no effect |
+| `tcp_fastopen = 3` | The server-side bit (`0x2`) enables support but each listener still needs `setsockopt(TCP_FASTOPEN)`, or add `0x400` to enable it for all listeners by default; `0x3` alone is usually not enough |
 | `rmem_max / wmem_max` | TCP autotuning adjusts buffers automatically; blind overrides can reduce throughput |
 | `tcp_fin_timeout` | Only affects orphan FIN_WAIT_2 sockets, not general connection recycling |
 | `tcp_max_tw_buckets` | The kernel documentation says not to lower it; the default scales with system memory |
@@ -563,6 +572,6 @@ If `AllowUsers` is set, add new admins to the list before testing login. Diagnos
 
 ### Useful Debian Tools
 
-- `needrestart` — lists services and kernels that need restart after upgrades; require version >= 3.8
+- `needrestart` — lists services and kernels that need restart after upgrades; verify the installed version is patched per your distro's security tracker (CVE-2024-48990)
 - `debsecan` — cross-references installed packages against known CVEs
 - `debian-security-support` — checks whether packages are within active security support
