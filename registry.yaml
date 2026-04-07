@@ -5,7 +5,7 @@ skills:
   - name: skill-creator
     source: https://github.com/anthropics/skills/skills/skill-creator
   - name: skillshare
-    source: https://github.com/runkids/skillshare.git/skills/skillshare
+    source: github.com/runkids/skillshare/skills/skillshare
   - name: stl
     source: https://github.com/stainless-api/stainless-api-cli/pkg/cmd/skill/stl-cli
   - name: exe.dev
@@ -26,3 +26,7 @@ skills:
     source: https://github.com/tigrisdata/skills/skills/tigris-snapshots-forking
   - name: tigris-snapshots-recovery
     source: https://github.com/tigrisdata/skills/skills/tigris-snapshots-recovery
+  - name: _jihuanshe-skills
+    source: https://github.com/jihuanshe/skills.git
+    tracked: true
+    branch: main
