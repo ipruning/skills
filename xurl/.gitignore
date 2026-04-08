@@ -1,0 +1,4 @@
+xurl
+.xurl_test
+.DS_Store# Added by goreleaser init:
+dist/

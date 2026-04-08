@@ -22,7 +22,8 @@
             "!!tigris-bucket-management/",
             "!!tigris-object-operations/",
             "!!tigris-snapshots-forking/",
-            "!!tigris-snapshots-recovery/"
+            "!!tigris-snapshots-recovery/",
+            "!!xurl/"
         ],
         "ignoreUnknown": true
     },

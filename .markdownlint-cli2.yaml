@@ -17,6 +17,7 @@ ignores:
     - "tigris-object-operations/"
     - "tigris-snapshots-forking/"
     - "tigris-snapshots-recovery/"
+    - "xurl/"
 
 config:
     MD013: false

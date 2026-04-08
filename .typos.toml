@@ -13,6 +13,7 @@ extend-exclude = [
     "tigris-object-operations/",
     "tigris-snapshots-forking/",
     "tigris-snapshots-recovery/",
+    "xurl/",
 ]
 
 [default.extend-words]

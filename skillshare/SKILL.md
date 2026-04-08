@@ -12,7 +12,7 @@ description: |
   audit pipelines, or building/sharing skill hubs (hub index, hub add).
 argument-hint: "[command] [target] [--json] [--dry-run] [-p|-g]"
 metadata:
-  version: v0.18.7
+  version: v0.18.9
 ---
 
 # Skillshare CLI

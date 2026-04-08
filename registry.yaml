@@ -30,3 +30,5 @@ skills:
     source: https://github.com/jihuanshe/skills.git
     tracked: true
     branch: main
+  - name: xurl
+    source: https://github.com/xdevplatform/xurl/

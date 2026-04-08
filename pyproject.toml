@@ -36,6 +36,7 @@ exclude = [
     "tigris-object-operations/",
     "tigris-snapshots-forking/",
     "tigris-snapshots-recovery/",
+    "xurl/",
 ]
 indent-width = 4
 line-length = 120
@@ -80,4 +81,5 @@ exclude = [
     "tigris-object-operations/",
     "tigris-snapshots-forking/",
     "tigris-snapshots-recovery/",
+    "xurl/",
 ]
