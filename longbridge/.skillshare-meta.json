@@ -1,13 +1,13 @@
 {
   "source": "https://github.com/longbridge/developers.git/skills/longbridge",
   "type": "github-subdir",
-  "installed_at": "2026-04-04T01:43:16.114948+08:00",
+  "installed_at": "2026-04-10T15:44:24.728202+08:00",
   "repo_url": "https://github.com/longbridge/developers.git",
   "subdir": "skills/longbridge",
-  "version": "f63b957",
-  "tree_hash": "d3402a08a5bbbba65bace0827d6b6516108f5243",
+  "version": "77c7e12",
+  "tree_hash": "4571e5101f92e94a5c98e2145ffc9d152d501981",
   "file_hashes": {
-    "SKILL.md": "sha256:bb99217313418f81cbe88c5e5f2050ffb108881f65412f9f0dcb525a22305aac",
+    "SKILL.md": "sha256:603b065329fbee08725653c4423098433764f6e52bb935885f33018bc4d4b194",
     "references/cli/overview.md": "sha256:54e267e137ffbcbfa85040b6eddbdd9b4daba234af45b7130628bc444961c460",
     "references/llm.md": "sha256:a7069264e6129c66949a4aa0b526fc9409609b253519387a9aa323a2e1b2e7b1",
     "references/mcp.md": "sha256:abfb786485c7c0c3287e2045d763afd063d63f19859f01f0810d55dd1e6b816c",
