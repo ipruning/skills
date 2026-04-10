@@ -1,17 +1,9 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/runkids/skillshare/main/schemas/registry.schema.json
 skills:
-  - name: electron
-    source: https://github.com/vercel-labs/agent-browser.git/skills/electron
   - name: skill-creator
     source: https://github.com/anthropics/skills/skills/skill-creator
   - name: skillshare
     source: github.com/runkids/skillshare/skills/skillshare
-  - name: stl
-    source: https://github.com/stainless-api/stainless-api-cli/pkg/cmd/skill/stl-cli
-  - name: exe.dev
-    source: https://github.com/boldsoftware/exe.dev/skill
-  - name: agent-browser
-    source: https://github.com/vercel-labs/agent-browser.git/skills/agent-browser
   - name: longbridge
     source: https://github.com/longbridge/developers.git/skills/longbridge
   - name: actionbook
@@ -22,5 +14,3 @@ skills:
     source: https://github.com/jihuanshe/skills.git
     tracked: true
     branch: main
-  - name: xurl
-    source: https://github.com/xdevplatform/xurl/
