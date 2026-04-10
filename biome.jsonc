@@ -1,5 +1,5 @@
 {
-    "$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
+    "$schema": "https://biomejs.dev/schemas/2.4.11/schema.json",
     "css": {
         "parser": {
             "cssModules": true,
@@ -10,16 +10,11 @@
         "includes": [
             "**",
             "!**/.skillshare-meta.json",
-            "!!actionbook/",
-            "!!agent-browser/",
-            "!!conventional-commits/",
-            "!!electron/",
-            "!!exe.dev/",
-            "!!longbridge/",
-            "!!skill-creator/",
-            "!!skillshare/",
-            "!!stl/",
-            "!!xurl/"
+            "!!actionbook",
+            "!!conventional-commits",
+            "!!longbridge",
+            "!!skill-creator",
+            "!!skillshare"
         ],
         "ignoreUnknown": true
     },

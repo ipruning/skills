@@ -1,15 +1,10 @@
 [files]
 extend-exclude = [
     "actionbook/",
-    "agent-browser/",
     "conventional-commits/",
-    "electron/",
-    "exe.dev/",
     "longbridge/",
     "skill-creator/",
     "skillshare/",
-    "stl/",
-    "xurl/",
 ]
 
 [default.extend-words]

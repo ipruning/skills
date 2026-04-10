@@ -24,15 +24,10 @@ dev = [
 [tool.ruff]
 exclude = [
     "actionbook/",
-    "agent-browser/",
     "conventional-commits/",
-    "electron/",
-    "exe.dev/",
     "longbridge/",
     "skill-creator/",
     "skillshare/",
-    "stl/",
-    "xurl/",
 ]
 indent-width = 4
 line-length = 120
@@ -65,13 +60,8 @@ unresolved-import = "warn"
 [tool.ty.src]
 exclude = [
     "actionbook/",
-    "agent-browser/",
     "conventional-commits/",
-    "electron/",
-    "exe.dev/",
     "longbridge/",
     "skill-creator/",
     "skillshare/",
-    "stl/",
-    "xurl/",
 ]

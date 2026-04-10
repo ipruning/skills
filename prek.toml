@@ -4,7 +4,7 @@
 
 default_install_hook_types = ["pre-commit", "pre-push"]
 default_stages = ["pre-commit", "pre-push"]
-exclude = "^actionbook/|^agent-browser/|^conventional-commits/|^electron/|^exe.dev/|^longbridge/|^skill-creator/|^skillshare/|^stl/|^xurl/"
+exclude = "^actionbook/|^conventional-commits/|^longbridge/|^skill-creator/|^skillshare/"
 fail_fast = false
 
 # =============================================================================
@@ -188,7 +188,7 @@ hooks = [
     {
         id = "autocorrect",
         name = "autocorrect",
-        entry = "autocorrect --lint . .agents/ .mise/",
+        entry = "autocorrect --lint . .mise/",
         language = "system",
         pass_filenames = false,
         stages = ["pre-push"],
