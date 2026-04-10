@@ -18,14 +18,6 @@ skills:
     source: https://github.com/actionbook/actionbook/packages/openclaw-plugin/skills/actionbook
   - name: conventional-commits
     source: https://github.com/tigrisdata/skills/skills/conventional-commits
-  - name: tigris-bucket-management
-    source: https://github.com/tigrisdata/skills/skills/tigris-bucket-management
-  - name: tigris-object-operations
-    source: https://github.com/tigrisdata/skills/skills/tigris-object-operations
-  - name: tigris-snapshots-forking
-    source: https://github.com/tigrisdata/skills/skills/tigris-snapshots-forking
-  - name: tigris-snapshots-recovery
-    source: https://github.com/tigrisdata/skills/skills/tigris-snapshots-recovery
   - name: _jihuanshe-skills
     source: https://github.com/jihuanshe/skills.git
     tracked: true

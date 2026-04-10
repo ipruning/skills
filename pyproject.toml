@@ -32,10 +32,6 @@ exclude = [
     "skill-creator/",
     "skillshare/",
     "stl/",
-    "tigris-bucket-management/",
-    "tigris-object-operations/",
-    "tigris-snapshots-forking/",
-    "tigris-snapshots-recovery/",
     "xurl/",
 ]
 indent-width = 4
@@ -77,9 +73,5 @@ exclude = [
     "skill-creator/",
     "skillshare/",
     "stl/",
-    "tigris-bucket-management/",
-    "tigris-object-operations/",
-    "tigris-snapshots-forking/",
-    "tigris-snapshots-recovery/",
     "xurl/",
 ]

@@ -38,6 +38,8 @@ Add each directory to all seven configs: `.typos.toml` (`[files].extend-exclude`
 
 `_`-prefixed directories are gitignored and never checked in, so they don't need lint excludes. Only non-`_` directories with `.skillshare-meta.json` need them.
 
+When deleting a skill, remove its directory **and** remove its entries from all seven configs listed above. Use `skillshare uninstall` when possible; if you `rm -rf` manually, you must clean the configs yourself.
+
 ## Running skillshare
 
 Always use non-interactive flags (`--force`, `--all`, `--yes`). AI agents cannot answer prompts. Always run `skillshare sync` after any mutation (`install`, `uninstall`, `update`, `collect`, `target`). Use `--json` when you need to parse output.
