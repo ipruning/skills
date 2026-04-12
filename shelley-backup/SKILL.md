@@ -7,7 +7,7 @@ description: >-
 
 # shelley-backup
 
-Each exe.dev VM keeps Shelley chat history in a SQLite database. This skill copies them all to `~/Databases/backup/shelley/`, one dated folder per run, with a `latest` symlink pointing to the most recent.
+Each exe.dev VM keeps Shelley chat history in a SQLite database. This skill copies them all to `~/Backups/shelley/`, one dated folder per run, with a `latest` symlink pointing to the most recent.
 
 ## Instructions
 
@@ -22,7 +22,7 @@ ssh exe.dev ls --json 2>&1 | jq -r '.vms[].ssh_dest'
 The script flushes each database's write-ahead log so the file is self-contained, then copies all VMs in parallel:
 
 ```bash
-BACKUP_ROOT=~/Databases/backup/shelley
+BACKUP_ROOT=~/Backups/shelley
 TS=$(date +%Y-%m-%d)
 DEST="$BACKUP_ROOT/$TS"
 mkdir -p "$DEST"
@@ -51,9 +51,9 @@ ls -lhS "$DEST/"
 ### Step 3: Validate
 
 ```bash
-ls -lhS ~/Databases/backup/shelley/latest/
+ls -lhS ~/Backups/shelley/latest/
 # Each .shelley.db should be a valid SQLite file
-for f in ~/Databases/backup/shelley/latest/*.shelley.db; do
+for f in ~/Backups/shelley/latest/*.shelley.db; do
   vm=$(basename "$f" .shelley.db)
   msgs=$(sqlite3 "$f" "SELECT COUNT(*) FROM messages;" 2>/dev/null)
   echo "$vm: $msgs messages"
@@ -63,7 +63,7 @@ done
 ## Output Structure
 
 ```
-~/Databases/backup/shelley/
+~/Backups/shelley/
 ├── 2026-04-03/
 │   ├── retouch.shelley.db
 │   ├── ipruning-lab.shelley.db
