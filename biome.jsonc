@@ -9,7 +9,6 @@
     "files": {
         "includes": [
             "**",
-            "!**/.skillshare-meta.json",
             "!!actionbook",
             "!!conventional-commits",
             "!!longbridge",

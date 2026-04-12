@@ -28,10 +28,10 @@ Directories prefixed with `_` are externally synced, gitignored, and overwritten
 
 ## Excluding external skills from linting
 
-Directories containing `.skillshare-meta.json` are externally synced and must be excluded from all lint configs. Find them with:
+Directories listed in `.metadata.json` (non-`_`-prefixed) are externally synced and must be excluded from all lint configs. Find them with:
 
 ```bash
-fd -H -t f '.skillshare-meta.json' -x dirname {} | sed 's|^\./||' | sort -u
+jq -r '.entries | keys[] | select(startswith("_") | not)' .metadata.json | sort
 ```
 
 Add each directory to these six config files (seven places total — `pyproject.toml` has two sections):
@@ -43,7 +43,7 @@ Add each directory to these six config files (seven places total — `pyproject.
 - `prek.toml` — top-level `exclude` regex
 - `.autocorrectignore`
 
-`_`-prefixed directories are gitignored and never checked in, so they don't need lint excludes. Only non-`_` directories with `.skillshare-meta.json` need them.
+`_`-prefixed directories are gitignored and never checked in, so they don't need lint excludes. Only non-`_` directories with `.metadata.json` entries need them.
 
 When deleting a skill, remove its directory **and** remove its entries from all six config files listed above. Use `skillshare uninstall` when possible; if you `rm -rf` manually, you must clean the configs yourself.
 
