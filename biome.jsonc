@@ -9,6 +9,7 @@
     "files": {
         "includes": [
             "**",
+            "!.metadata.json",
             "!!actionbook",
             "!!conventional-commits",
             "!!longbridge",
