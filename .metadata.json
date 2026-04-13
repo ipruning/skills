@@ -9,7 +9,7 @@
     "actionbook": {
       "source": "https://github.com/actionbook/actionbook.git/packages/openclaw-plugin/skills/actionbook",
       "type": "github-subdir",
-      "installed_at": "2026-04-13T17:58:41.511674+08:00",
+      "installed_at": "2026-04-13T18:02:12.073702+08:00",
       "repo_url": "https://github.com/actionbook/actionbook.git",
       "subdir": "packages/openclaw-plugin/skills/actionbook",
       "version": "902b321",
@@ -21,7 +21,7 @@
     "conventional-commits": {
       "source": "https://github.com/tigrisdata/skills.git/skills/conventional-commits",
       "type": "github-subdir",
-      "installed_at": "2026-04-13T17:58:43.710643+08:00",
+      "installed_at": "2026-04-13T18:02:14.430248+08:00",
       "repo_url": "https://github.com/tigrisdata/skills.git",
       "subdir": "skills/conventional-commits",
       "version": "501490d",
@@ -35,7 +35,7 @@
     "longbridge": {
       "source": "https://github.com/longbridge/developers.git/skills/longbridge",
       "type": "github-subdir",
-      "installed_at": "2026-04-13T17:58:46.404833+08:00",
+      "installed_at": "2026-04-13T18:02:00.053616+08:00",
       "repo_url": "https://github.com/longbridge/developers.git",
       "subdir": "skills/longbridge",
       "version": "c9bacd5",
@@ -61,7 +61,7 @@
     "skill-creator": {
       "source": "https://github.com/anthropics/skills.git/skills/skill-creator",
       "type": "github-subdir",
-      "installed_at": "2026-04-13T17:58:49.620608+08:00",
+      "installed_at": "2026-04-13T18:02:03.165222+08:00",
       "repo_url": "https://github.com/anthropics/skills.git",
       "subdir": "skills/skill-creator",
       "version": "12ab35c",
@@ -90,10 +90,10 @@
     "skillshare": {
       "source": "https://github.com/runkids/skillshare.git/skills/skillshare",
       "type": "github-subdir",
-      "installed_at": "2026-04-13T17:58:54.443139+08:00",
+      "installed_at": "2026-04-13T18:02:08.665334+08:00",
       "repo_url": "https://github.com/runkids/skillshare.git",
       "subdir": "skills/skillshare",
-      "version": "7270859",
+      "version": "39e5275",
       "tree_hash": "bee5c7477a921ed7f8d38c7b4e24d2cc4035cdf4",
       "file_hashes": {
         "SKILL.md": "sha256:ff2d6086af3296fcea472713a900c4a01730d218ba89ac00ad763d3f2f88a63f",
