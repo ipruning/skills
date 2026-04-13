@@ -9,10 +9,10 @@
     "actionbook": {
       "source": "https://github.com/actionbook/actionbook.git/packages/openclaw-plugin/skills/actionbook",
       "type": "github-subdir",
-      "installed_at": "2026-04-13T04:33:47.896617+08:00",
+      "installed_at": "2026-04-13T16:55:01.096424+08:00",
       "repo_url": "https://github.com/actionbook/actionbook.git",
       "subdir": "packages/openclaw-plugin/skills/actionbook",
-      "version": "a49caea",
+      "version": "902b321",
       "tree_hash": "69ae24c408068c0c7855392a09aa6f9d87c351ca",
       "file_hashes": {
         "SKILL.md": "sha256:ee0a0e89980c6ad24037ef013f039b4a242359f811411e8076f3ad733b9241db"
@@ -21,7 +21,7 @@
     "conventional-commits": {
       "source": "https://github.com/tigrisdata/skills.git/skills/conventional-commits",
       "type": "github-subdir",
-      "installed_at": "2026-04-13T04:33:49.731723+08:00",
+      "installed_at": "2026-04-13T16:55:03.211193+08:00",
       "repo_url": "https://github.com/tigrisdata/skills.git",
       "subdir": "skills/conventional-commits",
       "version": "501490d",
@@ -35,10 +35,10 @@
     "longbridge": {
       "source": "https://github.com/longbridge/developers.git/skills/longbridge",
       "type": "github-subdir",
-      "installed_at": "2026-04-13T04:33:39.101899+08:00",
+      "installed_at": "2026-04-13T16:55:05.777015+08:00",
       "repo_url": "https://github.com/longbridge/developers.git",
       "subdir": "skills/longbridge",
-      "version": "be6a8cb",
+      "version": "c9bacd5",
       "tree_hash": "4571e5101f92e94a5c98e2145ffc9d152d501981",
       "file_hashes": {
         "SKILL.md": "sha256:603b065329fbee08725653c4423098433764f6e52bb935885f33018bc4d4b194",
@@ -61,7 +61,7 @@
     "skill-creator": {
       "source": "https://github.com/anthropics/skills.git/skills/skill-creator",
       "type": "github-subdir",
-      "installed_at": "2026-04-13T04:33:41.565+08:00",
+      "installed_at": "2026-04-13T16:54:53.041906+08:00",
       "repo_url": "https://github.com/anthropics/skills.git",
       "subdir": "skills/skill-creator",
       "version": "12ab35c",
@@ -90,10 +90,10 @@
     "skillshare": {
       "source": "https://github.com/runkids/skillshare.git/skills/skillshare",
       "type": "github-subdir",
-      "installed_at": "2026-04-13T04:33:45.322627+08:00",
+      "installed_at": "2026-04-13T16:54:58.005027+08:00",
       "repo_url": "https://github.com/runkids/skillshare.git",
       "subdir": "skills/skillshare",
-      "version": "77cf272",
+      "version": "1c0528c",
       "tree_hash": "bee5c7477a921ed7f8d38c7b4e24d2cc4035cdf4",
       "file_hashes": {
         "SKILL.md": "sha256:ff2d6086af3296fcea472713a900c4a01730d218ba89ac00ad763d3f2f88a63f",
