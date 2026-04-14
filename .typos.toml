@@ -1,6 +1,7 @@
 [files]
 extend-exclude = [
     "actionbook/",
+    "architecture-diagram/",
     "conventional-commits/",
     "longbridge/",
     "skill-creator/",

@@ -5,6 +5,7 @@ globs:
 
 ignores:
     - "actionbook/"
+    - "architecture-diagram/"
     - "conventional-commits/"
     - "longbridge/"
     - "skill-creator/"

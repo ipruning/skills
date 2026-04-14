@@ -18,6 +18,19 @@
         "SKILL.md": "sha256:ee0a0e89980c6ad24037ef013f039b4a242359f811411e8076f3ad733b9241db"
       }
     },
+    "architecture-diagram": {
+      "source": "https://github.com/Cocoon-AI/architecture-diagram-generator/architecture-diagram",
+      "type": "github-subdir",
+      "installed_at": "2026-04-14T19:57:36.935533+08:00",
+      "repo_url": "https://github.com/Cocoon-AI/architecture-diagram-generator.git",
+      "subdir": "architecture-diagram",
+      "version": "aff12bc",
+      "tree_hash": "05f162849f86820480271b298201c93d0893dfc3",
+      "file_hashes": {
+        "SKILL.md": "sha256:c81c24a80764ebc6ee28e16b607921ca28fc2f8133db5a602e97ce9ba13450ce",
+        "assets/template.html": "sha256:d17a1631a14f108dd469ad16c83d667d917565ebe780f42fad7321be327de442"
+      }
+    },
     "conventional-commits": {
       "source": "https://github.com/tigrisdata/skills.git/skills/conventional-commits",
       "type": "github-subdir",
