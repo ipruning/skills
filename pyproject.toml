@@ -27,6 +27,7 @@ exclude = [
     "conventional-commits/",
     "longbridge/",
     "skill-creator/",
+    "manim-video/",
     "skillshare/",
 ]
 indent-width = 4
@@ -62,6 +63,7 @@ exclude = [
     "actionbook/",
     "conventional-commits/",
     "longbridge/",
+    "manim-video/",
     "skill-creator/",
     "skillshare/",
 ]

@@ -8,6 +8,7 @@ ignores:
     - "conventional-commits/"
     - "longbridge/"
     - "skill-creator/"
+    - "manim-video/"
     - "skillshare/"
 
 config:
