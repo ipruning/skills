@@ -6,7 +6,7 @@ allowed-tools: Bash(curl:*)
 
 # brrr Push Notification API
 
-Source: https://brrr.now/docs/
+Source: <https://brrr.now/docs/>
 
 Send a push notification by POSTing to a single endpoint with a bearer token. The body is either plain text or JSON.
 
