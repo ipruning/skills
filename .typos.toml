@@ -3,6 +3,7 @@ extend-exclude = [
     "actionbook/",
     "architecture-diagram/",
     "conventional-commits/",
+    "diagram-design/",
     "longbridge/",
     "skill-creator/",
     "manim-video/",

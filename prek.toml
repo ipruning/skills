@@ -4,7 +4,7 @@
 
 default_install_hook_types = ["pre-commit", "pre-push"]
 default_stages = ["pre-commit", "pre-push"]
-exclude = "^actionbook/|^architecture-diagram/|^conventional-commits/|^longbridge/|^manim-video/|^skill-creator/|^skillshare/"
+exclude = "^actionbook/|^architecture-diagram/|^conventional-commits/|^diagram-design/|^longbridge/|^manim-video/|^skill-creator/|^skillshare/"
 fail_fast = false
 
 # =============================================================================
