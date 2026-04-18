@@ -1,6 +1,6 @@
 ---
 name: network-triage
-description: "Diagnose and fix network connectivity on a macOS machine behind Surge in mainland China. Covers shell proxy, enhanced mode, HTTP API toggles, and the symptom-to-fix decision tree."
+description: "Diagnose and fix network connectivity on a macOS machine behind Surge in mainland China. Triggers: network hang, proxy, DNS, enhanced mode, brew hang, npm hang, connectivity."
 metadata:
   version: "2"
 ---

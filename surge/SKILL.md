@@ -1,6 +1,8 @@
 ---
 name: surge
-description: Operate and troubleshoot Surge via surge-cli, including command discovery, runtime diagnostics, state inspection (dump/watch/test), and environment mutation with set key-paths. Use when a task asks to control Surge behavior, inspect live status, adjust policy/runtime switches, or automate Surge operations from CLI.
+description: "Operate and troubleshoot Surge via surge-cli: runtime diagnostics, state inspection, and environment mutation. Triggers: surge, surge-cli, proxy control, outbound mode, policy dump."
+metadata:
+  version: "1"
 ---
 
 # Surge CLI Ops

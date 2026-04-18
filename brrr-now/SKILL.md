@@ -1,7 +1,9 @@
 ---
 name: brrr-now
-description: Send push notifications via the brrr.now API. Triggers when the user asks to send a notification, alert, or ping to their phone.
+description: "Send push notifications via the brrr.now API. Triggers: brrr, notification, alert, push, ping."
 allowed-tools: Bash(curl:*)
+metadata:
+  version: "1"
 ---
 
 # brrr Push Notification API

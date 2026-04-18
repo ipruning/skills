@@ -1,7 +1,9 @@
 ---
 name: linear-cli-patch
-description: Install and configure Linear CLI on exe.dev VMs (proxy auth, no API key needed). Triggers when using Linear inside an exe.dev VM.
+description: "Install and configure Linear CLI on exe.dev VMs (proxy auth, no API key). Triggers: linear exe.dev, linear issue exe.dev."
 allowed-tools: Bash(linear:*), Bash(curl:*)
+metadata:
+  version: "1"
 ---
 
 # Linear CLI on exe.dev

@@ -1,7 +1,9 @@
 ---
 name: brrr-now-patch
-description: Send push notifications via brrr on exe.dev VMs (proxy auth, no bearer token needed). Triggers when sending notifications from an exe.dev VM.
+description: "Send push notifications via brrr on exe.dev VMs (proxy auth, no bearer token). Triggers: brrr exe.dev, notification exe.dev."
 allowed-tools: Bash(curl:*)
+metadata:
+  version: "1"
 ---
 
 # brrr Push Notification on exe.dev
