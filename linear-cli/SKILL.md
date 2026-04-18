@@ -16,14 +16,11 @@ The `linear` command must be available on PATH. To check:
 linear --version
 ```
 
-If not installed globally, you can run it without installing via npx:
+If not installed, use the official installer script:
 
 ```bash
-npx @schpet/linear-cli --version
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/schpet/linear-cli/releases/download/v2.0.0/linear-installer.sh | sh
 ```
-
-All subsequent commands can be prefixed with `npx @schpet/linear-cli` in place of `linear`. Otherwise, follow the install instructions at:\
-https://github.com/schpet/linear-cli?tab=readme-ov-file#install
 
 ## Best Practices for Markdown Content
 
