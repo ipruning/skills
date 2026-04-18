@@ -129,6 +129,36 @@
         "references/type-venn.md": "sha256:533cdc36b2ef8648789747df53ad5acf72bbd09e98cc32c600d7ff1e746c8c70"
       }
     },
+    "linear-cli": {
+      "source": "https://github.com/schpet/linear-cli//skills/linear-cli",
+      "type": "git-https-subdir",
+      "installed_at": "2026-04-19T00:50:49.283924+08:00",
+      "repo_url": "https://github.com/schpet/linear-cli.git",
+      "subdir": "skills/linear-cli",
+      "version": "90767cb",
+      "tree_hash": "6f29c4345b675d4787e82ded44b90dd78625d50a",
+      "file_hashes": {
+        "SKILL.md": "sha256:21215fd54b85411808775a30129bf205689f582f6eaa9a43c1d3d6a71f1e6142",
+        "SKILL.template.md": "sha256:964a78ba707084e684a3aac2048e544b14aa1faa100cd274cf11e9861671cc38",
+        "references/api.md": "sha256:8eb38f27a7c0e4927a3d4e2538162643d023a5269747044d623f9934030f5aff",
+        "references/auth.md": "sha256:554d464dcc12a0c88ec41bcec75e099db19425a12b77531a4dba45e326852bcc",
+        "references/commands.md": "sha256:0e7c68448aed8142f6de4affc5371d9c42f5afad1f3b453cd7361b775f92e4f5",
+        "references/config.md": "sha256:50b20d99e2b5084e2d5e194f2aba2d9448cd0dbc170aba57a7331aa3e46d5b64",
+        "references/cycle.md": "sha256:c45f9a3165ba9da3eec1c565be24ae4f739834e5e0a084678e48452700aee715",
+        "references/document.md": "sha256:5cacf83b171d9d8e9ca2d2613e36b38ac3f52346a6403f8ac6a0022c5caae25f",
+        "references/initiative-update.md": "sha256:d8b1e2021125764f8f9cecfe937bbecdc630ee1dfb7becd0ba5277d82662c158",
+        "references/initiative.md": "sha256:17c861062fa8cb56c93542538a9125971b1228991939e5209c2b8993b15a3745",
+        "references/issue.md": "sha256:bef27956091b5356071bed88c2827feec4f069f98cf6930775dd95eb3cc3c58c",
+        "references/label.md": "sha256:3faf2944a5f20bc681642e711a2e49d0acecb7ea2217c25ea8b5208e2651848b",
+        "references/milestone.md": "sha256:56abfb51798e77c7af97f7a2ea42b0cddeab2724f79306864e180df878266dfa",
+        "references/organization-features.md": "sha256:9dee08bd13ab7f93764076f9a53ec92a7e2dfd54ae3cbceb3c8eb1ce39613388",
+        "references/project-update.md": "sha256:62a7dcff5ddb8017fa43430de8680267f0047d90b37b41c21cc36ac078a88b89",
+        "references/project.md": "sha256:fc9bd98369c1ae2b1418f841206c400624cfb7c985d5cbafa5030769d0c4c261",
+        "references/schema.md": "sha256:acbb90509d5587d9c94389429ade18f31cfac8fb139b8b10b2bb4d40683eb33d",
+        "references/team.md": "sha256:12729537db0340a20c884f426ee7680c6e39a00b4838a6cf91df7a74f43ea785",
+        "scripts/generate-docs.ts": "sha256:cfad16a700fd2741a5dc9d804d7f123613dc213496ad6bf38d499cb6137a55eb"
+      }
+    },
     "longbridge": {
       "source": "https://github.com/longbridge/developers.git/skills/longbridge",
       "type": "github-subdir",
