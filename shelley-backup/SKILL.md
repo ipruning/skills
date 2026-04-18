@@ -7,6 +7,12 @@ description: >-
 
 # shelley-backup
 
+## Prerequisites
+
+```bash
+command -v ssh && command -v rsync && command -v jq
+```
+
 Each exe.dev VM keeps Shelley chat history in a SQLite database. This skill copies them all to `~/Backups/shelley/`, one dated folder per run, with a `latest` symlink pointing to the most recent.
 
 ## Instructions

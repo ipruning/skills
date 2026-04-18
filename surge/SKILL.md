@@ -7,6 +7,12 @@ description: Operate and troubleshoot Surge via surge-cli, including command dis
 
 Use this skill to run Surge operations safely and consistently through `surge-cli`.
 
+## Prerequisites
+
+```bash
+command -v surge-cli || test -x /Applications/Surge.app/Contents/Applications/surge-cli
+```
+
 ## Startup
 
 1. Resolve executable path in this order:

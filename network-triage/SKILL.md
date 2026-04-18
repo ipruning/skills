@@ -7,6 +7,12 @@ metadata:
 
 # Network Triage (macOS / China)
 
+## Prerequisites
+
+```bash
+command -v surge-cli || test -x /Applications/Surge.app/Contents/Applications/surge-cli
+```
+
 This machine is in mainland China. International traffic (GitHub, Homebrew, npm, Docker Hub, etc.) fails without a proxy. Surge is the network control plane.
 
 ## Two Proxy Layers

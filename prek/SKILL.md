@@ -7,6 +7,12 @@ metadata:
 
 # Optimizing prek Hooks
 
+## Prerequisites
+
+```bash
+command -v prek
+```
+
 prek is a pre-commit hook runner. It runs hooks in parallel when they share the same priority, and sequentially across different priorities. Most speed gains come from keeping independent hooks at the same priority and removing unnecessary wrapper overhead.
 
 ## Core Concepts
