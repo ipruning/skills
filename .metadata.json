@@ -9,10 +9,10 @@
     "actionbook": {
       "source": "https://github.com/actionbook/actionbook.git/packages/openclaw-plugin/skills/actionbook",
       "type": "github-subdir",
-      "installed_at": "2026-04-20T14:14:50.272392+08:00",
+      "installed_at": "2026-04-20T18:31:24.368947+08:00",
       "repo_url": "https://github.com/actionbook/actionbook.git",
       "subdir": "packages/openclaw-plugin/skills/actionbook",
-      "version": "6529890",
+      "version": "a41c870",
       "tree_hash": "69ae24c408068c0c7855392a09aa6f9d87c351ca",
       "file_hashes": {
         "SKILL.md": "sha256:ee0a0e89980c6ad24037ef013f039b4a242359f811411e8076f3ad733b9241db"
@@ -21,7 +21,7 @@
     "architecture-diagram": {
       "source": "https://github.com/Cocoon-AI/architecture-diagram-generator.git/architecture-diagram",
       "type": "github-subdir",
-      "installed_at": "2026-04-20T14:15:05.156006+08:00",
+      "installed_at": "2026-04-20T18:31:26.61734+08:00",
       "repo_url": "https://github.com/Cocoon-AI/architecture-diagram-generator.git",
       "subdir": "architecture-diagram",
       "version": "aff12bc",
@@ -34,7 +34,7 @@
     "browser-harness": {
       "source": "https://github.com/browser-use/browser-harness.git",
       "type": "github",
-      "installed_at": "2026-04-20T14:14:53.477951+08:00",
+      "installed_at": "2026-04-20T18:31:29.414734+08:00",
       "repo_url": "https://github.com/browser-use/browser-harness.git",
       "version": "8aa28ee",
       "file_hashes": {
@@ -140,7 +140,7 @@
     "conventional-commits": {
       "source": "https://github.com/tigrisdata/skills.git/skills/conventional-commits",
       "type": "github-subdir",
-      "installed_at": "2026-04-20T14:15:07.430146+08:00",
+      "installed_at": "2026-04-20T18:31:31.44251+08:00",
       "repo_url": "https://github.com/tigrisdata/skills.git",
       "subdir": "skills/conventional-commits",
       "version": "501490d",
@@ -154,7 +154,7 @@
     "diagram-design": {
       "source": "https://github.com/cathrynlavery/diagram-design.git",
       "type": "github",
-      "installed_at": "2026-04-20T14:14:56.323064+08:00",
+      "installed_at": "2026-04-20T18:31:33.72239+08:00",
       "repo_url": "https://github.com/cathrynlavery/diagram-design.git",
       "version": "66d0d6a",
       "file_hashes": {
@@ -240,7 +240,7 @@
     "linear-cli": {
       "source": "https://github.com/schpet/linear-cli.git/skills/linear-cli",
       "type": "github-subdir",
-      "installed_at": "2026-04-20T14:14:59.299692+08:00",
+      "installed_at": "2026-04-20T18:31:41.959392+08:00",
       "repo_url": "https://github.com/schpet/linear-cli.git",
       "subdir": "skills/linear-cli",
       "version": "90767cb",
@@ -270,10 +270,10 @@
     "longbridge": {
       "source": "https://github.com/longbridge/developers.git/skills/longbridge",
       "type": "github-subdir",
-      "installed_at": "2026-04-20T14:15:02.394573+08:00",
+      "installed_at": "2026-04-20T18:31:44.444193+08:00",
       "repo_url": "https://github.com/longbridge/developers.git",
       "subdir": "skills/longbridge",
-      "version": "0c7e629",
+      "version": "66ebe4c",
       "tree_hash": "a760499cab9646fa5eb02740b4f794bee2e3e039",
       "file_hashes": {
         "SKILL.md": "sha256:603b065329fbee08725653c4423098433764f6e52bb935885f33018bc4d4b194",
@@ -296,10 +296,10 @@
     "manim-video": {
       "source": "https://github.com/NousResearch/hermes-agent.git/skills/creative/manim-video",
       "type": "github-subdir",
-      "installed_at": "2026-04-20T14:15:11.932418+08:00",
+      "installed_at": "2026-04-20T18:31:48.036098+08:00",
       "repo_url": "https://github.com/NousResearch/hermes-agent.git",
       "subdir": "skills/creative/manim-video",
-      "version": "5157f54",
+      "version": "9f22977",
       "tree_hash": "e455298b3a18dc0bd5d185855c44664e3cdd2471",
       "file_hashes": {
         "README.md": "sha256:a30f3ec6105d5b23bc5ec28e8e2809e9ceed49f1fd816570d5b5656d0aa65819",
@@ -324,7 +324,7 @@
     "skill-creator": {
       "source": "https://github.com/anthropics/skills.git/skills/skill-creator",
       "type": "github-subdir",
-      "installed_at": "2026-04-20T14:15:15.079021+08:00",
+      "installed_at": "2026-04-20T18:31:36.584647+08:00",
       "repo_url": "https://github.com/anthropics/skills.git",
       "subdir": "skills/skill-creator",
       "version": "2c7ec5e",
@@ -353,7 +353,7 @@
     "skillshare": {
       "source": "https://github.com/runkids/skillshare.git/skills/skillshare",
       "type": "github-subdir",
-      "installed_at": "2026-04-20T14:14:43.05714+08:00",
+      "installed_at": "2026-04-20T18:31:52.434921+08:00",
       "repo_url": "https://github.com/runkids/skillshare.git",
       "subdir": "skills/skillshare",
       "version": "8f48906",
@@ -377,7 +377,7 @@
     "slidev": {
       "source": "https://github.com/slidevjs/slidev.git/skills/slidev",
       "type": "github-subdir",
-      "installed_at": "2026-04-20T14:14:46.849468+08:00",
+      "installed_at": "2026-04-20T18:31:39.704493+08:00",
       "repo_url": "https://github.com/slidevjs/slidev.git",
       "subdir": "skills/slidev",
       "version": "a6b7f24",
