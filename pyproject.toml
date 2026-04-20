@@ -25,13 +25,15 @@ dev = [
 exclude = [
     "actionbook/",
     "architecture-diagram/",
+    "browser-harness/",
     "conventional-commits/",
     "diagram-design/",
     "linear-cli/",
     "longbridge/",
-    "skill-creator/",
     "manim-video/",
+    "skill-creator/",
     "skillshare/",
+    "slidev/",
 ]
 indent-width = 4
 line-length = 120
@@ -65,6 +67,7 @@ unresolved-import = "warn"
 exclude = [
     "actionbook/",
     "architecture-diagram/",
+    "browser-harness/",
     "conventional-commits/",
     "diagram-design/",
     "linear-cli/",
@@ -72,4 +75,5 @@ exclude = [
     "manim-video/",
     "skill-creator/",
     "skillshare/",
+    "slidev/",
 ]

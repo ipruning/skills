@@ -12,13 +12,15 @@
             "!.metadata.json",
             "!!actionbook",
             "!!architecture-diagram",
+            "!!browser-harness",
             "!!conventional-commits",
             "!!diagram-design",
             "!!linear-cli",
             "!!longbridge",
-            "!!skill-creator",
             "!!manim-video",
-            "!!skillshare"
+            "!!skill-creator",
+            "!!skillshare",
+            "!!slidev"
         ],
         "ignoreUnknown": true
     },

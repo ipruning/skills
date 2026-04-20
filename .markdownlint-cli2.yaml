@@ -6,13 +6,15 @@ globs:
 ignores:
     - "actionbook/"
     - "architecture-diagram/"
+    - "browser-harness/"
     - "conventional-commits/"
     - "diagram-design/"
     - "linear-cli/"
     - "longbridge/"
-    - "skill-creator/"
     - "manim-video/"
+    - "skill-creator/"
     - "skillshare/"
+    - "slidev/"
 
 config:
     MD013: false
