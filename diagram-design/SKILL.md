@@ -4,7 +4,6 @@ description: Create technical and product diagrams — architecture, flowchart, 
 license: MIT
 metadata:
   version: "1.0"
-  author: Cocoon AI (hello@cocoon-ai.com)
 ---
 
 # Diagram Design
