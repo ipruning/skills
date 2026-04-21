@@ -9,10 +9,10 @@
     "actionbook": {
       "source": "https://github.com/actionbook/actionbook.git/packages/openclaw-plugin/skills/actionbook",
       "type": "github-subdir",
-      "installed_at": "2026-04-20T18:31:24.368947+08:00",
+      "installed_at": "2026-04-21T15:19:57.632332+08:00",
       "repo_url": "https://github.com/actionbook/actionbook.git",
       "subdir": "packages/openclaw-plugin/skills/actionbook",
-      "version": "a41c870",
+      "version": "8cf1a3e",
       "tree_hash": "69ae24c408068c0c7855392a09aa6f9d87c351ca",
       "file_hashes": {
         "SKILL.md": "sha256:ee0a0e89980c6ad24037ef013f039b4a242359f811411e8076f3ad733b9241db"
@@ -21,7 +21,7 @@
     "architecture-diagram": {
       "source": "https://github.com/Cocoon-AI/architecture-diagram-generator.git/architecture-diagram",
       "type": "github-subdir",
-      "installed_at": "2026-04-20T18:31:26.61734+08:00",
+      "installed_at": "2026-04-21T15:19:37.983039+08:00",
       "repo_url": "https://github.com/Cocoon-AI/architecture-diagram-generator.git",
       "subdir": "architecture-diagram",
       "version": "aff12bc",
@@ -34,9 +34,9 @@
     "browser-harness": {
       "source": "https://github.com/browser-use/browser-harness.git",
       "type": "github",
-      "installed_at": "2026-04-20T18:31:29.414734+08:00",
+      "installed_at": "2026-04-21T15:20:01.724108+08:00",
       "repo_url": "https://github.com/browser-use/browser-harness.git",
-      "version": "8aa28ee",
+      "version": "d1d6b59",
       "file_hashes": {
         ".env.example": "sha256:8885dc1afdb3f3fbd7404288be1c08c95f66c42b382eac3abe9c4537bb7d7d53",
         ".gitignore": "sha256:0fd948e7b26e8cea66a08a61faf92f4aaa98ed1db7193cfc9438f372dcad8b4f",
@@ -82,6 +82,7 @@
         "domain-skills/letterboxd/scraping.md": "sha256:e3269acdb42caabd4bf3da9cd51dbdd390719195b194108193a94b3c2851e516",
         "domain-skills/linkedin/.gitkeep": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "domain-skills/macrotrends/scraping.md": "sha256:31a0791c3cfd893dbf6fc69201f54955a19d194af8348633d019fbf010ecaa7f",
+        "domain-skills/medium/article-hydration.md": "sha256:c6d3889959b736306b351561681f40802f42ae4c0bd319dc1510f869a65f0e69",
         "domain-skills/medium/scraping.md": "sha256:61780a17e7867dcf13487cd9f6d459e402dc82a3220b9ad97e629ebf983de6a3",
         "domain-skills/metacritic/scraping.md": "sha256:d8cb03ab8ad63f979a7b4d441daf076efb6ab5f9891c402cee55970ff08886e2",
         "domain-skills/musicbrainz/scraping.md": "sha256:4af39436a1c8710598919b3a37efffc16281eda814714f22026dc1c863c46607",
@@ -95,6 +96,7 @@
         "domain-skills/pubmed/scraping.md": "sha256:4997fc397cd8f1a5e3c656b3f58fd516e06d33275ecd32ba73728db3c61a1b2b",
         "domain-skills/quora/scraping.md": "sha256:5c5e60c135ee2680904475bdb276d7f2d6d0eb993ad60843b34118b228741cb6",
         "domain-skills/rawg/scraping.md": "sha256:f65b1a9196b4fdff01dc3561cb797d76e74e901e5e4fe22dfc33f582f20db33e",
+        "domain-skills/reddit/scraping.md": "sha256:3cb77618ae4e43c46bc2349dc8bf3c4b16d09d4cdd7af0c5e10b5627012daefb",
         "domain-skills/rest-countries/scraping.md": "sha256:8e98f4445f1e59f48d878ea185200154e1b9e12f35f7d568597a719dc9f317b7",
         "domain-skills/salesforce/.gitkeep": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "domain-skills/sec-edgar/scraping.md": "sha256:718ed866f4c73ce8ac54247d99153ec8498d3be32452160fb7aff43a650beb01",
@@ -140,7 +142,7 @@
     "conventional-commits": {
       "source": "https://github.com/tigrisdata/skills.git/skills/conventional-commits",
       "type": "github-subdir",
-      "installed_at": "2026-04-20T18:31:31.44251+08:00",
+      "installed_at": "2026-04-21T15:19:40.031004+08:00",
       "repo_url": "https://github.com/tigrisdata/skills.git",
       "subdir": "skills/conventional-commits",
       "version": "501490d",
@@ -154,7 +156,7 @@
     "diagram-design": {
       "source": "https://github.com/cathrynlavery/diagram-design.git",
       "type": "github",
-      "installed_at": "2026-04-20T18:31:33.72239+08:00",
+      "installed_at": "2026-04-21T15:19:42.460471+08:00",
       "repo_url": "https://github.com/cathrynlavery/diagram-design.git",
       "version": "66d0d6a",
       "file_hashes": {
@@ -240,7 +242,7 @@
     "linear-cli": {
       "source": "https://github.com/schpet/linear-cli.git/skills/linear-cli",
       "type": "github-subdir",
-      "installed_at": "2026-04-20T18:31:41.959392+08:00",
+      "installed_at": "2026-04-21T15:20:04.063001+08:00",
       "repo_url": "https://github.com/schpet/linear-cli.git",
       "subdir": "skills/linear-cli",
       "version": "90767cb",
@@ -270,10 +272,10 @@
     "longbridge": {
       "source": "https://github.com/longbridge/developers.git/skills/longbridge",
       "type": "github-subdir",
-      "installed_at": "2026-04-20T18:31:44.444193+08:00",
+      "installed_at": "2026-04-21T15:20:06.453693+08:00",
       "repo_url": "https://github.com/longbridge/developers.git",
       "subdir": "skills/longbridge",
-      "version": "66ebe4c",
+      "version": "1f84bf5",
       "tree_hash": "a760499cab9646fa5eb02740b4f794bee2e3e039",
       "file_hashes": {
         "SKILL.md": "sha256:603b065329fbee08725653c4423098433764f6e52bb935885f33018bc4d4b194",
@@ -296,10 +298,10 @@
     "manim-video": {
       "source": "https://github.com/NousResearch/hermes-agent.git/skills/creative/manim-video",
       "type": "github-subdir",
-      "installed_at": "2026-04-20T18:31:48.036098+08:00",
+      "installed_at": "2026-04-21T15:19:47.297962+08:00",
       "repo_url": "https://github.com/NousResearch/hermes-agent.git",
       "subdir": "skills/creative/manim-video",
-      "version": "9f22977",
+      "version": "9c0fc0b",
       "tree_hash": "e455298b3a18dc0bd5d185855c44664e3cdd2471",
       "file_hashes": {
         "README.md": "sha256:a30f3ec6105d5b23bc5ec28e8e2809e9ceed49f1fd816570d5b5656d0aa65819",
@@ -321,16 +323,49 @@
         "scripts/setup.sh": "sha256:e7563c458764c1b369c26f874cf94acbe43db8f9a3b1e0d9d735230f5d895bae"
       }
     },
+    "scrapling-official": {
+      "source": "https://github.com/D4Vinci/Scrapling.git/agent-skill/Scrapling-Skill",
+      "type": "github-subdir",
+      "installed_at": "2026-04-21T15:20:09.221683+08:00",
+      "repo_url": "https://github.com/D4Vinci/Scrapling.git",
+      "subdir": "agent-skill/Scrapling-Skill",
+      "version": "54a080a",
+      "tree_hash": "505ae55ed34fe77dddfcd82811d7ef1ad13dfc64",
+      "file_hashes": {
+        "LICENSE.txt": "sha256:5c782ef0346e4fbfe0dc76fd435f181a0f1e4a1a7a6b13c169c6e74314ff5964",
+        "SKILL.md": "sha256:786874ef5aea6b565d56d96254cd2dfee0674e2e5ff91ad6ed1ae77c7932eb41",
+        "examples/01_fetcher_session.py": "sha256:05fdb45c20a304f0fc8c979eabe7eb78b467951219be7b0a6a45d44c05b3ff68",
+        "examples/02_dynamic_session.py": "sha256:9006f94a2648ef7a3c0c7365d636f8a962dc490d192550b9148b40e3c816a5c2",
+        "examples/03_stealthy_session.py": "sha256:a461dd666b82ce478e4bfdb966724d1c1b8807a3a10ce6b918d449c4d553bd4d",
+        "examples/04_spider.py": "sha256:2a899a24ebc827bec0b395f60d276813a99d27575255d28ede30e2cce38beac7",
+        "examples/README.md": "sha256:64a99ae09483b02d78180d56b8ca0487f3948a446875acc46a1518f3c53bcffe",
+        "references/fetching/choosing.md": "sha256:224b31799e04c0339b6a106d6d90b5d6286fa15b77aa5a7006ccee749a541ab3",
+        "references/fetching/dynamic.md": "sha256:463f3b512db0ca7d9447b05f715f7b5c4472405e77b0a24ea749a42f2a5f5983",
+        "references/fetching/static.md": "sha256:71ebc1e03b24696de650a2402049be55e1f2c2a0f6a2f967bec3ac3c4afd8e71",
+        "references/fetching/stealthy.md": "sha256:044675cf332a726605dd14c86ed7c88a785138cfacc714dcffcb3112ea20f168",
+        "references/mcp-server.md": "sha256:6fdae8a1d3c4f1312d5cd921fb9977043b7590e06f4c9c1c8c94a8fe0d11e21b",
+        "references/migrating_from_beautifulsoup.md": "sha256:4d06027059185c16d4f8e2e130cd14f1e1b8612efa327d5bf3d0fee2f23199ac",
+        "references/parsing/adaptive.md": "sha256:8e6c502e051136564ffe90db13d1de0a8fde3783592beca267be213d15eafbb2",
+        "references/parsing/main_classes.md": "sha256:a33dc7fd7bebe6cbdcb2caa6518a42acd682eabec95d32f22dd094be588850c5",
+        "references/parsing/selection.md": "sha256:67320bc591a78f0700c92bb4af3bae00d1a6a149e1aa168fb5ce609f1b3d2f33",
+        "references/spiders/advanced.md": "sha256:3a8d6c14a11294d73454c1449f3b0a6d12c1a329f5ffa42c95dbc7a5a41089b7",
+        "references/spiders/architecture.md": "sha256:2be3fa107bba5fb6b6b6c8ac484bb9a6095ec11298c3bbd68c5079e6c81111a7",
+        "references/spiders/getting-started.md": "sha256:e21896b38192ab24352fb49454a054f3afba33dfc079ca8f40630cca3d28313b",
+        "references/spiders/proxy-blocking.md": "sha256:bd21204aeafc1b11ef935ed984bd445deaa92657151b29829787fced84261b5a",
+        "references/spiders/requests-responses.md": "sha256:938882dad9c6e90aea213f71a43024c676743399c7cf503eb6e436fe8b0369d0",
+        "references/spiders/sessions.md": "sha256:e5d9736725dc01e72ce55b38bf6f9ce2672d7876d17c23151ee01145bbb489b4"
+      }
+    },
     "skill-creator": {
       "source": "https://github.com/anthropics/skills.git/skills/skill-creator",
       "type": "github-subdir",
-      "installed_at": "2026-04-20T18:31:36.584647+08:00",
+      "installed_at": "2026-04-21T15:19:50.579272+08:00",
       "repo_url": "https://github.com/anthropics/skills.git",
       "subdir": "skills/skill-creator",
-      "version": "2c7ec5e",
-      "tree_hash": "98a510d1cfef9f82c3b1eec200229ca68725e613",
+      "version": "b9e19e6",
+      "tree_hash": "3cf9a8db32597ba3e24b584a3d696f4e11c7d7b6",
       "file_hashes": {
-        "LICENSE.txt": "sha256:58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd",
+        "LICENSE.txt": "sha256:bc6b3af2f331cbc7fb0da1344efb2cbe5877a31498b4d70dbc7000f3405a1362",
         "SKILL.md": "sha256:dcd4803e61e913e6fc27294184cd3a71f09f5e924ff20c8a9a20173e7b3c2bcf",
         "agents/analyzer.md": "sha256:bf68f4cac5a56c673a928c2e6d619586c5b93ea364026ab37547772cb45a663a",
         "agents/comparator.md": "sha256:fe1fc9787c495d864c5d6eada47396478572325fde1b33a96d78bf4b849b7a3e",
@@ -353,7 +388,7 @@
     "skillshare": {
       "source": "https://github.com/runkids/skillshare.git/skills/skillshare",
       "type": "github-subdir",
-      "installed_at": "2026-04-20T18:31:52.434921+08:00",
+      "installed_at": "2026-04-21T15:20:14.125073+08:00",
       "repo_url": "https://github.com/runkids/skillshare.git",
       "subdir": "skills/skillshare",
       "version": "8f48906",
@@ -377,7 +412,7 @@
     "slidev": {
       "source": "https://github.com/slidevjs/slidev.git/skills/slidev",
       "type": "github-subdir",
-      "installed_at": "2026-04-20T18:31:39.704493+08:00",
+      "installed_at": "2026-04-21T15:19:53.610882+08:00",
       "repo_url": "https://github.com/slidevjs/slidev.git",
       "subdir": "skills/slidev",
       "version": "a6b7f24",
