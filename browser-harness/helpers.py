@@ -206,8 +206,17 @@ def upload_file(selector, path):
     cdp("DOM.setFileInputFiles", files=[path] if isinstance(path, str) else list(path), nodeId=nid)
 
 def http_get(url, headers=None, timeout=20.0):
-    """Pure HTTP — no browser. Use for static pages / APIs. Wrap in ThreadPoolExecutor for bulk."""
-    import urllib.request, gzip
+    """Pure HTTP — no browser. Use for static pages / APIs. Wrap in ThreadPoolExecutor for bulk.
+
+    When BROWSER_USE_API_KEY is set, routes through the fetch-use proxy (handles bot
+    detection, residential proxies, retries). Falls back to local urllib otherwise."""
+    if os.environ.get("BROWSER_USE_API_KEY"):
+        try:
+            from fetch_use import fetch_sync
+            return fetch_sync(url, headers=headers, timeout_ms=int(timeout * 1000)).text
+        except ImportError:
+            pass
+    import gzip
     h = {"User-Agent": "Mozilla/5.0", "Accept-Encoding": "gzip"}
     if headers: h.update(headers)
     with urllib.request.urlopen(urllib.request.Request(url, headers=h), timeout=timeout) as r:

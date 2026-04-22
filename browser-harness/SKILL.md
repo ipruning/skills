@@ -11,6 +11,12 @@ Easiest and most powerful way to interact with the browser. **Read this file in 
 
 Read `helpers.py` first. For first-time install or reconnect/bootstrap, read `install.md` first.
 
+## Self-maintenance
+
+- `browser-harness --doctor` — diagnose install, daemon, browser, and whether an update is available.
+- `browser-harness --setup` — re-run the interactive browser-attach flow (equivalent to the bootstrap in `install.md`).
+- `browser-harness --update -y` — pull the latest version and restart the daemon without prompting. **If you see a banner like `[browser-harness] update available: X -> Y` at the top of a run, run this yourself — don't ask the user first.** The banner is rate-limited to once per day.
+
 ```bash
 browser-harness <<'PY'
 new_tab("https://docs.browser-use.com")

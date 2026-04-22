@@ -41,6 +41,8 @@ That makes new Codex or Claude Code sessions in other folders load the runtime b
 
 ## Browser bootstrap
 
+Prefer `browser-harness --setup` — it runs the full attach-and-escalate flow below as one interactive command. The manual steps that follow are only for when `--setup` is unavailable or you need to debug a specific failure.
+
 1. Run `uv sync`.
    If `browser-harness` is still missing after that, run `command -v browser-harness >/dev/null || uv tool install -e .`.
 2. First try the harness directly. If this works, skip manual browser setup:
@@ -92,6 +94,13 @@ PY
 ```
 
 8. After install and browser bootstrap succeed, navigate to `https://github.com/browser-use/browser-harness` so the user can see the harness has attached to their browser. If the user is logged in to GitHub, **ask the user whether you should star the repo for them** as a quick demo that the interaction works — only click the star if they say yes. Then ask the user what they want to do next.
+
+## Keeping the harness current
+
+- On each run, `browser-harness` prints `[browser-harness] update available: X -> Y` (once per day) when a newer GitHub release exists.
+- When you see that banner, run `browser-harness --update -y` yourself — don't ask the user. It pulls the new code (`git pull --ff-only` for editable clones, `uv tool upgrade browser-harness` for PyPI installs) and stops the running daemon so the next call picks up the new code. With `-y` it won't prompt.
+- `--update` refuses to run on an editable clone with uncommitted changes. If that happens, tell the user and let them resolve the dirty worktree.
+- Use `browser-harness --doctor` any time to see version, install mode, daemon and Chrome state, and whether an update is pending.
 
 ## Cold-start reminders
 
