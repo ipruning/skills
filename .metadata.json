@@ -9,10 +9,10 @@
     "actionbook": {
       "source": "https://github.com/actionbook/actionbook.git/packages/openclaw-plugin/skills/actionbook",
       "type": "github-subdir",
-      "installed_at": "2026-04-22T11:28:49.420495+08:00",
+      "installed_at": "2026-04-24T00:43:48.940123+08:00",
       "repo_url": "https://github.com/actionbook/actionbook.git",
       "subdir": "packages/openclaw-plugin/skills/actionbook",
-      "version": "49e59c2",
+      "version": "a62b325",
       "tree_hash": "69ae24c408068c0c7855392a09aa6f9d87c351ca",
       "file_hashes": {
         "SKILL.md": "sha256:ee0a0e89980c6ad24037ef013f039b4a242359f811411e8076f3ad733b9241db"
@@ -21,7 +21,7 @@
     "architecture-diagram": {
       "source": "https://github.com/Cocoon-AI/architecture-diagram-generator.git/architecture-diagram",
       "type": "github-subdir",
-      "installed_at": "2026-04-22T11:28:51.570554+08:00",
+      "installed_at": "2026-04-24T00:44:09.088301+08:00",
       "repo_url": "https://github.com/Cocoon-AI/architecture-diagram-generator.git",
       "subdir": "architecture-diagram",
       "version": "aff12bc",
@@ -143,7 +143,7 @@
     "conventional-commits": {
       "source": "https://github.com/tigrisdata/skills.git/skills/conventional-commits",
       "type": "github-subdir",
-      "installed_at": "2026-04-22T11:29:03.233154+08:00",
+      "installed_at": "2026-04-24T00:43:54.99978+08:00",
       "repo_url": "https://github.com/tigrisdata/skills.git",
       "subdir": "skills/conventional-commits",
       "version": "501490d",
@@ -243,7 +243,7 @@
     "linear-cli": {
       "source": "https://github.com/schpet/linear-cli.git/skills/linear-cli",
       "type": "github-subdir",
-      "installed_at": "2026-04-22T11:29:07.757779+08:00",
+      "installed_at": "2026-04-24T00:44:12.047954+08:00",
       "repo_url": "https://github.com/schpet/linear-cli.git",
       "subdir": "skills/linear-cli",
       "version": "b3b9960",
@@ -273,10 +273,10 @@
     "longbridge": {
       "source": "https://github.com/longbridge/developers.git/skills/longbridge",
       "type": "github-subdir",
-      "installed_at": "2026-04-22T11:29:10.110929+08:00",
+      "installed_at": "2026-04-24T00:43:59.985089+08:00",
       "repo_url": "https://github.com/longbridge/developers.git",
       "subdir": "skills/longbridge",
-      "version": "1f84bf5",
+      "version": "69954d0",
       "tree_hash": "a760499cab9646fa5eb02740b4f794bee2e3e039",
       "file_hashes": {
         "SKILL.md": "sha256:603b065329fbee08725653c4423098433764f6e52bb935885f33018bc4d4b194",
@@ -299,10 +299,10 @@
     "manim-video": {
       "source": "https://github.com/NousResearch/hermes-agent.git/skills/creative/manim-video",
       "type": "github-subdir",
-      "installed_at": "2026-04-22T11:29:13.84427+08:00",
+      "installed_at": "2026-04-24T00:44:18.763658+08:00",
       "repo_url": "https://github.com/NousResearch/hermes-agent.git",
       "subdir": "skills/creative/manim-video",
-      "version": "dd8ab40",
+      "version": "ce08916",
       "tree_hash": "e455298b3a18dc0bd5d185855c44664e3cdd2471",
       "file_hashes": {
         "README.md": "sha256:a30f3ec6105d5b23bc5ec28e8e2809e9ceed49f1fd816570d5b5656d0aa65819",
@@ -327,7 +327,7 @@
     "scrapling-official": {
       "source": "https://github.com/D4Vinci/Scrapling.git/agent-skill/Scrapling-Skill",
       "type": "github-subdir",
-      "installed_at": "2026-04-22T11:28:43.777599+08:00",
+      "installed_at": "2026-04-24T00:44:03.175687+08:00",
       "repo_url": "https://github.com/D4Vinci/Scrapling.git",
       "subdir": "agent-skill/Scrapling-Skill",
       "version": "54a080a",
@@ -360,7 +360,7 @@
     "skill-creator": {
       "source": "https://github.com/anthropics/skills.git/skills/skill-creator",
       "type": "github-subdir",
-      "installed_at": "2026-04-22T11:28:54.38339+08:00",
+      "installed_at": "2026-04-24T00:44:06.418331+08:00",
       "repo_url": "https://github.com/anthropics/skills.git",
       "subdir": "skills/skill-creator",
       "version": "b9e19e6",
@@ -389,10 +389,10 @@
     "skillshare": {
       "source": "https://github.com/runkids/skillshare.git/skills/skillshare",
       "type": "github-subdir",
-      "installed_at": "2026-04-22T11:28:58.52983+08:00",
+      "installed_at": "2026-04-24T00:44:23.440655+08:00",
       "repo_url": "https://github.com/runkids/skillshare.git",
       "subdir": "skills/skillshare",
-      "version": "8f48906",
+      "version": "0c2981d",
       "tree_hash": "97725b3566f0a8246f19f43df4f2805cd993034d",
       "file_hashes": {
         "SKILL.md": "sha256:abe1875cd6cc73263828b2f523d18c44059d8e7f07a676320165654d59f035b4",
@@ -413,10 +413,10 @@
     "slidev": {
       "source": "https://github.com/slidevjs/slidev.git/skills/slidev",
       "type": "github-subdir",
-      "installed_at": "2026-04-22T11:28:46.647857+08:00",
+      "installed_at": "2026-04-24T00:44:28.673181+08:00",
       "repo_url": "https://github.com/slidevjs/slidev.git",
       "subdir": "skills/slidev",
-      "version": "a6b7f24",
+      "version": "cb723ec",
       "tree_hash": "1828d4a65689d72678fc2f9903c13dadd95a15e3",
       "file_hashes": {
         "README.md": "sha256:0348a9c6c8244db73ecb8971a8a73b25bb917168ffd3524bc409b505fc293849",
