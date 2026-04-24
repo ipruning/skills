@@ -52,29 +52,44 @@ def daemon_alive(name=None):
 
 
 def ensure_daemon(wait=60.0, name=None, env=None):
-    """Idempotent. `env` is merged into the child process env."""
+    """Idempotent. Self-heals stale daemon, cold Chrome, and missing Allow on chrome://inspect."""
     if daemon_alive(name):
-        return
-    import subprocess
+        # Stale daemons accept connects AND reply to meta:* (pure Python) even when the
+        # CDP WS to Chrome is dead — probe with a real CDP call and require "result".
+        try:
+            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM); s.settimeout(3)
+            s.connect(_paths(name)[0])
+            s.sendall(b'{"method":"Target.getTargets","params":{}}\n')
+            data = b""
+            while not data.endswith(b"\n"):
+                chunk = s.recv(1 << 16)
+                if not chunk: break
+                data += chunk
+            if b'"result"' in data: return
+        except Exception: pass
+        restart_daemon(name)
 
-    e = {**os.environ, **({"BU_NAME": name} if name else {}), **(env or {})}
-    p = subprocess.Popen(
-        ["uv", "run", "daemon.py"],
-        cwd=os.path.dirname(os.path.abspath(__file__)),
-        env=e,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        start_new_session=True,
-    )
-    deadline = time.time() + wait
-    while time.time() < deadline:
-        if daemon_alive(name):
-            return
-        if p.poll() is not None:
-            break
-        time.sleep(0.2)
-    msg = _log_tail(name)
-    raise RuntimeError(msg or f"daemon {name or NAME} didn't come up -- check /tmp/bu-{name or NAME}.log")
+    import subprocess, sys
+    local = not (env or {}).get("BU_CDP_WS") and not os.environ.get("BU_CDP_WS")
+    for attempt in (0, 1):
+        e = {**os.environ, **({"BU_NAME": name} if name else {}), **(env or {})}
+        p = subprocess.Popen(
+            ["uv", "run", "daemon.py"],
+            cwd=os.path.dirname(os.path.abspath(__file__)),
+            env=e, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True,
+        )
+        deadline = time.time() + wait
+        while time.time() < deadline:
+            if daemon_alive(name): return
+            if p.poll() is not None: break
+            time.sleep(0.2)
+        msg = _log_tail(name) or ""
+        if local and attempt == 0 and ("DevToolsActivePort not found" in msg or "not live yet" in msg or ("WS handshake failed" in msg and "403" in msg)):
+            _open_chrome_inspect()
+            print("browser-harness: click Allow on chrome://inspect (and tick the checkbox if shown)", file=sys.stderr)
+            restart_daemon(name)
+            continue
+        raise RuntimeError(msg or f"daemon {name or NAME} didn't come up -- check /tmp/bu-{name or NAME}.log")
 
 
 def stop_remote_daemon(name="remote"):

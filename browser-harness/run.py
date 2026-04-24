@@ -60,7 +60,7 @@ def main():
         )
     print_update_banner()
     ensure_daemon()
-    exec(sys.stdin.read())
+    exec(sys.stdin.read(), globals())
 
 
 if __name__ == "__main__":
