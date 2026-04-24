@@ -347,10 +347,10 @@
       }
     },
     "stable/linear-cli": {
-      "source": "https://github.com/schpet/linear-cli.git/skills/linear-cli",
+      "source": "github.com/schpet/linear-cli/skills/linear-cli",
       "type": "github-subdir",
       "group": "stable",
-      "installed_at": "2026-04-24T10:34:44.93951+08:00",
+      "installed_at": "2026-04-24T10:39:56.986407+08:00",
       "repo_url": "https://github.com/schpet/linear-cli.git",
       "subdir": "skills/linear-cli",
       "version": "b3b9960",
