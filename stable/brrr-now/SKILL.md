@@ -1,7 +1,6 @@
 ---
 name: brrr-now
 description: "Send push notifications via the brrr.now API. Triggers: brrr, notification, alert, push, ping."
-allowed-tools: Bash(curl:*)
 metadata:
   version: "1"
 ---
