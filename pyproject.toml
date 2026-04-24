@@ -23,18 +23,16 @@ dev = [
 
 [tool.ruff]
 exclude = [
-    "actionbook/",
-    "architecture-diagram/",
-    "browser-harness/",
-    "conventional-commits/",
-    "diagram-design/",
-    "linear-cli/",
-    "longbridge/",
-    "manim-video/",
-    "scrapling-official/",
-    "skill-creator/",
-    "skillshare/",
-    "slidev/",
+    "beta/actionbook/",
+    "beta/architecture-diagram/",
+    "beta/browser-harness/",
+    "beta/diagram-design/",
+    "beta/manim-video/",
+    "beta/scraping/scrapling-official/",
+    "beta/slidev/",
+    "stable/linear-cli/",
+    "stable/longbridge/",
+    "stable/skillshare/",
 ]
 indent-width = 4
 line-length = 120
@@ -66,16 +64,14 @@ unresolved-import = "warn"
 
 [tool.ty.src]
 exclude = [
-    "actionbook/",
-    "architecture-diagram/",
-    "browser-harness/",
-    "conventional-commits/",
-    "diagram-design/",
-    "linear-cli/",
-    "longbridge/",
-    "manim-video/",
-    "scrapling-official/",
-    "skill-creator/",
-    "skillshare/",
-    "slidev/",
+    "beta/actionbook/",
+    "beta/architecture-diagram/",
+    "beta/browser-harness/",
+    "beta/diagram-design/",
+    "beta/manim-video/",
+    "beta/scraping/scrapling-official/",
+    "beta/slidev/",
+    "stable/linear-cli/",
+    "stable/longbridge/",
+    "stable/skillshare/",
 ]
