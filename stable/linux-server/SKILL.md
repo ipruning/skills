@@ -564,7 +564,7 @@ The following parameters appear in many tuning guides but should not be set with
 
 ### Troubleshooting
 
-A low `MaxAuthTries` can reject the correct key before it is tried, because SSH agent offers all loaded keys in order. Fix with `IdentitiesOnly yes` in `~/.ssh/config` or `ssh -i` to pin the key.
+A low `MaxAuthTries` can reject the correct key before it is tried, because SSH agent offers all loaded keys in order. Recommended value: `MaxAuthTries 10`. Fix with `IdentitiesOnly yes` in `~/.ssh/config` or `ssh -i` to pin the key.
 
 If `AllowUsers` is set, add new admins to the list before testing login. Diagnosis: `journalctl -u ssh` will show `not allowed because not listed in AllowUsers`.
 
