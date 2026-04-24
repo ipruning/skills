@@ -161,7 +161,7 @@ Since http_get is blocked, all HTML scraping requires the Chrome browser via CDP
 ### Navigation pattern
 
 ```python
-from helpers import goto_url, wait_for_load, wait, js, new_tab
+from helpers import goto, wait_for_load, wait, js, new_tab
 
 # Always use new_tab() for the first Etsy navigation in a session
 tid = new_tab("https://www.etsy.com/search?q=handmade+candle&explicit=1")

@@ -253,7 +253,7 @@ def extract_activity_stream():
 These pages require the browser — use `goto_url()` + `wait_for_load()` + `wait(2)`:
 
 ```python
-from helpers import goto_url, wait_for_load, wait, js
+from helpers import goto, wait_for_load, wait, js
 import json
 
 # Popular films

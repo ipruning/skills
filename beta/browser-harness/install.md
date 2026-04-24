@@ -78,7 +78,7 @@ osascript -e 'tell application "Google Chrome" to activate' \
 
 ```bash
 uv run browser-harness <<'PY'
-goto_url("https://github.com/browser-use/browser-harness")
+goto("https://github.com/browser-use/browser-harness")
 wait_for_load()
 print(page_info())
 PY
