@@ -47,7 +47,7 @@ def drain_events():  return _send({"meta": "drain_events"})["events"]
 
 
 # --- navigation / page ---
-def goto(url):
+def goto_url(url):
     r = cdp("Page.navigate", url=url)
     d = (Path(__file__).parent / "domain-skills" / (urlparse(url).hostname or "").removeprefix("www.").split(".")[0])
     return {**r, "domain_skills": sorted(p.name for p in d.rglob("*.md"))[:10]} if d.is_dir() else r
@@ -67,7 +67,7 @@ def page_info():
     return json.loads(r["result"]["value"])
 
 # --- input ---
-def click(x, y, button="left", clicks=1):
+def click_at_xy(x, y, button="left", clicks=1):
     cdp("Input.dispatchMouseEvent", type="mousePressed", x=x, y=y, button=button, clickCount=clicks)
     cdp("Input.dispatchMouseEvent", type="mouseReleased", x=x, y=y, button=button, clickCount=clicks)
 
@@ -98,7 +98,7 @@ def scroll(x, y, dy=-300, dx=0):
 
 
 # --- visual ---
-def screenshot(path="/tmp/shot.png", full=False):
+def capture_screenshot(path="/tmp/shot.png", full=False):
     r = cdp("Page.captureScreenshot", format="png", captureBeyondViewport=full)
     open(path, "wb").write(base64.b64decode(r["data"]))
     return path
@@ -140,7 +140,7 @@ def new_tab(url="about:blank"):
     tid = cdp("Target.createTarget", url="about:blank")["targetId"]
     switch_tab(tid)
     if url != "about:blank":
-        goto(url)
+        goto_url(url)
     return tid
 
 def ensure_real_tab():
