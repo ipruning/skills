@@ -1,6 +1,6 @@
 ---
 name: oracle
-description: Use Oracle when this task would benefit from an external long-reasoning model with selected project context, such as code review, design review, architecture analysis, third-party API research, difficult debugging, or comparing implementation options.
+description: "Ask an external long-reasoning model for a second opinion on hard code, architecture, research, or debugging questions. Use for code review, design review, third-party API research, difficult bugs, and option comparison. Triggers: oracle, deep review, second opinion."
 ---
 
 Oracle is not the source of truth. Treat its answer as leads and arguments. Verify important claims yourself against local code, tests, docs, command output, or the web.

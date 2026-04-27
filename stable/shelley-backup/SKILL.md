@@ -1,8 +1,9 @@
 ---
 name: shelley-backup
 description: >-
-  Backup Shelley chat history from exe.dev VMs.
-  Triggers: backup shelley, save shelley, 备份 shelley.
+  Back up Shelley chat history from exe.dev VMs. Use to copy, validate, and
+  organize Shelley SQLite databases. Triggers: backup shelley, save shelley,
+  备份 shelley.
 metadata:
   version: "1"
 ---

@@ -1,11 +1,10 @@
 ---
 name: feishu-im-snapshot
 description: >
-  Use when the user asks to export, snapshot, summarize, or produce a weekly report from
-  recent Feishu/Lark chats, including "最近一周", "周报", "我该关注什么",
-  "下周任务", "飞书聊天总结", or "TCG 行业群摘要". Snapshots chats into a
-  local corpus run directory with AGENTS.md, manifest.json, schema.json, raw
-  messages, indexes, and Markdown views.
+  Snapshot recent Feishu/Lark chat history into a local corpus for reports and
+  analysis. Use for weekly reports, chat summaries, action items, or attention
+  lists. Triggers: 最近一周, 周报, 我该关注什么, 下周任务, 飞书聊天总结,
+  TCG 行业群摘要.
 metadata:
   version: "0.5.0"
 ---

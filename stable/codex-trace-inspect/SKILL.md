@@ -1,10 +1,9 @@
 ---
 name: codex-trace-inspect
 description: >
-  Use when the user asks to audit, inspect, compare, or 校对 a Codex trace,
-  thread, rollout JSONL, or codex://threads/<id> link. Snapshots active or
-  archived local trace JSONL into a compact local corpus run directory with
-  AGENTS.md, manifest.json, schema.json, raw data, indexes, and views.
+  Snapshot and inspect Codex trace data. Use when the user asks to audit,
+  compare, or 校对 a Codex thread, rollout JSONL, or codex://threads/ link.
+  Creates a local corpus with AGENTS.md, manifest, indexes, and views.
 metadata:
   version: "0.3.0"
 ---
