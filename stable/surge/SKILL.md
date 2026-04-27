@@ -1,6 +1,6 @@
 ---
 name: surge
-description: "Operate and troubleshoot Surge via surge-cli: runtime diagnostics, state inspection, and environment mutation. Triggers: surge, surge-cli, proxy control, outbound mode, policy dump."
+description: "Operate and troubleshoot Surge with surge-cli. Use for runtime diagnostics, outbound mode, policy groups, DNS flush, profile reload, and controlled state changes. Triggers: Surge, surge-cli, proxy control, policy dump."
 metadata:
   version: "1"
 ---

@@ -1,6 +1,6 @@
 ---
 name: linux-server
-description: "Linux server security audit, hardening, and maintenance. Triggers: VPS, remote Linux host, SSH hardening, firewall rules, Debian/Ubuntu patching, unknown server audit, fail2ban, unattended-upgrades. Not for macOS."
+description: "Audit, harden, and maintain remote Linux servers. Use for VPS checks, SSH hardening, firewall changes, Debian/Ubuntu patching, fail2ban, unattended-upgrades, and unknown-server audits. Not for macOS."
 metadata:
   version: "7"
 ---
