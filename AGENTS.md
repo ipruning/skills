@@ -34,12 +34,12 @@ Directories listed in `.metadata.json` (non-`_`-prefixed) are externally synced 
 jq -r '.entries | keys[] | select(startswith("_") | not)' .metadata.json | sort
 ```
 
-Add each directory to these six config files (seven places total — `pyproject.toml` has two sections):
+Add each directory to these six config files (eight places total — `pyproject.toml` has three sections):
 
 - `.typos.toml` — `[files].extend-exclude`
 - `.markdownlint-cli2.yaml` — `ignores`
 - `biome.jsonc` — `files.includes` with `!!dir` force-ignore (no trailing `/`)
-- `pyproject.toml` — `[tool.ruff].exclude` and `[tool.ty.src].exclude`
+- `pyproject.toml` — `[tool.ruff].exclude`, `[tool.ty.src].exclude`, and `[tool.tombi.files].exclude` (use `dir/**` glob, not trailing-slash paths)
 - `prek.toml` — top-level `exclude` regex
 - `.autocorrectignore`
 

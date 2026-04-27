@@ -52,6 +52,20 @@ skip-magic-trailing-comma = false
 docstring-code-format = true
 docstring-code-line-length = "dynamic"
 
+[tool.tombi.files]
+exclude = [
+    "beta/actionbook/**",
+    "beta/architecture-diagram/**",
+    "beta/browser-harness/**",
+    "beta/diagram-design/**",
+    "beta/manim-video/**",
+    "beta/scraping/scrapling-official/**",
+    "beta/slidev/**",
+    "stable/linear-cli/**",
+    "stable/longbridge/**",
+    "stable/skillshare/**",
+]
+
 [tool.tombi.format.rules]
 indent-style = "space"
 indent-width = 4
