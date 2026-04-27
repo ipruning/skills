@@ -143,6 +143,12 @@ class Daemon:
         try:
             await self.cdp.start()
         except Exception as e:
+            if os.environ.get("BU_CDP_WS"):
+                raise RuntimeError(
+                    f"CDP WS handshake failed: {e} -- remote browser WebSocket connection failed. "
+                    "This can happen when network policy blocks the connection, the WS URL is wrong or expired, or the remote endpoint is down. "
+                    "If you use Browser Use cloud, verify BROWSER_USE_API_KEY and get a fresh URL via start_remote_daemon()."
+                )
             raise RuntimeError(f"CDP WS handshake failed: {e} -- click Allow in Chrome if prompted, then retry")
         await self.attach_first_page()
         orig = self.cdp._event_registry.handle_event

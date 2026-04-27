@@ -40,6 +40,30 @@ def _log_tail(name):
         return None
 
 
+def _needs_chrome_remote_debugging_prompt(msg):
+    """True when Chrome needs the inspect-page permission/profile flow."""
+    lower = (msg or "").lower()
+    return (
+        "devtoolsactiveport not found" in lower
+        or "enable chrome://inspect" in lower
+        or "not live yet" in lower
+        or (
+            "ws handshake failed" in lower
+            and (
+                "403" in lower
+                or "opening handshake" in lower
+                or "timed out" in lower
+                or "timeout" in lower
+            )
+        )
+    )
+
+
+def _is_local_chrome_mode(env=None):
+    """True when the daemon discovers a local Chrome instead of a remote CDP WS."""
+    return not (env or {}).get("BU_CDP_WS") and not os.environ.get("BU_CDP_WS")
+
+
 def daemon_alive(name=None):
     try:
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -70,7 +94,7 @@ def ensure_daemon(wait=60.0, name=None, env=None):
         restart_daemon(name)
 
     import subprocess, sys
-    local = not (env or {}).get("BU_CDP_WS") and not os.environ.get("BU_CDP_WS")
+    local = _is_local_chrome_mode(env)
     for attempt in (0, 1):
         e = {**os.environ, **({"BU_NAME": name} if name else {}), **(env or {})}
         p = subprocess.Popen(
@@ -84,7 +108,7 @@ def ensure_daemon(wait=60.0, name=None, env=None):
             if p.poll() is not None: break
             time.sleep(0.2)
         msg = _log_tail(name) or ""
-        if local and attempt == 0 and ("DevToolsActivePort not found" in msg or "not live yet" in msg or ("WS handshake failed" in msg and "403" in msg)):
+        if local and attempt == 0 and _needs_chrome_remote_debugging_prompt(msg):
             _open_chrome_inspect()
             print("browser-harness: click Allow on chrome://inspect (and tick the checkbox if shown)", file=sys.stderr)
             restart_daemon(name)
@@ -468,7 +492,7 @@ def run_setup():
     except RuntimeError as e:
         first_err = str(e)
 
-    needs_inspect = "DevToolsActivePort not found" in first_err or "enable chrome://inspect" in first_err
+    needs_inspect = _is_local_chrome_mode() and _needs_chrome_remote_debugging_prompt(first_err)
     if needs_inspect:
         print("chrome remote-debugging is not enabled on the current profile.")
         print("opening chrome://inspect/#remote-debugging -- in the tab that opens:")

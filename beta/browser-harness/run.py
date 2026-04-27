@@ -1,4 +1,4 @@
-import sys
+import os, sys
 
 from admin import (
     _version,
@@ -33,6 +33,7 @@ Commands:
   browser-harness --doctor         diagnose install, daemon, and browser state
   browser-harness --setup          interactively attach to your running browser
   browser-harness --update [-y]    pull the latest version (agents: pass -y)
+  browser-harness --reload         stop the daemon so next call picks up code changes
 """
 
 
@@ -51,16 +52,18 @@ def main():
     if args and args[0] == "--update":
         yes = any(a in {"-y", "--yes"} for a in args[1:])
         sys.exit(run_update(yes=yes))
-    if sys.stdin.isatty():
-        sys.exit(
-            "browser-harness reads Python from stdin. Use:\n"
-            "  browser-harness <<'PY'\n"
-            "  print(page_info())\n"
-            "  PY"
-        )
+    if args and args[0] == "--reload":
+        restart_daemon()
+        print("daemon stopped — will restart fresh on next call")
+        return
+    if args and args[0] == "--debug-clicks":
+        os.environ["BH_DEBUG_CLICKS"] = "1"
+        args = args[1:]
+    if not args or args[0] != "-c":
+        sys.exit("Usage: browser-harness -c \"print(page_info())\"")
     print_update_banner()
     ensure_daemon()
-    exec(sys.stdin.read(), globals())
+    exec(args[1], globals())
 
 
 if __name__ == "__main__":

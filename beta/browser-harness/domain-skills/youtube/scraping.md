@@ -66,6 +66,7 @@ with ThreadPoolExecutor(max_workers=5) as ex:
 ## Approach 2: Watch Page — Full Metadata via ytInitialPlayerResponse
 
 Every `youtube.com/watch?v={ID}` page embeds two JSON blobs in the HTML:
+
 - `ytInitialPlayerResponse` — video details, microformat, caption track list
 - `ytInitialData` — comments section structure, related videos
 
@@ -369,6 +370,19 @@ The following are **not accessible** via `http_get` and require the CDP browser 
 - **Channel Videos tab** — video list requires cookies for consistent results
 - **Caption text content** — `captionTracks[].baseUrl` URLs return empty bytes regardless of session state; use the browser's Show Transcript UI flow instead (see `playback.md`)
 - **Age-restricted videos** — oEmbed returns HTTP 401; `scrape_video()` raises `ValueError("LOGIN_REQUIRED")`
+
+### Watch-page DOM hydration — the wait you need
+
+When you do fall through to the browser for watch-page DOM (e.g. because you need a
+rendered UI state, not just metadata), `wait_for_load()` is **not** enough. The `load`
+event fires before YouTube's Polymer components hydrate — `h1.ytd-watch-metadata yt-formatted-string`,
+`ytd-video-owner-renderer #channel-name a`, and `ytd-watch-info-text` all return `null` for
+~2s after load. Add a `wait(3)` after `wait_for_load()` before querying any watch-page
+selector.
+
+Field-tested 2026-04-24 on Brave; same behavior observed on ungoogled-chromium. Prefer
+the `http_get` + `ytInitialPlayerResponse` path above — the browser path exists for flows
+that need live UI state, not for reading metadata.
 
 ---
 

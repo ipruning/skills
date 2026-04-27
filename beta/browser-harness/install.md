@@ -78,7 +78,7 @@ osascript -e 'tell application "Google Chrome" to activate' \
 
 ```bash
 uv run browser-harness <<'PY'
-goto("https://github.com/browser-use/browser-harness")
+goto_url("https://github.com/browser-use/browser-harness")
 wait_for_load()
 print(page_info())
 PY
@@ -93,7 +93,36 @@ restart_daemon()
 PY
 ```
 
+If restart_daemon() also hangs, kill Chrome entirely, clean sockets, and reopen:
+
+```bash
+pkill -9 -f "Google Chrome"
+rm -f /tmp/bu-default.sock /tmp/bu-default.pid
+open -a "Google Chrome"
+```
+
+Wait 5 seconds, then reconnect. This resets all CDP state.
+
 8. After install and browser bootstrap succeed, navigate to `https://github.com/browser-use/browser-harness` so the user can see the harness has attached to their browser. If the user is logged in to GitHub, **ask the user whether you should star the repo for them** as a quick demo that the interaction works — only click the star if they say yes. Then ask the user what they want to do next.
+
+## Maintenance commands
+
+- browser-harness --doctor — show version, install mode, daemon and Chrome state, and whether an update is pending.
+- browser-harness --setup — re-run the full interactive browser-attach flow.
+- browser-harness --update -y — pull the latest version and restart the daemon. Run this yourself when you see the `[browser-harness] update available: X -> Y` banner — don't ask the user. The banner is rate-limited to once per day.
+
+## Architecture
+
+```text
+Chrome / Browser Use cloud -> CDP WS -> daemon.py -> /tmp/bu-<NAME>.sock -> run.py
+```
+
+- Protocol is one JSON line each way.
+- Requests are {method, params, session_id} for CDP or {meta: ...} for daemon control.
+- Responses are {result} / {error} / {events} / {session_id}.
+- BU_NAME namespaces socket, pid, and log files.
+- BU_CDP_WS overrides local Chrome discovery for remote browsers.
+- BU_BROWSER_ID + BROWSER_USE_API_KEY lets the daemon stop a Browser Use cloud browser on shutdown.
 
 ## Keeping the harness current
 
