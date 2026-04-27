@@ -1,6 +1,6 @@
 ---
 name: demand-audit-v2
-description: "Audit whether a product idea, feature request, or startup direction is real demand. Use for demand validation, user interview analysis, adoption risk, and feature proposal review. Triggers: 值不值得做, 需求验证, 用户访谈, 伪需求, 产品想法, 创业方向."
+description: "Audit whether a product idea, feature request, or startup direction is real demand. Use for demand validation, user interview analysis, adoption risk, and feature proposal review."
 metadata:
   version: "1"
 ---

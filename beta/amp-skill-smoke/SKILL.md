@@ -1,6 +1,6 @@
 ---
 name: amp-skill-smoke
-description: 'Smoke-test a SKILL.md with subagents. Use to check whether a skill triggers, follows its instructions, and works on realistic prompts. Triggers: smoke test skill, validate SKILL.md, test skill.'
+description: 'Smoke-test a SKILL.md with subagents to check whether it triggers, follows its instructions, and works on realistic prompts.'
 metadata:
   author: ipruning
   version: "3.0.0"

@@ -1,6 +1,6 @@
 ---
 name: linear-cli-patch
-description: "Manage Linear issues from exe.dev VMs with proxy auth and direct curl fallback. Use when Linear API access is needed on exe.dev without a local API key. Triggers: Linear on exe.dev, fix Linear issue, proxy auth."
+description: "Manage Linear issues from exe.dev VMs with proxy auth and direct curl fallback when Linear API access is needed without a local API key."
 metadata:
   version: "1"
 ---

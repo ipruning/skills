@@ -1,10 +1,8 @@
 ---
 name: feishu-im-snapshot
 description: >
-  Snapshot recent Feishu/Lark chat history into a local corpus for reports and
-  analysis. Use for weekly reports, chat summaries, action items, or attention
-  lists. Triggers: 最近一周, 周报, 我该关注什么, 下周任务, 飞书聊天总结,
-  TCG 行业群摘要.
+  Snapshot recent Feishu/Lark chat history into a local corpus for weekly
+  reports, chat summaries, action items, and attention lists.
 metadata:
   version: "0.5.0"
 ---
