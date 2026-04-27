@@ -1,6 +1,6 @@
 ---
 name: amp-thread-digest
-description: 'Extract knowledge from Amp threads and persist to skills/docs. Triggers: thread digest, extract lessons from thread, thread retrospective, thread knowledge.'
+description: 'Extract reusable lessons from Amp threads and save them to skills or docs. Use for thread retrospectives, tool-failure analysis, and updating SKILL.md from real conversations. Triggers: thread digest, extract lessons, Amp retrospective.'
 metadata:
   version: '1'
 ---

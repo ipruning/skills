@@ -1,6 +1,6 @@
 ---
 name: amp-todo
-description: 'Execute AMPDO comments in codebase. Triggers: ampdo, find ampdo.'
+description: 'Find and resolve AMPDO comments in a codebase. Use when the user asks to handle AMPDO markers, list AMPDO tasks, or complete TODO comments tagged AMPDO. Triggers: ampdo, find ampdo, resolve AMPDO.'
 metadata:
   version: '1'
 ---
