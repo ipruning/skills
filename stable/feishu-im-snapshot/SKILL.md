@@ -1,0 +1,35 @@
+---
+name: feishu-im-snapshot
+description: >
+  Use when the user asks to export, snapshot, summarize, or produce a weekly report from
+  recent Feishu/Lark chats, including "最近一周", "周报", "我该关注什么",
+  "下周任务", "飞书聊天总结", or "TCG 行业群摘要". Snapshots chats into a
+  local corpus run directory with AGENTS.md, manifest.json, schema.json, raw
+  messages, indexes, and Markdown views.
+metadata:
+  version: "0.5.0"
+---
+
+# Feishu IM Snapshot
+
+Snapshot recent Feishu/Lark IM chats into a local corpus directory, then read that directory.
+
+```zsh
+uv run scripts/snapshot.py --days 7 --out "$RUN_DIR"
+cd "$RUN_DIR"
+sed -n '1,160p' AGENTS.md
+jq '.stats' manifest.json
+```
+
+If `--out` is omitted, the snapshotter creates a directory under `$TMPDIR/agent-corpus-runs/feishu-im-snapshot/`.
+
+The output directory contains:
+
+- `AGENTS.md`: run-specific reading protocol.
+- `manifest.json`: source, boundary, stats, warnings, and file index.
+- `schema.json`: JSONL field descriptions.
+- `raw/messages.jsonl`: raw messages returned by `+messages-search` before ignored-chat removal.
+- `data/messages.jsonl`, `data/chats.jsonl`, `data/reactions.jsonl`: query indexes.
+- `views/direct/*.md`, `views/group/*.md`: Markdown reading corpus.
+
+Use `views/` as the primary reading corpus. Use `jq`, `rg`, or `duckdb -no-init` on the output files for deeper inspection. Do not paste full `raw/` or full JSONL indexes into context.
