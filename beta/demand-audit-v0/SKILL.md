@@ -1,6 +1,6 @@
 ---
 name: demand-audit-v0
-description: "Legacy demand-audit workflow for historical comparison. Use only when the user explicitly asks for demand-audit-v0. Default to demand-audit-v2 for product demand validation."
+description: "Legacy demand-audit v0 for explicit version requests and historical comparison; demand-audit-v2 is the default product-demand audit."
 metadata:
   version: "1"
 ---

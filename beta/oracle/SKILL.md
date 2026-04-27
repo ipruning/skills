@@ -1,6 +1,6 @@
 ---
 name: oracle
-description: "Ask an external long-reasoning model for a second opinion on hard code, architecture, research, or debugging questions. Use for code review, design review, third-party API research, difficult bugs, and option comparison."
+description: "Ask an external long-reasoning model for a second opinion on hard code, architecture, research, and debugging questions."
 ---
 
 Oracle is not the source of truth. Treat its answer as leads and arguments. Verify important claims yourself against local code, tests, docs, command output, or the web.

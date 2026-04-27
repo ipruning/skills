@@ -1,6 +1,6 @@
 ---
 name: network-triage
-description: "Diagnose network problems on macOS behind Surge in mainland China. Use for proxy, DNS, enhanced mode, brew/npm hangs, shell proxy variables, and connectivity failures. Not for remote Linux servers."
+description: "Diagnose macOS network failures behind Surge in mainland China across proxy, DNS, enhanced mode, shell proxy variables, and brew/npm hangs. Not for remote Linux servers."
 metadata:
   version: "2"
 ---

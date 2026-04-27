@@ -1,6 +1,6 @@
 ---
 name: brrr-now
-description: "Send push notifications with the brrr.now API when the user asks to ping, alert, notify, or send a push notification."
+description: "Send brrr.now push notifications for pings, alerts, and user-facing notices."
 metadata:
   version: "1"
 ---

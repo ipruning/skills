@@ -1,6 +1,6 @@
 ---
 name: demand-audit-v2
-description: "Audit whether a product idea, feature request, or startup direction is real demand. Use for demand validation, user interview analysis, adoption risk, and feature proposal review."
+description: "Audit product ideas, feature requests, and startup directions for real demand, adoption risk, and evidence quality."
 metadata:
   version: "1"
 ---

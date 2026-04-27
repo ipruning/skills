@@ -1,6 +1,6 @@
 ---
 name: linux-server
-description: "Audit, harden, and maintain remote Linux servers. Use for VPS checks, SSH hardening, firewall changes, Debian/Ubuntu patching, fail2ban, unattended-upgrades, and unknown-server audits. Not for macOS."
+description: "Audit, harden, and maintain remote Linux servers across SSH, firewalls, Debian/Ubuntu patching, fail2ban, unattended-upgrades, and unknown-server review. Not for macOS."
 metadata:
   version: "7"
 ---

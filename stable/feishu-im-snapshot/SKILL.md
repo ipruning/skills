@@ -1,8 +1,8 @@
 ---
 name: feishu-im-snapshot
 description: >
-  Snapshot recent Feishu/Lark chat history into a local corpus for weekly
-  reports, chat summaries, action items, and attention lists.
+  Snapshot recent Feishu/Lark chats into a local corpus for weekly reports,
+  summaries, action items, and attention lists.
 metadata:
   version: "0.5.0"
 ---

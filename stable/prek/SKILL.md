@@ -1,6 +1,6 @@
 ---
 name: prek
-description: "Optimize prek/pre-commit hooks for speed and correctness, including priority tuning, parallelism, pass_filenames, startup overhead, check-only formatters, and hook benchmarks."
+description: "Tune prek/pre-commit hook order, parallelism, filename passing, formatter mode, startup overhead, and benchmarks."
 metadata:
   version: "1"
 ---

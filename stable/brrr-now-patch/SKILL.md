@@ -1,6 +1,6 @@
 ---
 name: brrr-now-patch
-description: "Send brrr push notifications from exe.dev VMs through the proxy-auth flow when bearer-token auth is unavailable."
+description: "Send brrr push notifications from exe.dev VMs through proxy auth when bearer-token auth is unavailable."
 allowed-tools: Bash(curl:*)
 metadata:
   version: "1"

@@ -1,9 +1,8 @@
 ---
 name: codex-trace-inspect
 description: >
-  Snapshot and inspect Codex trace data for auditing or comparing Codex threads,
-  rollout JSONL, or codex://threads/ links. Creates a local corpus with
-  AGENTS.md, manifest, indexes, and views.
+  Snapshot Codex threads, codex://threads links, and rollout JSONL into a local
+  corpus for audit, comparison, indexing, and focused inspection.
 metadata:
   version: "0.3.0"
 ---

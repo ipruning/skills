@@ -1,6 +1,6 @@
 ---
 name: demand-audit-v1
-description: "Legacy demand-audit workflow with sub-agent debate. Use only when the user explicitly asks for demand-audit-v1. Default to demand-audit-v2 for product demand validation."
+description: "Legacy demand-audit v1 with sub-agent debate for explicit version requests; demand-audit-v2 is the default product-demand audit."
 metadata:
   version: "1"
 ---

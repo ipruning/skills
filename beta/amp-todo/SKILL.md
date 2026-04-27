@@ -1,6 +1,6 @@
 ---
 name: amp-todo
-description: 'Find and resolve AMPDO comments in a codebase, including listing AMPDO tasks and completing TODO comments tagged AMPDO.'
+description: 'Find AMPDO comments, list their tasks, and resolve the tagged TODOs.'
 metadata:
   version: '1'
 ---

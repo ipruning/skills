@@ -1,8 +1,8 @@
 ---
 name: shelley-backup
 description: >-
-  Back up Shelley chat history from exe.dev VMs by copying, validating, and
-  organizing Shelley SQLite databases.
+  Back up Shelley chat history from exe.dev VMs into validated, organized
+  SQLite database copies.
 metadata:
   version: "1"
 ---

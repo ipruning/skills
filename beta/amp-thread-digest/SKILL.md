@@ -1,6 +1,6 @@
 ---
 name: amp-thread-digest
-description: 'Extract reusable lessons from Amp threads and save them to skills or docs. Use for thread retrospectives, tool-failure analysis, and SKILL.md updates from real conversations.'
+description: 'Extract reusable lessons from Amp threads and write them into skills or docs.'
 metadata:
   version: '1'
 ---
