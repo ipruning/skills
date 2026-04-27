@@ -1,6 +1,6 @@
 ---
 name: demand-audit-v2
-description: "判断需求真伪（v2，结构化输出），高风险场景启用 sub-agent 对抗分析。触发：值不值得做、需求验证、用户访谈、adoption 分析、功能提案评审、第一性需求。"
+description: "Audit whether a product idea, feature request, or startup direction is real demand. Use for demand validation, user interview analysis, adoption risk, and feature proposal review. Triggers: 值不值得做, 需求验证, 用户访谈, 伪需求, 产品想法, 创业方向."
 metadata:
   version: "1"
 ---

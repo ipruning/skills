@@ -1,6 +1,6 @@
 ---
 name: demand-audit-v0
-description: "透视需求真伪，给出可决策的信号。触发：帮我判断这个需求、这个想法靠不靠谱、产品想法、创业方向、功能提案。"
+description: "Legacy demand-audit workflow for historical comparison. Use only when the user explicitly asks for demand-audit-v0. Default to demand-audit-v2 for product demand validation."
 metadata:
   version: "1"
 ---

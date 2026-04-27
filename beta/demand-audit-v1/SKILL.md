@@ -1,6 +1,6 @@
 ---
 name: demand-audit-v1
-description: "判断需求真伪，高风险场景启用 sub-agent 对抗分析。触发：值不值得做、需求验证、用户访谈、adoption 分析、功能提案评审、第一性需求。"
+description: "Legacy demand-audit workflow with sub-agent debate. Use only when the user explicitly asks for demand-audit-v1. Default to demand-audit-v2 for product demand validation."
 metadata:
   version: "1"
 ---
