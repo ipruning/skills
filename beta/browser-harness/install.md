@@ -1,11 +1,11 @@
 ---
-name: browser-harness-install
+name: browser-install
 description: Install and bootstrap browser-harness into the current agent, then connect it to the user's real Chrome with minimal prompting.
 ---
 
 # browser-harness install
 
-Use this file only for first-time install, reconnect, or cold-start browser bootstrap. For day-to-day browser work, read `SKILL.md`. Always read `helpers.py` after cloning; that is where the functions and expected patterns live.
+Use this file only for first-time install, reconnect, or cold-start browser bootstrap. For day-to-day browser work, read `SKILL.md`. Task-specific edits belong in `agent-workspace/agent_helpers.py` and `agent-workspace/domain-skills/`.
 
 ## Install prompt contract
 
@@ -22,7 +22,7 @@ uv tool install -e .
 command -v browser-harness
 ```
 
-That keeps the command global while still pointing at the real repo checkout, so when the agent edits `helpers.py` the next `browser-harness` uses the new code immediately. Prefer a stable path like `~/Developer/browser-harness`, not `/tmp`.
+That keeps the command global while still pointing at the real repo checkout, so when the agent edits `agent-workspace/agent_helpers.py` the next `browser-harness` uses the new code immediately. Prefer a stable path like `~/Developer/browser-harness`, not `/tmp`.
 
 ## Make it global for the current agent
 
@@ -48,9 +48,7 @@ Prefer `browser-harness --setup` — it runs the full attach-and-escalate flow b
 2. First try the harness directly. If this works, skip manual browser setup:
 
 ```bash
-uv run browser-harness <<'PY'
-print(page_info())
-PY
+uv run browser-harness -c 'print(page_info())'
 ```
 
    Reuse an existing healthy daemon if it is already responding. Do not kill it during setup unless the attach is clearly stale and you are confident no other agent is using the same `BU_NAME`. For parallel agents, use distinct `BU_NAME`s so they do not fight over the same default session.
@@ -77,18 +75,19 @@ osascript -e 'tell application "Google Chrome" to activate' \
 7. Verify with:
 
 ```bash
-uv run browser-harness <<'PY'
+uv run browser-harness -c "$(cat <<'PY'
 goto_url("https://github.com/browser-use/browser-harness")
 wait_for_load()
 print(page_info())
 PY
+)"
 ```
 
 If that fails with a stale websocket or stale socket, restart the daemon once and retry:
 
 ```bash
 uv run python - <<'PY'
-from admin import restart_daemon
+from browser_harness.admin import restart_daemon
 restart_daemon()
 PY
 ```
@@ -114,7 +113,7 @@ Wait 5 seconds, then reconnect. This resets all CDP state.
 ## Architecture
 
 ```text
-Chrome / Browser Use cloud -> CDP WS -> daemon.py -> /tmp/bu-<NAME>.sock -> run.py
+Chrome / Browser Use cloud -> CDP WS -> browser_harness.daemon -> /tmp/bu-<NAME>.sock -> browser_harness.run
 ```
 
 - Protocol is one JSON line each way.

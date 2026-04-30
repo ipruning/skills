@@ -10,11 +10,18 @@ requires-python = ">=3.11"
 dependencies = [
     "cdp-use==1.4.5",
     "fetch-use==0.4.0",
-    "websockets==16.0",
+    "pillow==12.2.0",
+    "websockets==15.0.1",
 ]
 
 [project.scripts]
-browser-harness = "run:main"
+browser-harness = "browser_harness.run:main"
 
 [tool.setuptools]
-py-modules = ["run", "helpers", "daemon", "admin"]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]

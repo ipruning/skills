@@ -1,6 +1,13 @@
 import os, sys
 
-from admin import (
+# Windows default stdout encoding is cp1252, which can't encode the 🟢 marker
+# helpers prepend to tab titles (or anything else outside Latin-1). Force UTF-8
+# so `print(page_info())` doesn't UnicodeEncodeError on Windows. Issue #124(4).
+if hasattr(sys.stdout, "reconfigure"):
+    try: sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception: pass
+
+from .admin import (
     _version,
     ensure_daemon,
     list_cloud_profiles,
@@ -14,17 +21,17 @@ from admin import (
     stop_remote_daemon,
     sync_local_profile,
 )
-from helpers import *
+from .helpers import *
 
 HELP = """Browser Harness
 
 Read SKILL.md for the default workflow and examples.
 
 Typical usage:
-  uv run bh <<'PY'
+  browser-harness -c '
   ensure_real_tab()
   print(page_info())
-  PY
+  '
 
 Helpers are pre-imported. The daemon auto-starts and connects to the running browser.
 
@@ -60,6 +67,8 @@ def main():
         os.environ["BH_DEBUG_CLICKS"] = "1"
         args = args[1:]
     if not args or args[0] != "-c":
+        sys.exit("Usage: browser-harness -c \"print(page_info())\"")
+    if len(args) < 2:
         sys.exit("Usage: browser-harness -c \"print(page_info())\"")
     print_update_banner()
     ensure_daemon()

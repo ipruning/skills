@@ -1,15 +1,22 @@
-"""CDP WS holder + Unix socket relay. One daemon per BU_NAME."""
+"""CDP WS holder + IPC relay (Unix socket on POSIX, TCP loopback on Windows). One daemon per BU_NAME."""
 import asyncio, json, os, socket, sys, time, urllib.request
 from collections import deque
 from pathlib import Path
 
+from . import _ipc as ipc
 from cdp_use.client import CDPClient
 
 
 def _load_env():
-    p = Path(__file__).parent / ".env"
-    if not p.exists():
-        return
+    repo_root = Path(__file__).resolve().parents[2]
+    workspace = Path(os.environ.get("BH_AGENT_WORKSPACE", repo_root / "agent-workspace")).expanduser()
+    for p in (repo_root / ".env", workspace / ".env"):
+        if not p.exists():
+            continue
+        _load_env_file(p)
+
+
+def _load_env_file(p):
     for line in p.read_text().splitlines():
         line = line.strip()
         if not line or line.startswith("#") or "=" not in line:
@@ -21,16 +28,19 @@ def _load_env():
 _load_env()
 
 NAME = os.environ.get("BU_NAME", "default")
-SOCK = f"/tmp/bu-{NAME}.sock"
-LOG = f"/tmp/bu-{NAME}.log"
-PID = f"/tmp/bu-{NAME}.pid"
+SOCK = ipc.sock_addr(NAME)
+LOG = str(ipc.log_path(NAME))
+PID = str(ipc.pid_path(NAME))
 BUF = 500
 PROFILES = [
     Path.home() / "Library/Application Support/Google/Chrome",
+    Path.home() / "Library/Application Support/Comet",
+    Path.home() / "Library/Application Support/Arc/User Data",
     Path.home() / "Library/Application Support/Microsoft Edge",
     Path.home() / "Library/Application Support/Microsoft Edge Beta",
     Path.home() / "Library/Application Support/Microsoft Edge Dev",
     Path.home() / "Library/Application Support/Microsoft Edge Canary",
+    Path.home() / "Library/Application Support/BraveSoftware/Brave-Browser",
     Path.home() / ".config/google-chrome",
     Path.home() / ".config/chromium",
     Path.home() / ".config/chromium-browser",
@@ -58,30 +68,53 @@ def log(msg):
     open(LOG, "a").write(f"{msg}\n")
 
 
+async def _silent(coro):
+    try:
+        await coro
+    except Exception:
+        pass
+
+
 def get_ws_url():
     if url := os.environ.get("BU_CDP_WS"):
         return url
+    if url := os.environ.get("BU_CDP_URL"):
+        # HTTP DevTools endpoint (e.g. http://127.0.0.1:9333) — resolve to ws via /json/version.
+        # Use this for a dedicated automation Chrome on a non-default profile, which avoids the
+        # M144 "Allow remote debugging" dialog and the M136 default-profile lockdown.
+        deadline = time.time() + 30
+        last_err = None
+        while time.time() < deadline:
+            try:
+                return json.loads(urllib.request.urlopen(f"{url}/json/version", timeout=5).read())["webSocketDebuggerUrl"]
+            except Exception as e:
+                last_err = e
+                time.sleep(1)
+        raise RuntimeError(f"BU_CDP_URL={url} unreachable after 30s: {last_err} -- is the dedicated automation Chrome running?")
     for base in PROFILES:
         try:
-            port, path = (base / "DevToolsActivePort").read_text().strip().split("\n", 1)
+            port = (base / "DevToolsActivePort").read_text().strip().split("\n", 1)[0].strip()
         except (FileNotFoundError, NotADirectoryError):
             continue
+        # Resolve the live WS URL via /json/version instead of trusting the path stored
+        # alongside the port in DevToolsActivePort: if Chrome was previously launched
+        # with a different --user-data-dir on the same port, that file is left behind
+        # with a stale browser UUID and the WS upgrade returns 404.
         deadline = time.time() + 30
-        while True:
-            probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            probe.settimeout(1)
+        while time.time() < deadline:
             try:
-                probe.connect(("127.0.0.1", int(port.strip())))
-                break
-            except OSError:
-                if time.time() >= deadline:
-                    raise RuntimeError(
-                        f"Chrome's remote-debugging page is open, but DevTools is not live yet on 127.0.0.1:{port.strip()} — if Chrome opened a profile picker, choose your normal profile first, then tick the checkbox and click Allow if shown"
-                    )
+                return json.loads(urllib.request.urlopen(f"http://127.0.0.1:{port}/json/version", timeout=1).read())["webSocketDebuggerUrl"]
+            except (OSError, KeyError, ValueError):
                 time.sleep(1)
-            finally:
-                probe.close()
-        return f"ws://127.0.0.1:{port.strip()}{path.strip()}"
+        raise RuntimeError(
+            f"Chrome's remote-debugging page is open, but DevTools is not live yet on 127.0.0.1:{port} — if Chrome opened a profile picker, choose your normal profile first, then tick the checkbox and click Allow if shown"
+        )
+    for probe_port in (9222, 9223):
+        try:
+            with urllib.request.urlopen(f"http://127.0.0.1:{probe_port}/json/version", timeout=1) as r:
+                return json.loads(r.read())["webSocketDebuggerUrl"]
+        except (OSError, KeyError, ValueError):
+            continue
     raise RuntimeError(f"DevToolsActivePort not found in {[str(p) for p in PROFILES]} — enable chrome://inspect/#remote-debugging, or set BU_CDP_WS for a remote browser")
 
 
@@ -108,6 +141,7 @@ class Daemon:
     def __init__(self):
         self.cdp = None
         self.session = None
+        self.target_id = None
         self.events = deque(maxlen=BUF)
         self.dialog = None
         self.stop = None  # asyncio.Event, set inside start()
@@ -124,6 +158,7 @@ class Daemon:
         self.session = (await self.cdp.send_raw(
             "Target.attachToTarget", {"targetId": pages[0]["targetId"], "flatten": True}
         ))["sessionId"]
+        self.target_id = pages[0]["targetId"]
         log(f"attached {pages[0]['targetId']} ({pages[0].get('url','')[:80]}) session={self.session}")
         for d in ("Page", "DOM", "Runtime", "Network"):
             try:
@@ -160,8 +195,7 @@ class Daemon:
             elif method == "Page.javascriptDialogClosed":
                 self.dialog = None
             elif method in ("Page.loadEventFired", "Page.domContentEventFired"):
-                try: await asyncio.wait_for(self.cdp.send_raw("Runtime.evaluate", {"expression": mark_js}, session_id=self.session), timeout=2)
-                except Exception: pass
+                asyncio.create_task(_silent(asyncio.wait_for(self.cdp.send_raw("Runtime.evaluate", {"expression": mark_js}, session_id=self.session), timeout=2)))
             return await orig(method, params, session_id)
         self.cdp._event_registry.handle_event = tap
 
@@ -171,8 +205,24 @@ class Daemon:
             out = list(self.events); self.events.clear()
             return {"events": out}
         if meta == "session":     return {"session_id": self.session}
+        if meta == "connection_status":
+            if not self.target_id:
+                return {"error": "not_attached"}
+            try:
+                info = (await self.cdp.send_raw("Target.getTargetInfo", {"targetId": self.target_id}))["targetInfo"]
+            except Exception:
+                return {"error": "cdp_disconnected"}
+            page = None
+            if is_real_page(info):
+                page = {
+                    "targetId": info.get("targetId"),
+                    "title": info.get("title") or "(untitled)",
+                    "url": info.get("url") or "",
+                }
+            return {"target_id": self.target_id, "session_id": self.session, "page": page}
         if meta == "set_session":
             self.session = req.get("session_id")
+            self.target_id = req.get("target_id") or self.target_id
             try:
                 await asyncio.wait_for(self.cdp.send_raw("Page.enable", session_id=self.session), timeout=3)
                 await asyncio.wait_for(self.cdp.send_raw("Runtime.evaluate", {"expression": "if(!document.title.startsWith('\U0001F7E2'))document.title='\U0001F7E2 '+document.title"}, session_id=self.session), timeout=2)
@@ -198,9 +248,6 @@ class Daemon:
 
 
 async def serve(d):
-    if os.path.exists(SOCK):
-        os.unlink(SOCK)
-
     async def handler(reader, writer):
         try:
             line = await reader.readline()
@@ -218,11 +265,19 @@ async def serve(d):
         finally:
             writer.close()
 
-    server = await asyncio.start_unix_server(handler, path=SOCK)
-    os.chmod(SOCK, 0o600)
-    log(f"listening on {SOCK} (name={NAME}, remote={REMOTE_ID or 'local'})")
-    async with server:
-        await d.stop.wait()
+    serve_task = asyncio.create_task(ipc.serve(NAME, handler))
+    stop_task = asyncio.create_task(d.stop.wait())
+    await asyncio.sleep(0.05)  # let serve() bind so sock_addr() resolves to the live endpoint
+    log(f"listening on {ipc.sock_addr(NAME)} (name={NAME}, remote={REMOTE_ID or 'local'})")
+    try:
+        await asyncio.wait({serve_task, stop_task}, return_when=asyncio.FIRST_COMPLETED)
+        if serve_task.done(): await serve_task  # surfaces a serve crash
+    finally:
+        for t in (serve_task, stop_task):
+            t.cancel()
+            try: await t
+            except (asyncio.CancelledError, Exception): pass
+        ipc.cleanup_endpoint(NAME)
 
 
 async def main():
@@ -233,9 +288,8 @@ async def main():
 
 def already_running():
     try:
-        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM); s.settimeout(1)
-        s.connect(SOCK); s.close(); return True
-    except (FileNotFoundError, ConnectionRefusedError, socket.timeout):
+        c = ipc.connect(NAME, timeout=1.0); c.close(); return True
+    except (FileNotFoundError, ConnectionRefusedError, TimeoutError, socket.timeout, OSError):
         return False
 
 

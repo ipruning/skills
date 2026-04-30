@@ -1,20 +1,20 @@
 ---
-name: browser-harness
+name: browser
 description: Direct browser control via CDP. Use when the user wants to automate, scrape, test, or interact with web pages. Connects to the user's already-running Chrome.
 ---
 
 # browser-harness
 
-Direct browser control via CDP. Read helpers.py — that's where the functions live. For setup, install, or connection problems, read install.md.
+Direct browser control via CDP. For task-specific edits, use `agent-workspace/agent_helpers.py` and `agent-workspace/domain-skills/`. For setup, install, or connection problems, read install.md.
 
 ## Usage
 
 ```bash
-browser-harness <<'PY'
+browser-harness -c '
 new_tab("https://docs.browser-use.com")
 wait_for_load()
 print(page_info())
-PY
+'
 ```
 
 - Invoke as browser-harness — it's on $PATH. No cd, no uv run.
@@ -30,9 +30,9 @@ Available domain skills:
 ## Tool call shape
 
 ```bash
-browser-harness <<'PY'
+browser-harness -c '
 # any python. helpers pre-imported. daemon auto-starts.
-PY
+'
 ```
 
 run.py calls ensure_daemon() before exec — you never start/stop manually unless you want to.
@@ -42,18 +42,18 @@ run.py calls ensure_daemon() before exec — you never start/stop manually unles
 Use remote for parallel sub-agents (each gets its own isolated browser via a distinct BU_NAME) or on a headless server. BROWSER_USE_API_KEY must be set. start_remote_daemon, list_cloud_profiles, list_local_profiles, sync_local_profile are pre-imported.
 
 ```bash
-browser-harness <<'PY'
+browser-harness -c '
 start_remote_daemon("work")                               # default — clean browser, no profile
 # start_remote_daemon("work", profileName="my-work")      # reuse a cloud profile (already logged in)
 # start_remote_daemon("work", profileId="<uuid>")         # same, but by UUID
 # start_remote_daemon("work", proxyCountryCode="de", timeout=120)   # DE proxy, 2-hour timeout
 # start_remote_daemon("work", proxyCountryCode=None)      # disable the Browser Use proxy
-PY
+'
 
-BU_NAME=work browser-harness <<'PY'
+BU_NAME=work browser-harness -c '
 new_tab("https://example.com")
 print(page_info())
-PY
+'
 ```
 
 start_remote_daemon prints liveUrl and auto-opens it in the local browser (if a GUI is detected) so the user can watch along. Headless servers print only — share the URL with the user. The daemon PATCHes the cloud browser to stop on shutdown, which persists profile state. Running remote daemons bill until timeout.
@@ -62,7 +62,7 @@ Profiles (cookies-only login state) live in interaction-skills/profile-sync.md �
 
 ## Search first
 
-Search domain-skills/ first for the domain you are working on before inventing a new approach.
+Search `agent-workspace/domain-skills/` first for the domain you are working on before inventing a new approach.
 
 Only if you start struggling with a specific mechanic while navigating, look in interaction-skills/ for helpers. The available interaction skills are:
 - cookies.md
@@ -85,13 +85,13 @@ Only if you start struggling with a specific mechanic while navigating, look in 
 Useful commands:
 
 ```bash
-rg --files domain-skills
-rg -n "tiktok|upload" domain-skills
+rg --files agent-workspace/domain-skills
+rg -n "tiktok|upload" agent-workspace/domain-skills
 ```
 
 ## Always contribute back
 
-If you learned anything non-obvious about how a site works, open a PR to domain-skills/<site>/ before you finish. Default to contributing. The harness gets better only because agents file what they learn. If figuring something out cost you a few steps, the next run should not pay the same tax.
+If you learned anything non-obvious about how a site works, open a PR to `agent-workspace/domain-skills/<site>/` before you finish. Default to contributing. The harness gets better only because agents file what they learn. If figuring something out cost you a few steps, the next run should not pay the same tax.
 
 Examples of what's worth a PR:
 
@@ -118,7 +118,7 @@ The *durable* shape of the site — the map, not the diary. Focus on what the ne
 
 - Raw pixel coordinates. They break on viewport, zoom, and layout changes. Describe how to *locate* the target (selector, scrollIntoView, aria-label, visible text) — never where it happened to be on your screen.
 - Run narration or step-by-step of the specific task you just did.
-- Secrets, cookies, session tokens, user-specific state. domain-skills/ is shared and public.
+- Secrets, cookies, session tokens, user-specific state. `agent-workspace/domain-skills/` is shared and public.
 
 ## What actually works
 
@@ -139,7 +139,7 @@ The *durable* shape of the site — the map, not the diary. Focus on what the ne
 - Connect to the user's running Chrome. Don't launch your own browser.
 - cdp-use is only for CDPClient.send_raw. Prefer raw CDP strings over typed wrappers.
 - run.py stays tiny. No argparse, subcommands, or extra control layer.
-- Helpers stay short. Browser primitives in helpers.py; daemon/bootstrap and remote session admin live in admin.py.
+- Core helpers stay short. Put task-specific helper additions in `agent-workspace/agent_helpers.py`; daemon/bootstrap and remote session admin live in the core package.
 - Don't add a manager layer. No retries framework, session manager, daemon supervisor, config system, or logging framework.
 
 ## Gotchas (field-tested)
@@ -158,4 +158,4 @@ The *durable* shape of the site — the map, not the diary. Focus on what the ne
 ## Interaction notes
 
 - interaction-skills/ holds reusable UI mechanics such as dialogs, tabs, dropdowns, iframes, and uploads.
-- domain-skills/ holds site-specific workflows and should be updated when you discover reusable patterns for a website.
+- `agent-workspace/domain-skills/` holds site-specific workflows and should be updated when you discover reusable patterns for a website.
