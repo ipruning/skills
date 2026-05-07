@@ -3,7 +3,7 @@
 Core helpers live here. Agent-editable helpers live in
 BH_AGENT_WORKSPACE/agent_helpers.py.
 """
-import base64, importlib.util, json, math, os, time, urllib.request
+import base64, importlib.util, json, math, os, sys, time, urllib.request
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -40,15 +40,11 @@ INTERNAL = ("chrome://", "chrome-untrusted://", "devtools://", "chrome-extension
 
 
 def _send(req):
-    c = ipc.connect(NAME, timeout=5.0)
-    c.sendall((json.dumps(req) + "\n").encode())
-    data = b""
-    while not data.endswith(b"\n"):
-        chunk = c.recv(1 << 20)
-        if not chunk: break
-        data += chunk
-    c.close()
-    r = json.loads(data)
+    c, token = ipc.connect(NAME, timeout=5.0)
+    try:
+        r = ipc.request(c, token, req)
+    finally:
+        c.close()
     if "error" in r: raise RuntimeError(r["error"])
     return r
 
@@ -162,6 +158,8 @@ def _has_return_statement(expression):
 # --- navigation / page ---
 def goto_url(url):
     r = cdp("Page.navigate", url=url)
+    if os.environ.get("BH_DOMAIN_SKILLS") != "1":
+        return r
     d = (AGENT_WORKSPACE / "domain-skills" / (urlparse(url).hostname or "").removeprefix("www.").split(".")[0])
     return {**r, "domain_skills": sorted(p.name for p in d.rglob("*.md"))[:10]} if d.is_dir() else r
 
@@ -204,6 +202,45 @@ def click_at_xy(x, y, button="left", clicks=1):
 
 def type_text(text):
     cdp("Input.insertText", text=text)
+
+def fill_input(selector, text, clear_first=True, timeout=0.0):
+    """Fill a framework-managed input (React controlled, Vue v-model, Ember tracked).
+
+    type_text() uses Input.insertText which bypasses framework event listeners and leaves
+    submit buttons disabled. This helper focuses the element, clears it, types via real
+    key events, then fires synthetic input+change events so the framework sees the update.
+
+    Raises RuntimeError if the element is not found. Pass timeout>0 to wait for
+    late-rendered elements (e.g. after a route change) before typing.
+    """
+    if timeout > 0:
+        if not wait_for_element(selector, timeout=timeout):
+            raise RuntimeError(f"fill_input: element not found: {selector!r}")
+    focused = js(
+        f"(()=>{{const e=document.querySelector({json.dumps(selector)});"
+        f"if(!e)return false;e.focus();return true;}})()"
+    )
+    if not focused:
+        raise RuntimeError(f"fill_input: element not found: {selector!r}")
+    if clear_first:
+        # Dispatch select-all directly — NOT via press_key, which always emits a
+        # `char` event for single-char keys. With Ctrl/Cmd held, that `char`
+        # makes Chrome treat the input as a printable "a" instead of firing the
+        # select-all shortcut, leaving the field uncleared.
+        mods = 4 if sys.platform == "darwin" else 2  # Cmd on macOS, Ctrl elsewhere
+        select_all = {"key": "a", "code": "KeyA", "modifiers": mods,
+                      "windowsVirtualKeyCode": 65, "nativeVirtualKeyCode": 65}
+        cdp("Input.dispatchKeyEvent", type="rawKeyDown", **select_all)
+        cdp("Input.dispatchKeyEvent", type="keyUp", **select_all)
+        press_key("Backspace")
+    for ch in text:
+        press_key(ch)
+    js(
+        f"(()=>{{const e=document.querySelector({json.dumps(selector)});"
+        f"if(!e)return;"
+        f"e.dispatchEvent(new Event('input',{{bubbles:true}}));"
+        f"e.dispatchEvent(new Event('change',{{bubbles:true}}));}})();"
+    )
 
 _KEYS = {  # key → (windowsVirtualKeyCode, code, text)
     "Enter": (13, "Enter", "\r"), "Tab": (9, "Tab", "\t"), "Backspace": (8, "Backspace", ""),
@@ -255,8 +292,8 @@ def list_tabs(include_chrome=True):
     return out
 
 def current_tab():
-    t = cdp("Target.getTargetInfo").get("targetInfo", {})
-    return {"targetId": t.get("targetId"), "url": t.get("url", ""), "title": t.get("title", "")}
+    r = _send({"meta": "current_tab"})
+    return {"targetId": r["targetId"], "url": r["url"], "title": r["title"]}
 
 def _mark_tab():
     """Prepend 🟢 to tab title so the user can see which tab the agent controls."""
@@ -318,6 +355,71 @@ def wait_for_load(timeout=15.0):
     while time.time() < deadline:
         if js("document.readyState") == "complete": return True
         time.sleep(0.3)
+    return False
+
+def wait_for_element(selector, timeout=10.0, visible=False):
+    """Poll until querySelector(selector) exists in the DOM, or timeout.
+
+    wait_for_load() misses SPAs — the document is 'complete' before the framework renders.
+    Use this after actions that trigger async rendering (route changes, data fetches).
+    Set visible=True to also require the element to be non-hidden and in-layout.
+    Returns True if found, False on timeout.
+    """
+    if visible:
+        # checkVisibility walks the ancestor chain and respects display:none /
+        # visibility:hidden / opacity:0 on parents, which a getComputedStyle
+        # check on the element alone misses (it returns the descendant's own
+        # style, not the inherited "is this rendered" state). Falls back to
+        # the per-element CSS check on older Chrome that lacks checkVisibility.
+        check = (
+            f"(()=>{{const e=document.querySelector({json.dumps(selector)});"
+            f"if(!e)return false;"
+            f"if(typeof e.checkVisibility==='function')"
+            f"return e.checkVisibility({{checkOpacity:true,checkVisibilityCSS:true}});"
+            f"const s=getComputedStyle(e);"
+            f"return s.display!=='none'&&s.visibility!=='hidden'&&s.opacity!=='0'}})()"
+        )
+    else:
+        check = f"!!document.querySelector({json.dumps(selector)})"
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if js(check): return True
+        time.sleep(0.3)
+    return False
+
+def wait_for_network_idle(timeout=10.0, idle_ms=500):
+    """Wait until all in-flight requests finish and no Network.* events arrive for idle_ms ms.
+
+    Useful after form submits, SPA route transitions, and any action that triggers
+    XHR/fetch without a visible DOM change. Builds on drain_events() — no daemon changes.
+    Returns True if idle window reached, False on timeout.
+
+    Events are filtered to the active session — a previously-attached background
+    tab (e.g. a polling/SSE page the agent switched away from) keeps emitting
+    Network events into the daemon's global event buffer; without this filter
+    they would poison the idle check on the current tab.
+    """
+    deadline = time.time() + timeout
+    last_activity = time.time()
+    inflight = set()
+    active_session = _send({"meta": "session"}).get("session_id")
+    while time.time() < deadline:
+        for e in drain_events():
+            if e.get("session_id") != active_session:
+                continue
+            method = e.get("method", "")
+            params = e.get("params", {})
+            if method == "Network.requestWillBeSent":
+                inflight.add(params.get("requestId"))
+                last_activity = time.time()
+            elif method in ("Network.loadingFinished", "Network.loadingFailed"):
+                inflight.discard(params.get("requestId"))
+                last_activity = time.time()
+            elif method.startswith("Network."):
+                last_activity = time.time()
+        if not inflight and (time.time() - last_activity) * 1000 >= idle_ms:
+            return True
+        time.sleep(0.1)
     return False
 
 def js(expression, target_id=None):

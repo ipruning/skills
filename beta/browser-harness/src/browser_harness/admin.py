@@ -1,12 +1,105 @@
 import json
 import os
 import socket
+import subprocess
+import sys
 import tempfile
 import time
 import urllib.request
 from pathlib import Path
 
 from . import _ipc as ipc
+
+
+def _process_start_time(pid):
+    """Opaque process-start-time fingerprint at PID, or None if unavailable.
+
+    Two reads returning the same non-None value mean the PID still refers to
+    the same process; a different value means the PID was reused. Used by
+    restart_daemon() to keep the force-kill recovery path working even when
+    the daemon has already torn down its IPC socket (e.g. during a slow
+    remote shutdown), without falling back to "trust the pid file" — which
+    would re-introduce the PID-reuse hazard.
+
+    Linux:   /proc/<pid>/stat field 22 (starttime in clock ticks since boot).
+    macOS:   `ps -o lstart= -p <pid>` (an absolute timestamp string).
+    Windows: GetProcessTimes via ctypes (FILETIME creation time, 100-ns since 1601).
+    Anywhere else: returns None; restart_daemon falls back to its strict
+    identify-only check, which is safer than no check at all.
+    """
+    if type(pid) is not int or pid <= 0:
+        return None
+    if sys.platform.startswith("linux"):
+        try:
+            with open(f"/proc/{pid}/stat", "rb") as f:
+                raw = f.read().decode("ascii", errors="replace")
+        except (FileNotFoundError, PermissionError, OSError):
+            return None
+        # Field 2 is `(comm)`; comm can contain spaces and parens, so split off
+        # everything after the LAST `)` and index from there.
+        try:
+            tail = raw[raw.rindex(")") + 2:].split()
+            return tail[19]  # starttime is field 22 (0-indexed: 21 - skipped 2 = 19)
+        except (ValueError, IndexError):
+            return None
+    if sys.platform == "darwin":
+        try:
+            out = subprocess.check_output(
+                ["ps", "-o", "lstart=", "-p", str(pid)],
+                stderr=subprocess.DEVNULL, timeout=2,
+            )
+        except (subprocess.SubprocessError, OSError):
+            return None
+        s = out.decode("ascii", errors="replace").strip()
+        return s or None
+    if sys.platform == "win32":
+        # Windows users running a remote daemon hit the same slow-shutdown
+        # window as POSIX (stop_remote() PATCHes api.browser-use.com after
+        # the IPC socket has been torn down). Without a fingerprint here the
+        # SIGTERM gate can never pass during that window, leaving an orphan
+        # daemon that may continue to hold a billed cloud browser. Use
+        # GetProcessTimes via ctypes to read the kernel-reported creation
+        # time as a 64-bit FILETIME (100-ns intervals since 1601-01-01).
+        try:
+            import ctypes
+            from ctypes import wintypes
+        except ImportError:
+            return None
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        try:
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+            kernel32.OpenProcess.restype = wintypes.HANDLE
+            kernel32.GetProcessTimes.argtypes = [
+                wintypes.HANDLE,
+                ctypes.POINTER(wintypes.FILETIME),
+                ctypes.POINTER(wintypes.FILETIME),
+                ctypes.POINTER(wintypes.FILETIME),
+                ctypes.POINTER(wintypes.FILETIME),
+            ]
+            kernel32.GetProcessTimes.restype = wintypes.BOOL
+            kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+            kernel32.CloseHandle.restype = wintypes.BOOL
+        except (OSError, AttributeError):
+            return None
+        h = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+        if not h:
+            return None
+        try:
+            creation = wintypes.FILETIME()
+            exit_ft = wintypes.FILETIME()
+            kernel_ft = wintypes.FILETIME()
+            user_ft = wintypes.FILETIME()
+            ok = kernel32.GetProcessTimes(
+                h, ctypes.byref(creation), ctypes.byref(exit_ft),
+                ctypes.byref(kernel_ft), ctypes.byref(user_ft),
+            )
+            if not ok:
+                return None
+            return (creation.dwHighDateTime << 32) | creation.dwLowDateTime
+        finally:
+            kernel32.CloseHandle(h)
+    return None
 
 
 def _load_env():
@@ -69,22 +162,21 @@ def _is_local_chrome_mode(env=None):
 
 
 def daemon_alive(name=None):
-    try:
-        c = ipc.connect(name or NAME, timeout=1.0); c.close(); return True
-    except (FileNotFoundError, ConnectionRefusedError, TimeoutError, socket.timeout, OSError):
-        return False
+    # Ping handshake (not a bare connect) so a stale .port file + port reuse
+    # after a daemon crash doesn't make us mistake an unrelated listener for ours.
+    return ipc.ping(name or NAME, timeout=1.0)
 
 
 def _daemon_endpoint_names():
-    # BH_TMP_DIR isolates one daemon per dir → no filename-prefix discovery,
-    # just check whether our local endpoint exists. Without BH_TMP_DIR, _TMP
-    # is the shared default (`/tmp` etc.) and we glob `bu-*.<suffix>` to find
-    # every daemon on the machine.
+    # BH_RUNTIME_DIR isolates one daemon per dir → no filename-prefix discovery,
+    # just check whether our local endpoint exists. Without BH_RUNTIME_DIR,
+    # _RUNTIME is the shared default (`/tmp` etc.) and we glob `bu-*.<suffix>`
+    # to find every daemon on the machine.
     suffix = ".port" if ipc.IS_WINDOWS else ".sock"
-    if ipc.BH_TMP_DIR:
-        return [NAME] if (ipc._TMP / f"bu{suffix}").exists() else []
+    if ipc.BH_RUNTIME_DIR:
+        return [NAME] if (ipc._RUNTIME / f"bu{suffix}").exists() else []
     names = []
-    for p in sorted(ipc._TMP.glob(f"bu-*{suffix}")):
+    for p in sorted(ipc._RUNTIME.glob(f"bu-*{suffix}")):
         raw = p.name[3:-len(suffix)]
         try:
             ipc._check(raw)
@@ -97,15 +189,8 @@ def _daemon_endpoint_names():
 def _daemon_browser_connection(name):
     c = None
     try:
-        c = ipc.connect(name, timeout=1.0)
-        c.sendall(b'{"meta":"connection_status"}\n')
-        data = b""
-        while not data.endswith(b"\n"):
-            chunk = c.recv(1 << 16)
-            if not chunk:
-                break
-            data += chunk
-        response = json.loads(data)
+        c, token = ipc.connect(name, timeout=1.0)
+        response = ipc.request(c, token, {"meta": "connection_status"})
         if "error" in response:
             return None
         page = response.get("page")
@@ -140,7 +225,7 @@ def _doctor_short_text(value, limit=None):
     return value if len(value) <= limit else value[:limit - 3] + "..."
 
 
-def ensure_daemon(wait=60.0, name=None, env=None, _open_inspect=True):
+def ensure_daemon(wait=60.0, name=None, env=None):
     """Idempotent. Self-heals stale daemon, cold Chrome, and missing Allow on chrome://inspect."""
     if daemon_alive(name):
         # Stale daemons accept connects AND reply to meta:* (pure Python) even when the
@@ -148,14 +233,9 @@ def ensure_daemon(wait=60.0, name=None, env=None, _open_inspect=True):
         # Must go through ipc.connect so this works on Windows (TCP loopback) too;
         # raw AF_UNIX here would fail on every warm call and churn the daemon.
         try:
-            s = ipc.connect(name or NAME, timeout=3.0)
-            s.sendall(b'{"method":"Target.getTargets","params":{}}\n')
-            data = b""
-            while not data.endswith(b"\n"):
-                chunk = s.recv(1 << 16)
-                if not chunk: break
-                data += chunk
-            if b'"result"' in data: return
+            s, token = ipc.connect(name or NAME, timeout=3.0)
+            resp = ipc.request(s, token, {"method": "Target.getTargets", "params": {}})
+            if "result" in resp: return
         except Exception: pass
         restart_daemon(name)
 
@@ -174,9 +254,8 @@ def ensure_daemon(wait=60.0, name=None, env=None, _open_inspect=True):
             time.sleep(0.2)
         msg = _log_tail(name) or ""
         if local and attempt == 0 and _needs_chrome_remote_debugging_prompt(msg):
-            if _open_inspect:
-                _open_chrome_inspect()
-            print("browser-harness: click Allow on chrome://inspect (and tick the checkbox if shown)", file=sys.stderr)
+            _open_chrome_inspect()
+            print('browser-harness: at chrome://inspect/#remote-debugging, tick "Allow remote debugging for this browser instance" and click Allow on the popup that appears', file=sys.stderr)
             restart_daemon(name)
             continue
         raise RuntimeError(msg or f"daemon {name or NAME} didn't come up -- check {ipc.log_path(name or NAME)}")
@@ -201,34 +280,73 @@ def restart_daemon(name=None):
 
     Name is historical: callers typically follow this with another
     `browser-harness` invocation, which auto-spawns a fresh daemon via
-    ensure_daemon(). The function itself only stops."""
+    ensure_daemon(). The function itself only stops.
+
+    Identity is verified via ipc.identify() before any process signal, so
+    a stale pid file whose number has been reused by an unrelated process
+    is never SIGTERM'd. If the daemon is unreachable, we just clean up the
+    pid file and socket and return — never escalate to a kill-by-pid-file.
+    """
     import signal
 
-    pid_path = str(ipc.pid_path(name or NAME))
-    try:
-        c = ipc.connect(name or NAME, timeout=5.0)
-        c.sendall(b'{"meta":"shutdown"}\n')
-        c.recv(1024)
-        c.close()
-    except Exception:
-        pass
-    try:
-        pid = int(open(pid_path).read())
-    except (FileNotFoundError, ValueError):
-        pid = None
-    if pid:
+    name = name or NAME
+    pid_path = str(ipc.pid_path(name))
+
+    # Two pieces of information are tracked separately:
+    #   - daemon_pid: the daemon's self-reported PID, or None. Only daemons
+    #     running this version (or newer) include `pid` in the ping response;
+    #     pre-upgrade daemons return {pong: True} only and yield None here.
+    #   - daemon_alive: whether ANY daemon answers ping. Keeps the shutdown
+    #     IPC path working across upgrades — without it, a still-running
+    #     pre-upgrade daemon would have its socket deleted out from under it
+    #     while the process stayed alive.
+    daemon_pid = ipc.identify(name, timeout=5.0)
+    daemon_alive = daemon_pid is not None or ipc.ping(name, timeout=1.0)
+    # Snapshot the daemon's process start-time as a secondary identity check.
+    # The IPC socket can disappear before the process exits (e.g. the shutdown
+    # path tears down the socket and then waits on a slow remote `stop` PATCH),
+    # so identify() going None partway through is not proof of process death.
+    # Comparing start-time before SIGTERM lets us recover the original
+    # force-kill behavior for slow shutdowns without re-opening the
+    # PID-reuse hole — a reused PID would have a different start-time.
+    daemon_start = _process_start_time(daemon_pid)
+
+    if daemon_alive:
+        try:
+            c, token = ipc.connect(name, timeout=5.0)
+            ipc.request(c, token, {"meta": "shutdown"})
+            c.close()
+        except Exception:
+            pass
+
+    if daemon_pid is not None:
         for _ in range(75):
             try:
-                os.kill(pid, 0)
+                os.kill(daemon_pid, 0)
                 time.sleep(0.2)
-            except (ProcessLookupError, OSError, SystemError):
+            except (ProcessLookupError, OSError, SystemError, OverflowError):
                 break
         else:
-            try:
-                os.kill(pid, signal.SIGTERM)
-            except (ProcessLookupError, OSError, SystemError):
-                pass
-    ipc.cleanup_endpoint(name or NAME)
+            # Re-verify identity before escalating to SIGTERM. Two acceptable
+            # signals, in priority order:
+            #   1. ipc.identify() still returns the same PID — daemon's IPC is
+            #      live, daemon is wedged. Safe to kill.
+            #   2. start-time fingerprint of the original PID is unchanged —
+            #      same process, just slow to exit (e.g. stuck in remote stop).
+            #      The IPC may already be gone; that's expected.
+            # If neither holds, the PID may have been reused; skip SIGTERM.
+            verified_pid = ipc.identify(name, timeout=1.0)
+            same_process = verified_pid == daemon_pid or (
+                daemon_start is not None
+                and _process_start_time(daemon_pid) == daemon_start
+            )
+            if same_process:
+                try:
+                    os.kill(daemon_pid, signal.SIGTERM)
+                except (ProcessLookupError, OSError, SystemError, OverflowError):
+                    pass
+
+    ipc.cleanup_endpoint(name)
     try:
         os.unlink(pid_path)
     except FileNotFoundError:
@@ -373,9 +491,9 @@ def sync_local_profile(profile_name, browser=None, cloud_profile_id=None,
                         include_domains=None, exclude_domains=None):
     """Sync a local profile's cookies to a cloud profile. Returns the cloud UUID.
 
-    Shells out to `profile-use sync` (v1.0.4+). Requires BROWSER_USE_API_KEY and the
-    target local Chrome profile to be closed (profile-use needs an exclusive lock on
-    the Cookies DB).
+    Shells out to `profile-use sync` (v1.0.5+). Requires BROWSER_USE_API_KEY.
+    profile-use copies the profile dir to a temp and syncs from the copy, so Chrome
+    can stay open.
 
     Args:
       profile_name:       local Chrome profile name (as shown by `list_local_profiles`).
@@ -548,56 +666,6 @@ def _open_chrome_inspect():
         pass
 
 
-def run_setup():
-    """Interactive bootstrap: attach to the running browser, guiding the user through chrome://inspect if needed.
-
-    Exit code 0 on success, 1 on failure."""
-    import sys
-    print("browser-harness setup: attaching to your browser...")
-
-    if daemon_alive():
-        print("daemon already running; nothing to do.")
-        return 0
-
-    if not _chrome_running():
-        print("no Chrome/Edge process detected. please start your browser and rerun `browser-harness --setup`.")
-        return 1
-
-    # First attach attempt.
-    try:
-        ensure_daemon(wait=20.0)
-        print("daemon is up.")
-        return 0
-    except RuntimeError as e:
-        first_err = str(e)
-
-    needs_inspect = _is_local_chrome_mode() and _needs_chrome_remote_debugging_prompt(first_err)
-    if needs_inspect:
-        print("chrome remote-debugging is not enabled on the current profile.")
-        print("opening chrome://inspect/#remote-debugging -- in the tab that opens:")
-        print("  1. if chrome shows the profile picker, pick your normal profile;")
-        print("  2. tick 'Discover network targets' and click Allow if prompted.")
-        _open_chrome_inspect()
-    else:
-        print(f"attach failed: {first_err}")
-        print("retrying for up to 60s (chrome may still be starting up)...")
-
-    deadline = time.time() + 60
-    last = first_err
-    while time.time() < deadline:
-        try:
-            ensure_daemon(wait=5.0, _open_inspect=False)
-            print("daemon is up.")
-            return 0
-        except RuntimeError as e:
-            last = str(e)
-            time.sleep(2)
-
-    print(f"setup failed: {last}", file=sys.stderr)
-    print("run `browser-harness --doctor` for diagnostics.", file=sys.stderr)
-    return 1
-
-
 def run_doctor():
     """Read-only diagnostics. Exit 0 iff everything looks healthy."""
     import platform, shutil, sys
@@ -626,8 +694,8 @@ def run_doctor():
         print(f"  latest release    {latest}" + (" (update available)" if newer else ""))
     else:
         print("  latest release    (could not reach github)")
-    row("chrome running", chrome, "" if chrome else "start chrome/edge and rerun `browser-harness --setup`")
-    row("daemon alive", daemon, "" if daemon else "run `browser-harness --setup` to attach")
+    row("chrome running", chrome, "" if chrome else "start chrome/edge")
+    row("daemon alive", daemon, "" if daemon else "see install.md")
     row("active browser connections", bool(connections), str(len(connections)))
     for conn in connections:
         page = conn.get("page")
