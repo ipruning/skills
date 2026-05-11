@@ -8,7 +8,7 @@ As we will explain later, to automate the page, you need some knowledge of [Play
 You have one primary way to import this Fetcher, which is the same for all fetchers.
 
 ```python
->>> from scrapling.fetchers import DynamicFetcher
+from scrapling.fetchers import DynamicFetcher
 ```
 Check out how to configure the parsing options [here](choosing.md#parser-configuration-in-all-fetchers)
 
@@ -149,7 +149,7 @@ with DynamicSession(proxy_rotator=rotator, headless=True) as session:
 ### Downloading Files
 
 ```python
-page = DynamicFetcher.fetch('https://raw.githubusercontent.com/D4Vinci/Scrapling/main/images/main_cover.png')
+page = DynamicFetcher.fetch('https://raw.githubusercontent.com/D4Vinci/Scrapling/main/docs/assets/main_cover.png')
 
 with open(file='main_cover.png', mode='wb') as f:
     f.write(page.body)

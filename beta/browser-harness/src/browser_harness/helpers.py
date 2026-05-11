@@ -296,16 +296,17 @@ def current_tab():
     return {"targetId": r["targetId"], "url": r["url"], "title": r["title"]}
 
 def _mark_tab():
-    """Prepend 🟢 to tab title so the user can see which tab the agent controls."""
-    try: cdp("Runtime.evaluate", expression="if(!document.title.startsWith('\U0001F7E2'))document.title='\U0001F7E2 '+document.title")
+    """Prepend 🐴 to tab title so the user can see which tab the agent controls."""
+    try: cdp("Runtime.evaluate", expression="if(!document.title.startsWith('\U0001F434'))document.title='\U0001F434 '+document.title")
     except Exception: pass
 
 def switch_tab(target):
     # Accept either a raw targetId string or the dict returned by current_tab() / list_tabs(),
     # so `switch_tab(current_tab())` works without a manual ["targetId"] dance.
     target_id = target.get("targetId") if isinstance(target, dict) else target
-    # Unmark old tab
-    try: cdp("Runtime.evaluate", expression="if(document.title.startsWith('\U0001F7E2 '))document.title=document.title.slice(2)")
+    # Unmark old tab. 🐴 is a surrogate pair in JS UTF-16 strings (2 code units),
+    # plus the trailing space = 3 code units, so slice(3) cleanly removes the prefix.
+    try: cdp("Runtime.evaluate", expression="if(document.title.startsWith('\U0001F434 '))document.title=document.title.slice(3)")
     except Exception: pass
     cdp("Target.activateTarget", targetId=target_id)
     sid = cdp("Target.attachToTarget", targetId=target_id, flatten=True)["sessionId"]

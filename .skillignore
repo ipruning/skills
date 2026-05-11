@@ -19,6 +19,11 @@ prek
 surge
 
 _get-convex-agent-skills
+
 _jihuanshe-skills/agent-browser
+_jihuanshe-skills/database-standards
+_jihuanshe-skills/feishu-notify
+_jihuanshe-skills/github-runners
 _jihuanshe-skills/linear-cli
+_jihuanshe-skills/openai
 _jihuanshe-skills/skillshare

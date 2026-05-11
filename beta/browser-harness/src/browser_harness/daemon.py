@@ -246,7 +246,7 @@ class Daemon:
             raise RuntimeError(f"CDP WS handshake failed: {e} -- click Allow in Chrome if prompted, then retry")
         await self.attach_first_page()
         orig = self.cdp._event_registry.handle_event
-        mark_js = "if(!document.title.startsWith('\U0001F7E2'))document.title='\U0001F7E2 '+document.title"
+        mark_js = "if(!document.title.startsWith('\U0001F434'))document.title='\U0001F434 '+document.title"
         async def tap(method, params, session_id=None):
             self.events.append({"method": method, "params": params, "session_id": session_id})
             if method == "Page.javascriptDialogOpening":
@@ -326,12 +326,12 @@ class Daemon:
                 tasks.append(disable_old())
             tasks.append(self._enable_default_domains(self.session))
             await asyncio.gather(*tasks)
-            # 🟢 tab-marker title prefix is purely cosmetic — fire-and-forget so
+            # 🐴 tab-marker title prefix is purely cosmetic — fire-and-forget so
             # it doesn't add to the synchronous IPC budget.
             asyncio.create_task(_silent(asyncio.wait_for(
                 self.cdp.send_raw(
                     "Runtime.evaluate",
-                    {"expression": "if(!document.title.startsWith('\U0001F7E2'))document.title='\U0001F7E2 '+document.title"},
+                    {"expression": "if(!document.title.startsWith('\U0001F434'))document.title='\U0001F434 '+document.title"},
                     session_id=self.session,
                 ),
                 timeout=2,
