@@ -39,7 +39,7 @@ Add each directory to these six config files (eight places total — `pyproject.
 - `.typos.toml` — `[files].extend-exclude`
 - `.markdownlint-cli2.yaml` — `ignores`
 - `biome.jsonc` — `files.includes` with `!!dir` force-ignore (no trailing `/`)
-- `pyproject.toml` — `[tool.ruff].exclude`, `[tool.ty.src].exclude`, and `[tool.tombi.files].exclude` (use `dir/**` glob, not trailing-slash paths)
+- `pyproject.toml` — `[tool.ruff].exclude` and `[tool.ty.src].exclude` use trailing-slash directory paths (`dir/`); `[tool.tombi.files].exclude` uses `dir/**` globs
 - `prek.toml` — top-level `exclude` regex
 - `.autocorrectignore`
 
