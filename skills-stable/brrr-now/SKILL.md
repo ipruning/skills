@@ -5,67 +5,105 @@ metadata:
   version: "1"
 ---
 
-# brrr Push Notification API
+# brrr Push Notifications
 
-Source: <https://brrr.now/docs/>
+Sources: <https://brrr.now/docs/> and <https://brrr.now/learn/critical-alerts/>
 
-Send a push notification by POSTing to a single endpoint with a bearer token. The body is either plain text or JSON.
+Use this skill when the user wants, implies, or would benefit from a push notification: task-complete pings, long-running job updates, failures, alerts, or requests for user input. The goal is not merely to send one `curl`; the goal is to pick the right notification hook and make delivery testable.
 
-## Endpoint
+## Ground rules
 
-`POST https://api.brrr.now/v1/send`
+- Do not ask the user to paste a brrr secret into chat.
+- Do not invent a secret or send unauthenticated requests to the public API.
+- If the user explicitly asks for brrr, a push, a ping, or "notify me", ordinary/default-level test and task notifications are allowed. Do not ask again for every normal ping.
+- Ask before the first proactive notification only when the user did not explicitly request notifications. Also ask before noisy repeated notifications, `time-sensitive`, or `critical`.
+- Use `BRRR_SECRET` with `Authorization: Bearer ...` for the public API. Avoid secret-bearing URLs.
+- Do not put secrets in repos, scripts, unit files, shell history, or exe.dev VMs.
+- Do not add helpers to `PATH` by default. Use a temp path for one-off work, a repo-local helper for project behavior, or an absolute host path for systemd.
+- Use the weakest interruption level that fits. Reserve `critical` for alarm-style events where waking the user is intended.
+- If setup is missing and notification is optional, say notifications are not configured and continue the main task. If notification is the deliverable or required for unattended work, guide setup before relying on it.
 
-## Authentication
+## Workflow
 
-Every request carries the webhook secret in the `Authorization` header:
+1. Detect the runtime: exe.dev, macOS, or ordinary Linux.
+2. Choose auth: exe.dev proxy or public API with `BRRR_SECRET`.
+3. Choose the integration pattern: one-off command, repo script, systemd/daemon, queue watcher, or heartbeat.
+4. If notification setup is missing, decide whether notification is optional or required. Optional means report the missing setup and keep moving; required means guide the user through setup for the current environment.
+5. For user-requested ordinary notifications, send a small default-level test or the first task notification. For proactive notifications, ask before the first test.
+6. Fix endpoint/auth/payload issues before relying on notifications for unattended work.
+7. Place the real hook at the failure or completion point that actually observes the event.
+8. Send concise payloads with `title`, `message`, `thread_id`, optional `open_url`, and the appropriate `interruption_level`.
 
-`Authorization: Bearer <secret>`
+For planned unattended work where notification is part of the promise, test the path before the work begins. If notification is only a helpful extra and setup is missing, do not block the main task.
 
-The secret comes from the brrr app and looks like `br_usr_a1b2c3d4e5f6g7h8i9j0`. A shared secret sends to all your devices; a device-specific secret sends to one.
+## Runtime
 
-## Plain text
-
-The request body becomes the notification body.
+Detect the current runtime:
 
 ```bash
-curl -X POST https://api.brrr.now/v1/send \
-  -H 'Authorization: Bearer 🙈🙈🙈🙈🙈🙈🙈🙈🙈🙈' \
-  -d 'Hello world! 🚀'
+[ -f /exe.dev/shelley.json ] && echo exe.dev || ([ "$(uname)" = Darwin ] && echo macOS || echo Linux)
 ```
 
-## JSON
+Choose the setup path:
 
-Set `Content-Type: application/json` and send any combination of the fields below.
+- `exe.dev`: use `https://brrr.int.exe.xyz/v1/send`. Do not store a brrr secret in the VM and do not add an `Authorization` header. If the proxy is unavailable and notifications are required, ask the user to attach or enable the brrr HTTP Proxy integration for this VM, a covering tag, or all VMs. If notification is optional, report that the proxy is unavailable and continue.
+- `macOS`: use the public API with a local secret. Have the user get a shared or device-specific secret from the brrr app and store it outside chat, usually as a temporary `BRRR_SECRET`, a local secret manager value, or an untracked local env file.
+- `Linux`: use the public API with a local secret unless this is exe.dev. For remote or shared hosts, prefer a root/service env file with mode `600` over shell profiles or shell history.
 
-```bash
-curl -X POST https://api.brrr.now/v1/send \
-  -H 'Authorization: Bearer 🙈🙈🙈🙈🙈🙈🙈🙈🙈🙈' \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "title": "Coffee Machine Offline",
-    "subtitle": "Ops alert",
-    "message": "The coffee machine is currently unreachable.",
-    "thread_id": "ops-coffee",
-    "sound": "upbeat_bells",
-    "open_url": "https://status.example.com",
-    "image_url": "https://example.com/coffee.png",
-    "expiration_date": "2026-04-23T09:00:00.000Z",
-    "filter_criteria": "work",
-    "interruption_level": "time-sensitive"
-  }'
-```
+## Helper
 
-## Fields
+Use [`scripts/brrr-send.sh`](scripts/brrr-send.sh) as the reference sender. It auto-selects the exe.dev proxy when available, otherwise uses `BRRR_SECRET` with the public `/v1/send` endpoint.
+
+Do not assume the skill directory exists on the target host. Copy the helper to the right scope:
+
+- One-off agent work: copy to `$(mktemp -d)/brrr-send.sh` and call it by absolute path.
+- Project behavior: copy or adapt it into the repo, such as `scripts/brrr-send.sh` or `ops/notify/brrr-send.sh`.
+- Host/systemd behavior: install a reviewed helper at a stable absolute path such as `/usr/local/libexec/brrr-send` or `/opt/<app>/bin/brrr-send`.
+
+Never require users to add this helper to `PATH`.
+
+## Integration patterns
+
+Pick the smallest durable hook that observes the real event:
+
+- One-off command: wrap the command and notify success or failure.
+- Bash script: source or call a helper, and use an `ERR` trap only when shell semantics are understood.
+- systemd service: use `OnFailure=notify-brrr@%p.service` and include recent journal context.
+- Long-running host: add a heartbeat timer so silence can be detected.
+- Queue or background worker: hook the queue task result, not only the outer launcher process.
+
+For concrete snippets and secret-location guidance, use [`references/integration-patterns.md`](references/integration-patterns.md). For a systemd template, use [`references/systemd-pattern.md`](references/systemd-pattern.md).
+
+## Payloads
+
+Send plain text only for quick tests. Use JSON for real task notifications.
+
+Useful fields:
 
 - `title`: first line of the notification.
 - `subtitle`: second line, below the title.
-- `message`: main body text.
-- `thread_id`: groups related notifications together in Notification Center.
-- `sound`: `default`, `system`, or one of `brrr`, `bell_ringing`, `bubble_ding`, `bubbly_success_ding`, `cat_meow`, `calm1`, `calm2`, `cha_ching`, `dog_barking`, `door_bell`, `duck_quack`, `short_triple_blink`, `upbeat_bells`, `warm_soft_error`. iPhone and iPad only.
+- `message`: main body text. Always include this for real notifications.
+- `thread_id`: groups related notifications in Notification Center.
 - `open_url`: opens when the user taps the notification.
 - `image_url`: image shown inside the notification.
-- `expiration_date`: ISO 8601. APNs retries delivery until this time, then gives up.
+- `sound`: `default`, `system`, `brrr`, `bell_ringing`, `bubble_ding`, `bubbly_success_ding`, `cat_meow`, `calm1`, `calm2`, `cha_ching`, `dog_barking`, `door_bell`, `duck_quack`, `emergency`, `short_triple_blink`, `upbeat_bells`, or `warm_soft_error`.
+- `expiration_date`: ISO 8601 APNs retry deadline.
 - `filter_criteria`: matches a Focus filter configured on the device.
-- `interruption_level`: `passive` adds to the list silently; `active` lights the screen and may play a sound; `time-sensitive` breaks through Focus and Notification Summary. Omit for the system default.
+- `interruption_level`: `passive`, `active`, `time-sensitive`, or `critical`.
+- `volume`: critical-alert volume from `0` to `1`.
 
-Every field is optional. In practice, send at least `message`.
+Real notifications should usually include at least `title`, `message`, and a stable `thread_id`.
+
+## Interruption levels
+
+Choose the weakest level that fits:
+
+- Omit `interruption_level` for ordinary completion pings.
+- Use `passive` for low-priority FYI updates.
+- Use `active` when the user should notice soon.
+- Use `time-sensitive` when the update should break through Focus and Notification Summary.
+- Use `critical` only for urgent, alarm-style alerts.
+
+Critical alerts are not enabled by default. The user must first enable critical alerts in the brrr app and allow the iOS permission prompt. After that, send JSON with `"interruption_level": "critical"` and optional `"volume": 0..1`.
+
+Ask before using `time-sensitive` or `critical` unless the user's request clearly asks for urgent delivery. Do not use critical alerts for ordinary completion pings, routine status updates, or tests unless the user explicitly asks to test critical delivery.
