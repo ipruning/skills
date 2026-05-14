@@ -4,7 +4,7 @@
 
 This repo is the source of truth for AI-tool skills. A skill is any directory that contains a `SKILL.md`, plus optional supporting files such as scripts, references, or assets. Skills may live at the repo root or inside grouping directories such as `skills-stable/` and `skills-beta/`.
 
-`skillshare` syncs these skills to AI tool config directories, usually by symlink. Run `skillshare sync` after any skill mutation so installed tools see the latest content.
+`skillshare` syncs non-ignored skills to configured AI tool targets, usually by symlink. Run `skillshare sync` after mutating synced skills so configured tools see the latest content. `.skillignore` controls which source skills are skipped.
 
 Directories prefixed with `_` are externally synced, gitignored, and overwritten on update. Never edit `_`-prefixed directories directly.
 
@@ -24,15 +24,15 @@ skills/
 - Keep trigger guidance explicit: a skill should say when to use it and when not to use it.
 - Keep `SKILL.md` concise. Put long scripts, templates, examples, or large references in supporting files and link to them.
 - Do not edit generated, vendored, or externally synced content. For external skills, prefer updating through `skillshare` or the upstream source.
-- After adding, deleting, moving, installing, uninstalling, updating, or collecting skills, run `skillshare sync`.
+- After adding, deleting, moving, installing, uninstalling, updating, or collecting synced skills, run `skillshare sync`. Changes under ignored paths, such as the current `skills-beta/` ignore, are not exposed to targets unless the ignore or target configuration changes.
 
 ## Code Style
 
-4-space indent everywhere, 2-space for Markdown. LF line endings. Final newline required.
+4-space indent by default, 2-space for Markdown. LF line endings. Final newline required. Follow the formatter/config for file-type exceptions.
 
-- **Python** — Ruff (rules E/W/F/UP/B/SIM/I/TID, line-length 120, target py314). Format: `uv run ruff format --check .`. Lint: `uv run ruff check .`. Type-check: `uv run ty check .`.
-- **JS / JSON** — Biome (double quotes, 4-space indent). Lint: `biome ci .`.
-- **TOML** — `tombi` formatter, 4-space indent.
+- **Python** — Ruff selects E/W/F/UP/B/SIM/I/TID plus BLE001, ignores E501/TID252, line-length 120, target py314. Format: `uv run ruff format --check .`. Lint: `uv run ruff check .`. Type-check: `uv run ty check .`.
+- **JS / JSON / JSONC** — Biome-managed files use double quotes and 4-space indent. Generated or excluded files such as `.metadata.json` may differ; do not reformat them unless the owning tool expects it. Lint: `biome ci .`.
+- **TOML** — `uvx tombi lint .`; format config uses 4-space indent.
 - **Markdown** — `markdownlint-cli2`.
 - **Spelling** — `typos`.
 - **Pre-commit** — `prek` (see `prek.toml`).
@@ -60,7 +60,7 @@ Add each path to these six config files (eight places total — `pyproject.toml`
 
 When deleting a checked-in external skill, remove its directory **and** remove its entries from all six config files listed above. Use `skillshare uninstall` when possible; if you `rm -rf` manually, you must clean the configs yourself.
 
-After a skillshare version upgrade or `skillshare update`, directory names may change or entries may disappear. Always verify that all six config files still match `.metadata.json` — the exclude lists must be an exact 1:1 match with the non-`_` entries.
+After a skillshare version upgrade or `skillshare update`, directory names may change or entries may disappear. Always verify that the external-skill exclude entries in all six config files match the non-`_` `.metadata.json` entries exactly. Other tool-specific excludes, such as `.metadata.json`, may also exist.
 
 ## Running skillshare
 
