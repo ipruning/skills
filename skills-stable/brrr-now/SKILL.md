@@ -19,7 +19,7 @@ Use this skill when the user wants, implies, or would benefit from a push notifi
 - Ask before the first proactive notification only when the user did not explicitly request notifications. Also ask before noisy repeated notifications, `time-sensitive`, or `critical`.
 - Use `BRRR_SECRET` with `Authorization: Bearer ...` for the public API. Avoid secret-bearing URLs.
 - Do not put secrets in repos, scripts, unit files, shell history, or exe.dev VMs.
-- Do not add helpers to `PATH` by default. Use a temp path for one-off work, a repo-local helper for project behavior, or an absolute host path for systemd.
+- Do not rely on `PATH` for helpers. Use a temp path for one-off work, a repo-local helper for project behavior, or an absolute host path for systemd.
 - Use the weakest interruption level that fits. Reserve `critical` for alarm-style events where waking the user is intended.
 - If setup is missing and notification is optional, say notifications are not configured and continue the main task. If notification is the deliverable or required for unattended work, guide setup before relying on it.
 
@@ -32,7 +32,7 @@ Use this skill when the user wants, implies, or would benefit from a push notifi
 5. For user-requested ordinary notifications, send a small default-level test or the first task notification. For proactive notifications, ask before the first test.
 6. Fix endpoint/auth/payload issues before relying on notifications for unattended work.
 7. Place the real hook at the failure or completion point that actually observes the event.
-8. Send concise payloads with `title`, `message`, `thread_id`, optional `open_url`, and the appropriate `interruption_level`.
+8. Send concise notifications with `title`, `message`, `thread_id`, optional `open_url`, and the appropriate `interruption_level`.
 
 For planned unattended work where notification is part of the promise, test the path before the work begins. If notification is only a helpful extra and setup is missing, do not block the main task.
 
@@ -47,20 +47,44 @@ Detect the current runtime:
 Choose the setup path:
 
 - `exe.dev`: use `https://brrr.int.exe.xyz/v1/send`. Do not store a brrr secret in the VM and do not add an `Authorization` header. If the proxy is unavailable and notifications are required, ask the user to attach or enable the brrr HTTP Proxy integration for this VM, a covering tag, or all VMs. If notification is optional, report that the proxy is unavailable and continue.
-- `macOS`: use the public API with a local secret. Have the user get a shared or device-specific secret from the brrr app and store it outside chat, usually as a temporary `BRRR_SECRET`, a local secret manager value, or an untracked local env file.
+- `macOS`: use the public API with a local secret. Have the user get a secret from the brrr app and store it outside chat, usually as a temporary `BRRR_SECRET`, a local secret manager value, or an untracked local env file.
 - `Linux`: use the public API with a local secret unless this is exe.dev. For remote or shared hosts, prefer a root/service env file with mode `600` over shell profiles or shell history.
 
 ## Helper
 
 Use [`scripts/brrr-send.sh`](scripts/brrr-send.sh) as the reference sender. It auto-selects the exe.dev proxy when available, otherwise uses `BRRR_SECRET` with the public `/v1/send` endpoint.
 
+The helper accepts flags, not positional JSON. Do not pass a JSON object as an argument.
+
+```bash
+scripts/brrr-send.sh \
+  --title "提醒" \
+  --message "一分钟到了。" \
+  --thread-id "codex-one-minute-reminder"
+```
+
+For delayed sends, dry-run the exact helper command before sleeping so argument mistakes fail immediately:
+
+```bash
+scripts/brrr-send.sh --dry-run \
+  --title "提醒" \
+  --message "一分钟到了。" \
+  --thread-id "codex-one-minute-reminder"
+
+sleep 60
+scripts/brrr-send.sh \
+  --title "提醒" \
+  --message "一分钟到了。" \
+  --thread-id "codex-one-minute-reminder"
+```
+
+`--dry-run` validates the payload shape even when auth is not configured. If it prints `auth_mode=unconfigured`, fix setup before relying on a real notification.
+
 Do not assume the skill directory exists on the target host. Copy the helper to the right scope:
 
 - One-off agent work: copy to `$(mktemp -d)/brrr-send.sh` and call it by absolute path.
 - Project behavior: copy or adapt it into the repo, such as `scripts/brrr-send.sh` or `ops/notify/brrr-send.sh`.
 - Host/systemd behavior: install a reviewed helper at a stable absolute path such as `/usr/local/libexec/brrr-send` or `/opt/<app>/bin/brrr-send`.
-
-Never require users to add this helper to `PATH`.
 
 ## Integration patterns
 
@@ -76,19 +100,15 @@ For concrete snippets and secret-location guidance, use [`references/integration
 
 ## Payloads
 
-Send plain text only for quick tests. Use JSON for real task notifications.
+For the helper, use flags. For raw public API calls, use JSON.
 
-Useful fields:
+Core fields:
 
 - `title`: first line of the notification.
-- `subtitle`: second line, below the title.
 - `message`: main body text. Always include this for real notifications.
 - `thread_id`: groups related notifications in Notification Center.
 - `open_url`: opens when the user taps the notification.
-- `image_url`: image shown inside the notification.
-- `sound`: `default`, `system`, `brrr`, `bell_ringing`, `bubble_ding`, `bubbly_success_ding`, `cat_meow`, `calm1`, `calm2`, `cha_ching`, `dog_barking`, `door_bell`, `duck_quack`, `emergency`, `short_triple_blink`, `upbeat_bells`, or `warm_soft_error`.
-- `expiration_date`: ISO 8601 APNs retry deadline.
-- `filter_criteria`: matches a Focus filter configured on the device.
+- `sound`: optional alert sound. Use attention-grabbing sounds only for real alerts.
 - `interruption_level`: `passive`, `active`, `time-sensitive`, or `critical`.
 - `volume`: critical-alert volume from `0` to `1`.
 

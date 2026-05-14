@@ -17,7 +17,7 @@ Example content:
 BRRR_SECRET='br_usr_a1b2c3d4e5f6g7h8i9j0'
 ```
 
-Use `BRRR_SECRET` for integrations. Avoid secret-bearing URLs.
+Use `BRRR_SECRET` for public API sends. Avoid secret-bearing URLs.
 
 ## Failure notifier service
 
@@ -60,42 +60,20 @@ ${context}"
   --interruption-level active
 ```
 
-Business unit:
+`notify-brrr-unit` is a small systemd-specific wrapper around the general `/usr/local/libexec/brrr-send` sender. Keep the sender generic and put unit-name, journal, and host context in the wrapper.
+
+Add this to any service that should notify on failure:
 
 ```ini
 [Unit]
-Description=Example job
-After=network-online.target
-Wants=network-online.target
 OnFailure=notify-brrr@%p.service
 
 [Service]
-Type=oneshot
-WorkingDirectory=/opt/example
-ExecStart=/opt/example/bin/run-job
 StandardOutput=journal
 StandardError=journal
 ```
 
-Use `%p` so `notify-brrr@%p.service` receives the unit prefix without `.service`.
-
-## Timer
-
-For cron-like scheduling:
-
-```ini
-[Unit]
-Description=Example job trigger
-
-[Timer]
-OnCalendar=hourly
-Persistent=false
-
-[Install]
-WantedBy=timers.target
-```
-
-Decide `Persistent=` deliberately. `true` replays missed runs after downtime; `false` avoids a backlog.
+Use `%p` so `notify-brrr@%p.service` receives the unit prefix without `.service`. For templated units or non-service units, verify the expanded unit name before relying on this template; adjust the wrapper if `%p` drops instance details you need.
 
 ## Heartbeat
 
@@ -131,16 +109,7 @@ Enable with:
 
 ```bash
 systemctl daemon-reload
-systemctl enable --now example.timer heartbeat.timer
+systemctl enable --now heartbeat.timer
 ```
 
-## Checks
-
-```bash
-systemctl list-timers --all
-systemctl status example.service
-journalctl -u example.service -n 50 --no-pager
-systemctl start example.service
-```
-
-Before enabling a timer that replaces cron, disable the old cron entry to avoid double runs.
+The alert is the missing heartbeat. brrr does not detect missing messages by itself; use a separate monitor if absence must trigger a page.

@@ -8,16 +8,11 @@ Usage:
 
 Options:
   --title TEXT
-  --subtitle TEXT
   --thread-id TEXT
   --open-url URL
-  --image-url URL
   --sound NAME
-  --expiration-date ISO8601
-  --filter-criteria TEXT
   --interruption-level passive|active|time-sensitive|critical
   --volume 0..1
-  --plain
   --dry-run
 
 Environment:
@@ -29,16 +24,11 @@ EOF
 
 message=
 title=
-subtitle=
 thread_id=
 open_url=
-image_url=
 sound=
-expiration_date=
-filter_criteria=
 interruption_level=
 volume=
-plain=0
 dry_run=0
 
 while [ "$#" -gt 0 ]; do
@@ -51,10 +41,6 @@ while [ "$#" -gt 0 ]; do
             title="${2:?missing value for --title}"
             shift 2
             ;;
-        --subtitle)
-            subtitle="${2:?missing value for --subtitle}"
-            shift 2
-            ;;
         --thread-id)
             thread_id="${2:?missing value for --thread-id}"
             shift 2
@@ -63,20 +49,8 @@ while [ "$#" -gt 0 ]; do
             open_url="${2:?missing value for --open-url}"
             shift 2
             ;;
-        --image-url)
-            image_url="${2:?missing value for --image-url}"
-            shift 2
-            ;;
         --sound)
             sound="${2:?missing value for --sound}"
-            shift 2
-            ;;
-        --expiration-date)
-            expiration_date="${2:?missing value for --expiration-date}"
-            shift 2
-            ;;
-        --filter-criteria)
-            filter_criteria="${2:?missing value for --filter-criteria}"
             shift 2
             ;;
         --interruption-level)
@@ -86,10 +60,6 @@ while [ "$#" -gt 0 ]; do
         --volume)
             volume="${2:?missing value for --volume}"
             shift 2
-            ;;
-        --plain)
-            plain=1
-            shift
             ;;
         --dry-run)
             dry_run=1
@@ -123,6 +93,8 @@ if [ -f /exe.dev/shelley.json ]; then
 elif [ -n "${BRRR_SECRET:-}" ]; then
     endpoint="https://api.brrr.now/v1/send"
     auth_mode="bearer"
+elif [ "$dry_run" -eq 1 ]; then
+    auth_mode="unconfigured"
 else
     cat >&2 <<'EOF'
 brrr is not configured.
@@ -136,51 +108,22 @@ EOF
     exit 3
 fi
 
-has_json_fields=0
-for value in "$title" "$subtitle" "$thread_id" "$open_url" "$image_url" "$sound" \
-        "$expiration_date" "$filter_criteria" "$interruption_level" "$volume"; do
-    if [ -n "$value" ]; then
-        has_json_fields=1
-        break
-    fi
-done
-
-curl_args=(-fsS --max-time "$timeout" -X POST)
-if [ "$auth_mode" = "bearer" ]; then
-    curl_args+=(-H "Authorization: Bearer $BRRR_SECRET")
-fi
-
-if [ "$plain" -eq 1 ] && [ "$has_json_fields" -eq 0 ]; then
-    if [ "$dry_run" -eq 1 ]; then
-        echo "auth_mode=$auth_mode"
-        echo "payload=plain"
-        exit 0
-    fi
-    curl "${curl_args[@]}" --data-binary "$message" "$endpoint" >/dev/null
-    exit 0
-fi
-
 if ! command -v python3 >/dev/null 2>&1; then
-    echo "python3 is required for JSON payload construction; use --plain for a plain text test" >&2
+    echo "python3 is required for JSON payload construction" >&2
     exit 4
 fi
 
 payload="$(
-    python3 - "$message" "$title" "$subtitle" "$thread_id" "$open_url" "$image_url" "$sound" \
-        "$expiration_date" "$filter_criteria" "$interruption_level" "$volume" <<'PY'
+    python3 - "$message" "$title" "$thread_id" "$open_url" "$sound" "$interruption_level" "$volume" <<'PY'
 import json
 import sys
 
 names = [
     "message",
     "title",
-    "subtitle",
     "thread_id",
     "open_url",
-    "image_url",
     "sound",
-    "expiration_date",
-    "filter_criteria",
     "interruption_level",
     "volume",
 ]
@@ -192,13 +135,9 @@ values = dict(zip(names, sys.argv[1:]))
 fields = {
     "message": values["message"],
     "title": values["title"],
-    "subtitle": values["subtitle"],
     "thread_id": values["thread_id"],
     "open_url": values["open_url"],
-    "image_url": values["image_url"],
     "sound": values["sound"],
-    "expiration_date": values["expiration_date"],
-    "filter_criteria": values["filter_criteria"],
     "interruption_level": values["interruption_level"],
 }
 
@@ -220,6 +159,11 @@ if [ "$dry_run" -eq 1 ]; then
     echo "payload=json"
     printf '%s\n' "$payload"
     exit 0
+fi
+
+curl_args=(-fsS --max-time "$timeout" -X POST)
+if [ "$auth_mode" = "bearer" ]; then
+    curl_args+=(-H "Authorization: Bearer $BRRR_SECRET")
 fi
 
 curl "${curl_args[@]}" \

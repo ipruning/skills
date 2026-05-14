@@ -4,15 +4,15 @@ Use this reference when the user wants notifications to be part of real work, no
 
 ## Choose the hook
 
-| Situation | Recommended hook | Helper location |
-|---|---|---|
-| One command in the current agent session | Wrap the command and notify success/failure | `$(mktemp -d)/brrr-send.sh` |
-| Script in a repo | Call a repo-local helper or source a small notify library | `scripts/` or `ops/notify/` |
-| systemd service | `OnFailure=notify-brrr@%p.service` | Stable absolute path |
-| Cron replacement | Prefer systemd timer plus `OnFailure` | Stable absolute path |
-| Long-running daemon | systemd `Restart=` plus `OnFailure` | Stable absolute path |
-| Queue worker | Hook task result inside the queue/watcher | Repo or worker helper |
-| Host liveness | Heartbeat timer | Stable absolute path |
+| Situation                                | Recommended hook                                          | Helper location             |
+| ---------------------------------------- | --------------------------------------------------------- | --------------------------- |
+| One command in the current agent session | Wrap the command and notify success/failure               | `$(mktemp -d)/brrr-send.sh` |
+| Script in a repo                         | Call a repo-local helper or source a small notify library | `scripts/` or `ops/notify/` |
+| systemd service                          | `OnFailure=notify-brrr@%p.service`                        | Stable absolute path        |
+| Cron replacement                         | Prefer systemd timer plus `OnFailure`                     | Stable absolute path        |
+| Long-running daemon                      | systemd `Restart=` plus `OnFailure`                       | Stable absolute path        |
+| Queue worker                             | Hook task result inside the queue/watcher                 | Repo or worker helper       |
+| Host liveness                            | Heartbeat timer                                           | Stable absolute path        |
 
 The hook must observe the real event. A launcher process succeeding does not prove that background jobs, queue tasks, or detached children succeeded.
 
@@ -35,6 +35,25 @@ fi
 ```
 
 Do not leave one-off helpers on `PATH`.
+
+For delayed one-off notifications, dry-run the final command before sleeping:
+
+```bash
+"$tmpdir/brrr-send.sh" --dry-run \
+  --title "Reminder" \
+  --message "One minute passed." \
+  --thread-id "agent-reminder"
+
+sleep 60
+"$tmpdir/brrr-send.sh" \
+  --title "Reminder" \
+  --message "One minute passed." \
+  --thread-id "agent-reminder"
+```
+
+The helper accepts flags, not positional JSON.
+
+`--dry-run` validates the payload shape even when auth is not configured. If it prints `auth_mode=unconfigured`, fix setup before relying on a real notification.
 
 ## Bash scripts
 
@@ -65,14 +84,14 @@ Important: in bash, a direct `exit N` may bypass the `ERR` trap. If a failure sh
 
 Use the narrowest secret scope that matches the runtime:
 
-| Runtime | Recommended storage |
-|---|---|
-| exe.dev VM | No brrr secret. Use the HTTP Proxy integration. |
-| Current interactive shell | `read -rsp "brrr secret: " BRRR_SECRET; export BRRR_SECRET` |
-| Project local dev | Untracked local env such as `.env.local`, `.mise/config.local.toml`, or a secret manager |
-| Root-owned host service | `/root/.config/notify/brrr.env`, mode `600` |
-| Service-specific Linux unit | `/etc/<app>/notify.env`, root-owned, mode `600` |
-| User systemd unit | `%h/.config/notify/brrr.env`, mode `600` |
+| Runtime                     | Recommended storage                                                                      |
+| --------------------------- | ---------------------------------------------------------------------------------------- |
+| exe.dev VM                  | No brrr secret. Use the HTTP Proxy integration.                                          |
+| Current interactive shell   | `read -rsp "brrr secret: " BRRR_SECRET; export BRRR_SECRET`                              |
+| Project local dev           | Untracked local env such as `.env.local`, `.mise/config.local.toml`, or a secret manager |
+| Root-owned host service     | `/root/.config/notify/brrr.env`, mode `600`                                              |
+| Service-specific Linux unit | `/etc/<app>/notify.env`, root-owned, mode `600`                                          |
+| User systemd unit           | `%h/.config/notify/brrr.env`, mode `600`                                                 |
 
 For files consumed by both systemd `EnvironmentFile=` and bash `source`, single-quote values:
 
@@ -81,19 +100,6 @@ BRRR_SECRET='br_usr_a1b2c3d4e5f6g7h8i9j0'
 ```
 
 Single quotes keep the file safe for both bash and systemd parsing. Do not store secrets in `.bashrc` by default; shell profiles are not loaded by cron or systemd and are too broad for service secrets.
-
-## Public API modes
-
-Prefer the header endpoint:
-
-```bash
-curl -X POST https://api.brrr.now/v1/send \
-  -H "Authorization: Bearer $BRRR_SECRET" \
-  -H 'Content-Type: application/json' \
-  -d '{"title":"Task complete","message":"The job finished.","thread_id":"job"}'
-```
-
-Use the header endpoint. Avoid secret-bearing URLs because they are easier to leak through logs and shell history.
 
 ## Heartbeats
 
@@ -107,4 +113,4 @@ Failure notifications do not cover host outages, scheduler failure, broken netwo
   --interruption-level passive
 ```
 
-The alert is the missing heartbeat, not the heartbeat itself. Keep heartbeat messages quiet.
+The alert is the missing heartbeat, not the heartbeat itself. Keep heartbeat messages quiet. If missed heartbeats must page someone, use a separate monitor to detect absence; brrr only delivers the heartbeat messages it receives.
