@@ -1,6 +1,6 @@
 ---
 name: demand-audit-v2
-description: "Audit product ideas, feature requests, and startup directions for real demand, adoption risk, and evidence quality."
+description: "Audit product ideas, feature requests, startup directions, and MVPs for real demand, adoption risk, evidence quality, and validation steps."
 metadata:
   version: "1"
 ---

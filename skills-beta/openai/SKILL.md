@@ -1,6 +1,6 @@
 ---
 name: openai
-description: 'Use OpenAI Responses API with type safety. Triggers: openai, responses.create.'
+description: "Build typed Python code for OpenAI Responses API calls, streaming, and SDK type errors; use openai-docs for general docs or model guidance."
 metadata:
   version: '1'
 ---

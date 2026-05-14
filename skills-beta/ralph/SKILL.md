@@ -1,6 +1,6 @@
 ---
 name: ralph
-description: 'Deep reasoning for hard problems: cross-file debugging, complex architecture analysis, research-grade technical questions. Triggers: ralph, deep reasoning, hard problem, cross-file debug.'
+description: "Run the full deep-reasoning workflow for hard technical problems: gather context, ask Oracle, then verify with local evidence."
 metadata:
   version: '4'
 ---

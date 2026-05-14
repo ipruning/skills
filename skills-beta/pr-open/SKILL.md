@@ -1,6 +1,6 @@
 ---
 name: pr-open
-description: 'Create or update GitHub PRs. Triggers: open PR, create PR, update PR.'
+description: "Create or update GitHub PRs after gathering branch diff, existing PR, Linear/Amp context, and PR template details."
 metadata:
   version: '6'
 ---

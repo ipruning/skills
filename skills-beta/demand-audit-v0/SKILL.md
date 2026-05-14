@@ -1,6 +1,6 @@
 ---
 name: demand-audit-v0
-description: "Legacy demand-audit v0 for explicit version requests and historical comparison; demand-audit-v2 is the default product-demand audit."
+description: "Legacy demand-audit v0. Use only for explicit v0 requests or historical comparison; otherwise use demand-audit-v2."
 metadata:
   version: "1"
 ---

@@ -1,6 +1,6 @@
 ---
 name: pr-comments
-description: 'Fetch and triage PR review feedback. Triggers: fix PR comments, address review, read PR comments, check PR review, triage review.'
+description: "Fetch, triage, fix, reply to, and resolve GitHub PR review feedback and review threads."
 metadata:
   version: '2'
 ---

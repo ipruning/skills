@@ -1,6 +1,6 @@
 ---
 name: brrr-now
-description: "Send brrr.now push notifications for pings, alerts, and user-facing notices."
+description: "Send brrr.now push notifications for pings, alerts, task-complete notices, and user-facing updates."
 metadata:
   version: "1"
 ---
