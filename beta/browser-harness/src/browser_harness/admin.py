@@ -225,6 +225,76 @@ def _doctor_short_text(value, limit=None):
     return value if len(value) <= limit else value[:limit - 3] + "..."
 
 
+def _is_snap_browser(path: str) -> bool:
+    """True when a Chrome binary path lives under /snap/ (Snap confinement on Linux)."""
+    return bool(path) and "/snap/" in path.lower()
+
+
+def _doctor_snap_probe_path(path: str) -> str:
+    raw = str(path)
+    try:
+        resolved = os.path.realpath(raw)
+    except OSError:
+        resolved = raw
+    return raw if _is_snap_browser(raw) else resolved
+
+
+def _doctor_probe_chrome_binary_for_snap():
+    """Return (label, probe_path) for the first Chrome/Chromium binary found, else (None, None).
+
+    Honors BH_CHROME_PATH and CHROME_PATH before searching PATH for common names.
+    """
+    import shutil
+
+    for key in ("BH_CHROME_PATH", "CHROME_PATH"):
+        raw = (os.environ.get(key) or "").strip()
+        if not raw:
+            continue
+        p = Path(raw).expanduser()
+        try:
+            if p.is_file():
+                return (p.name, _doctor_snap_probe_path(str(p)))
+        except OSError:
+            continue
+    for cmd in ("google-chrome-stable", "google-chrome", "chromium-browser", "chromium"):
+        w = shutil.which(cmd)
+        if not w:
+            continue
+        try:
+            return (cmd, _doctor_snap_probe_path(w))
+        except OSError:
+            continue
+    return (None, None)
+
+
+def _snap_linux_headless_doc_url():
+    return "https://github.com/browser-use/browser-harness/blob/main/docs/snap-linux-headless.md"
+
+
+def run_doctor_fix_snap():
+    """Print steps to replace Snap Chromium with a native Chrome for CDP. Always exit 0."""
+    doc = _snap_linux_headless_doc_url()
+    print("browser-harness doctor --fix-snap")
+    print()
+    print("Snap-packaged Chromium cannot expose DevTools the way browser-harness needs.")
+    print(f"Full background: {doc}")
+    print()
+    print("1. Install Google Chrome from Google's .deb (not the Snap store):")
+    print("   wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb")
+    print("   sudo apt install ./google-chrome-stable_current_amd64.deb")
+    print()
+    print("2. Point the harness (and your shell) at the native binary so PATH does not")
+    print("   pick the Snap wrapper first. Example for bash (~/.bashrc or session env):")
+    print("   export BH_CHROME_PATH=/usr/bin/google-chrome-stable")
+    print("   # CHROME_PATH is also honored by doctor's snap probe if you prefer that name.")
+    print()
+    print("3. Launch Chrome from that path (Way 2) or open your profile Chrome (Way 1),")
+    print("   enable remote debugging per install.md, then verify:")
+    print("   browser-harness --doctor")
+    print()
+    return 0
+
+
 def ensure_daemon(wait=60.0, name=None, env=None):
     """Idempotent. Self-heals stale daemon, cold Chrome, and missing Allow on chrome://inspect."""
     if daemon_alive(name):
@@ -681,6 +751,7 @@ def run_doctor():
     # for display would otherwise be parsed as (0,) and flag every latest as newer.
     newer = bool(cur and latest and _version_tuple(latest) > _version_tuple(cur))
     cur_display = cur or "(unknown)"
+    doc_url = _snap_linux_headless_doc_url()
 
     def row(label, ok, detail=""):
         mark = "ok  " if ok else "FAIL"
@@ -694,6 +765,13 @@ def run_doctor():
         print(f"  latest release    {latest}" + (" (update available)" if newer else ""))
     else:
         print("  latest release    (could not reach github)")
+    if platform.system() == "Linux":
+        bname, bpath = _doctor_probe_chrome_binary_for_snap()
+        if bname and bpath and _is_snap_browser(bpath):
+            print("[snap-detect]")
+            print(f"Browser: {bname} (snap) — WARNING: Snap confinement prevents CDP binding.")
+            print(f"  Fix: Install Chrome natively (see docs/snap-linux-headless.md)")
+            print(f"  Docs: {doc_url}")
     row("chrome running", chrome, "" if chrome else "start chrome/edge")
     row("daemon alive", daemon, "" if daemon else "see install.md")
     row("active browser connections", bool(connections), str(len(connections)))

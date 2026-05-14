@@ -93,7 +93,9 @@ If the user hasn't said which connection method to use, default to Way 1 if Chro
 1. Try the harness:
 
    ```bash
-   browser-harness -c 'print(page_info())'
+   browser-harness <<'PY'
+   print(page_info())
+   PY
    ```
 
    If it prints page info, you're done.
@@ -120,7 +122,9 @@ If the user hasn't said which connection method to use, default to Way 1 if Chro
    - **chrome ok, daemon ok, but step 1 still failed** → stale daemon. Restart it:
 
      ```bash
-     browser-harness -c 'restart_daemon()'
+     browser-harness <<'PY'
+     restart_daemon()
+     PY
      ```
 
      If that hangs, escalate: kill all Chrome and daemon processes, then reopen Chrome and retry. On macOS/Linux, also remove `/tmp/bu-default.sock` and `/tmp/bu-default.pid` if they linger.
