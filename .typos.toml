@@ -8,9 +8,8 @@ extend-exclude = [
     "beta/manim-video/",
     "beta/scraping/scrapling-official/",
     "beta/slidev/",
-    "stable/linear-cli/",
+    "skillshare/",
     "stable/longbridge/",
-    "stable/skillshare/",
 ]
 
 [default.extend-words]

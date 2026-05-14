@@ -1,5 +1,5 @@
 {
-    "$schema": "https://biomejs.dev/schemas/2.4.11/schema.json",
+    "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
     "css": {
         "parser": {
             "cssModules": true,
@@ -17,9 +17,8 @@
             "!!beta/manim-video",
             "!!beta/scraping/scrapling-official",
             "!!beta/slidev",
-            "!!stable/linear-cli",
-            "!!stable/longbridge",
-            "!!stable/skillshare"
+            "!!skillshare",
+            "!!stable/longbridge"
         ],
         "ignoreUnknown": true
     },

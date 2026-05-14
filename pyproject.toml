@@ -30,9 +30,8 @@ exclude = [
     "beta/manim-video/",
     "beta/scraping/scrapling-official/",
     "beta/slidev/",
-    "stable/linear-cli/",
+    "skillshare/",
     "stable/longbridge/",
-    "stable/skillshare/",
 ]
 indent-width = 4
 line-length = 120
@@ -61,9 +60,8 @@ exclude = [
     "beta/manim-video/**",
     "beta/scraping/scrapling-official/**",
     "beta/slidev/**",
-    "stable/linear-cli/**",
+    "skillshare/**",
     "stable/longbridge/**",
-    "stable/skillshare/**",
 ]
 
 [tool.tombi.format.rules]
@@ -85,7 +83,6 @@ exclude = [
     "beta/manim-video/",
     "beta/scraping/scrapling-official/",
     "beta/slidev/",
-    "stable/linear-cli/",
+    "skillshare/",
     "stable/longbridge/",
-    "stable/skillshare/",
 ]

@@ -4,7 +4,7 @@
 
 default_install_hook_types = ["pre-commit", "pre-push"]
 default_stages = ["pre-commit", "pre-push"]
-exclude = "^beta/actionbook/|^beta/architecture-diagram/|^beta/browser-harness/|^beta/diagram-design/|^beta/manim-video/|^beta/scraping/scrapling-official/|^beta/slidev/|^stable/linear-cli/|^stable/longbridge/|^stable/skillshare/"
+exclude = "^beta/actionbook/|^beta/architecture-diagram/|^beta/browser-harness/|^beta/diagram-design/|^beta/manim-video/|^beta/scraping/scrapling-official/|^beta/slidev/|^skillshare/|^stable/longbridge/"
 fail_fast = false
 
 # =============================================================================
