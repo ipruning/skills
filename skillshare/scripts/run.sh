@@ -88,7 +88,7 @@ download_binary() {
   mkdir -p "$BIN_DIR"
 
   TMP_DIR=$(mktemp -d)
-  trap "rm -rf $TMP_DIR" EXIT
+  trap 'rm -rf "$TMP_DIR"' EXIT
 
   if ! curl -sL "$URL" | tar xz -C "$TMP_DIR" 2>/dev/null; then
     error "Failed to download. URL: $URL"
