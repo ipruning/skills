@@ -11,10 +11,10 @@
       "tracked": true,
       "branch": "main"
     },
-    "beta/actionbook": {
+    "skills-beta/actionbook": {
       "source": "https://github.com/actionbook/actionbook.git/packages/openclaw-plugin/skills/actionbook",
       "type": "github-subdir",
-      "group": "beta",
+      "group": "skills-beta",
       "installed_at": "2026-05-14T16:10:30.851788+08:00",
       "repo_url": "https://github.com/actionbook/actionbook.git",
       "subdir": "packages/openclaw-plugin/skills/actionbook",
@@ -24,10 +24,10 @@
         "SKILL.md": "sha256:ee0a0e89980c6ad24037ef013f039b4a242359f811411e8076f3ad733b9241db"
       }
     },
-    "beta/architecture-diagram": {
+    "skills-beta/architecture-diagram": {
       "source": "https://github.com/Cocoon-AI/architecture-diagram-generator.git/architecture-diagram",
       "type": "github-subdir",
-      "group": "beta",
+      "group": "skills-beta",
       "installed_at": "2026-05-14T16:10:33.25986+08:00",
       "repo_url": "https://github.com/Cocoon-AI/architecture-diagram-generator.git",
       "subdir": "architecture-diagram",
@@ -38,10 +38,10 @@
         "resources/template.html": "sha256:0b1631dd9e293f0a677572c28871c96a7c961fd073b68c990976529c27ce8359"
       }
     },
-    "beta/browser-harness": {
+    "skills-beta/browser-harness": {
       "source": "https://github.com/browser-use/browser-harness.git",
       "type": "github",
-      "group": "beta",
+      "group": "skills-beta",
       "installed_at": "2026-05-14T16:10:16.177137+08:00",
       "repo_url": "https://github.com/browser-use/browser-harness.git",
       "version": "2f22ed6",
@@ -206,10 +206,10 @@
         "tests/unit/test_run.py": "sha256:5157d35c85da6f5e1f71740fc1123edff030ec7eb894e9b7605af0e92ed2bd3c"
       }
     },
-    "beta/diagram-design": {
+    "skills-beta/diagram-design": {
       "source": "https://github.com/cathrynlavery/diagram-design.git/skills/diagram-design",
       "type": "github-subdir",
-      "group": "beta",
+      "group": "skills-beta",
       "installed_at": "2026-05-14T16:10:36.034602+08:00",
       "repo_url": "https://github.com/cathrynlavery/diagram-design.git",
       "subdir": "skills/diagram-design",
@@ -284,10 +284,10 @@
         "references/type-venn.md": "sha256:f8d5d4f0506160e0502f932140306b12d25adea1d1f6f319fb38c2345b0c6b42"
       }
     },
-    "beta/manim-video": {
+    "skills-beta/manim-video": {
       "source": "https://github.com/NousResearch/hermes-agent.git/skills/creative/manim-video",
       "type": "github-subdir",
-      "group": "beta",
+      "group": "skills-beta",
       "installed_at": "2026-05-14T16:10:21.421218+08:00",
       "repo_url": "https://github.com/NousResearch/hermes-agent.git",
       "subdir": "skills/creative/manim-video",
@@ -313,10 +313,10 @@
         "scripts/setup.sh": "sha256:e7563c458764c1b369c26f874cf94acbe43db8f9a3b1e0d9d735230f5d895bae"
       }
     },
-    "beta/scraping/scrapling-official": {
+    "skills-beta/scraping/scrapling-official": {
       "source": "https://github.com/D4Vinci/Scrapling.git/agent-skill/Scrapling-Skill",
       "type": "github-subdir",
-      "group": "beta/scraping",
+      "group": "skills-beta/scraping",
       "installed_at": "2026-05-14T16:10:38.965123+08:00",
       "repo_url": "https://github.com/D4Vinci/Scrapling.git",
       "subdir": "agent-skill/Scrapling-Skill",
@@ -348,10 +348,10 @@
         "references/spiders/sessions.md": "sha256:e5d9736725dc01e72ce55b38bf6f9ce2672d7876d17c23151ee01145bbb489b4"
       }
     },
-    "beta/slidev": {
+    "skills-beta/slidev": {
       "source": "https://github.com/slidevjs/slidev.git/skills/slidev",
       "type": "github-subdir",
-      "group": "beta",
+      "group": "skills-beta",
       "installed_at": "2026-05-14T16:10:24.962956+08:00",
       "repo_url": "https://github.com/slidevjs/slidev.git",
       "subdir": "skills/slidev",
@@ -438,10 +438,10 @@
         "scripts/run.sh": "sha256:e434ebdb7d3ae0b37c00ddc36687bc975da9e766b8cb863f9aed9a624ebbdfa9"
       }
     },
-    "stable/longbridge": {
+    "skills-stable/longbridge": {
       "source": "https://github.com/longbridge/developers.git/skills/longbridge",
       "type": "github-subdir",
-      "group": "stable",
+      "group": "skills-stable",
       "installed_at": "2026-05-14T16:10:27.677149+08:00",
       "repo_url": "https://github.com/longbridge/developers.git",
       "subdir": "skills/longbridge",

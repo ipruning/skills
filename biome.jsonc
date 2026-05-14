@@ -10,15 +10,15 @@
         "includes": [
             "**",
             "!.metadata.json",
-            "!!beta/actionbook",
-            "!!beta/architecture-diagram",
-            "!!beta/browser-harness",
-            "!!beta/diagram-design",
-            "!!beta/manim-video",
-            "!!beta/scraping/scrapling-official",
-            "!!beta/slidev",
+            "!!skills-beta/actionbook",
+            "!!skills-beta/architecture-diagram",
+            "!!skills-beta/browser-harness",
+            "!!skills-beta/diagram-design",
+            "!!skills-beta/manim-video",
+            "!!skills-beta/scraping/scrapling-official",
+            "!!skills-beta/slidev",
             "!!skillshare",
-            "!!stable/longbridge"
+            "!!skills-stable/longbridge"
         ],
         "ignoreUnknown": true
     },
