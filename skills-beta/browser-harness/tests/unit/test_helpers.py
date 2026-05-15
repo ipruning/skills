@@ -350,3 +350,91 @@ def test_wait_for_network_idle_filters_events_to_active_session():
         "session filter, the background rWS/lF pair would have updated "
         "last_activity and prevented the idle window from elapsing."
     )
+
+
+# --- upload_file / remote staging ---
+
+def test_stage_file_for_upload_downloads_blob_into_browser(tmp_path, monkeypatch):
+    local = tmp_path / "demo.txt"
+    local.write_text("hello")
+    cdp_calls = []
+    js_calls = []
+    drain_calls = 0
+
+    def fake_cdp(method, **kwargs):
+        cdp_calls.append((method, kwargs))
+        return {}
+
+    def fake_js(expr, **kwargs):
+        js_calls.append(expr)
+        return True
+
+    def fake_drain_events():
+        nonlocal drain_calls
+        drain_calls += 1
+        if drain_calls == 1:
+            return []
+        return [{
+            "method": "Page.downloadProgress",
+            "params": {"state": "completed", "totalBytes": local.stat().st_size},
+        }]
+
+    monkeypatch.setattr(helpers, "cdp", fake_cdp)
+    monkeypatch.setattr(helpers, "js", fake_js)
+    monkeypatch.setattr(helpers, "drain_events", fake_drain_events)
+    monkeypatch.setattr(helpers.time, "time", lambda: 1000.0)
+    monkeypatch.setattr(helpers.time, "sleep", lambda _: None)
+
+    remote = helpers.stage_file_for_upload(local)
+
+    assert remote.endswith("-demo.txt")
+    assert any(method == "Browser.setDownloadBehavior" for method, _ in cdp_calls)
+    assert any("window.__bh_upload_chunks.push" in expr for expr in js_calls)
+    assert any("URL.createObjectURL" in expr for expr in js_calls)
+
+
+def test_upload_file_stages_local_file_for_remote_browser(tmp_path, monkeypatch):
+    local = tmp_path / "demo.txt"
+    local.write_text("hello")
+    cdp_calls = []
+
+    def fake_cdp(method, **kwargs):
+        cdp_calls.append((method, kwargs))
+        if method == "DOM.getDocument":
+            return {"root": {"nodeId": 1}}
+        if method == "DOM.querySelector":
+            return {"nodeId": 2}
+        return {}
+
+    monkeypatch.setenv("BU_BROWSER_ID", "browser-123")
+    monkeypatch.setattr(helpers, "cdp", fake_cdp)
+    monkeypatch.setattr(helpers, "stage_file_for_upload", lambda path: "/tmp/browser/demo.txt")
+
+    helpers.upload_file("input[type=file]", local)
+
+    set_calls = [kwargs for method, kwargs in cdp_calls if method == "DOM.setFileInputFiles"]
+    assert set_calls == [{"files": ["/tmp/browser/demo.txt"], "nodeId": 2}]
+
+
+def test_upload_file_uses_local_path_for_local_browser(tmp_path, monkeypatch):
+    local = tmp_path / "demo.txt"
+    local.write_text("hello")
+    cdp_calls = []
+
+    def fake_cdp(method, **kwargs):
+        cdp_calls.append((method, kwargs))
+        if method == "DOM.getDocument":
+            return {"root": {"nodeId": 1}}
+        if method == "DOM.querySelector":
+            return {"nodeId": 2}
+        return {}
+
+    monkeypatch.delenv("BU_BROWSER_ID", raising=False)
+    monkeypatch.delenv("BU_CDP_WS", raising=False)
+    monkeypatch.delenv("BU_CDP_URL", raising=False)
+    monkeypatch.setattr(helpers, "cdp", fake_cdp)
+
+    helpers.upload_file("input[type=file]", local)
+
+    set_calls = [kwargs for method, kwargs in cdp_calls if method == "DOM.setFileInputFiles"]
+    assert set_calls == [{"files": [str(local)], "nodeId": 2}]

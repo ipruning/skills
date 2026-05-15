@@ -46,6 +46,8 @@ Stealth, sub-agents, or headless deployment.<br>
 - Grab a key at [cloud.browser-use.com/new-api-key](https://cloud.browser-use.com/new-api-key)
 - Or let the agent sign up itself via [docs.browser-use.com/llms.txt](https://docs.browser-use.com/llms.txt) (setup flow + challenge context included).
 
+Want the deployed version: a 24/7 Linux box agent with Telegram control and a persistent cloud browser? See [Browser Use Box](https://github.com/browser-use/bux) and [watch the demo](https://www.tiktok.com/@browser_use/video/7639824093721758989).
+
 ## Architecture (~1k lines across 4 core files)
 
 - `install.md` — first-time install and browser bootstrap

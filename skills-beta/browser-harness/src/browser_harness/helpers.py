@@ -3,7 +3,7 @@
 Core helpers live here. Agent-editable helpers live in
 BH_AGENT_WORKSPACE/agent_helpers.py.
 """
-import base64, importlib.util, json, math, os, sys, time, urllib.request
+import base64, hashlib, importlib.util, json, math, mimetypes, os, sys, time, urllib.request
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -449,12 +449,103 @@ def dispatch_key(selector, key="Enter", event="keypress"):
         f"(()=>{{const e=document.querySelector({json.dumps(selector)});if(e){{e.focus();e.dispatchEvent(new KeyboardEvent({json.dumps(event)},{{key:{json.dumps(key)},code:{json.dumps(key)},keyCode:{kc},which:{kc},bubbles:true}}));}}}})()"
     )
 
+def _remote_cdp_needs_file_staging():
+    if os.environ.get("BU_BROWSER_ID"):
+        return True
+    cdp_url = os.environ.get("BU_CDP_WS") or os.environ.get("BU_CDP_URL")
+    if not cdp_url:
+        return False
+    host = (urlparse(cdp_url).hostname or "").lower()
+    return host not in ("", "localhost", "127.0.0.1", "::1")
+
+
+def stage_file_for_upload(path, remote_dir="/tmp/browser-harness-uploads", timeout=30.0):
+    """Copy a local file into the browser host and return the browser-side path.
+
+    CDP DOM.setFileInputFiles only accepts paths readable by Chrome. For remote
+    browsers, stage the file by making Chrome download a Blob into a known
+    browser-side directory, then use that path for the file input.
+    """
+    local = Path(path).expanduser().resolve()
+    if not local.is_file():
+        raise FileNotFoundError(str(local))
+
+    safe_name = local.name.replace("/", "_").replace("\x00", "_")
+    data = local.read_bytes()
+    digest = hashlib.sha256(data).hexdigest()[:12]
+    remote_name = f"bh-{digest}-{safe_name}"
+    target_dir = remote_dir.rstrip("/")
+    remote_path = f"{target_dir}/{remote_name}"
+    mime = mimetypes.guess_type(str(local))[0] or "application/octet-stream"
+    encoded = base64.b64encode(data).decode("ascii")
+
+    cdp("Browser.setDownloadBehavior", behavior="allow", downloadPath=target_dir, eventsEnabled=True)
+    drain_events()
+    js("window.__bh_upload_chunks = []")
+
+    # The daemon reads newline-delimited JSON over an asyncio stream with the
+    # default 64 KiB line limit, so keep each CDP request comfortably below it.
+    chunk_size = 40_000
+    for i in range(0, len(encoded), chunk_size):
+        js("window.__bh_upload_chunks.push(" + json.dumps(encoded[i:i + chunk_size]) + ")")
+
+    js(
+        """
+(async () => {
+  const b64 = window.__bh_upload_chunks.join('');
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const blob = new Blob([bytes], {type: MIME});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = FILENAME;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+  return true;
+})()
+        """.replace("MIME", json.dumps(mime)).replace("FILENAME", json.dumps(remote_name))
+    )
+
+    expected_size = local.stat().st_size
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        for event in drain_events():
+            if event.get("method") != "Page.downloadProgress":
+                continue
+            params = event.get("params", {})
+            if params.get("state") == "completed" and params.get("totalBytes") == expected_size:
+                return remote_path
+        time.sleep(0.2)
+    raise TimeoutError(f"timed out staging {local.name!r} into remote browser")
+
+
 def upload_file(selector, path):
-    """Set files on a file input via CDP DOM.setFileInputFiles. `path` is an absolute filepath (use tempfile.mkstemp if needed)."""
+    """Set files on a file input via CDP DOM.setFileInputFiles.
+
+    Local Chrome can read local paths directly. Remote browsers cannot, so local
+    files are first staged into the browser host and then selected from there.
+    """
+    files = [path] if isinstance(path, (str, os.PathLike)) else list(path)
+    if _remote_cdp_needs_file_staging():
+        staged = []
+        for f in files:
+            local = Path(os.fspath(f)).expanduser()
+            staged.append(stage_file_for_upload(local) if local.is_file() else os.fspath(f))
+        files = staged
+    else:
+        files = [os.fspath(f) for f in files]
+
+    # Staging remote files uses a browser download, which can trigger page
+    # re-rendering on SPAs. Resolve the file input after staging so the node id
+    # is fresh.
     doc = cdp("DOM.getDocument", depth=-1)
     nid = cdp("DOM.querySelector", nodeId=doc["root"]["nodeId"], selector=selector)["nodeId"]
     if not nid: raise RuntimeError(f"no element for {selector}")
-    cdp("DOM.setFileInputFiles", files=[path] if isinstance(path, str) else list(path), nodeId=nid)
+    cdp("DOM.setFileInputFiles", files=files, nodeId=nid)
 
 def http_get(url, headers=None, timeout=20.0):
     """Pure HTTP — no browser. Use for static pages / APIs. Wrap in ThreadPoolExecutor for bulk.
