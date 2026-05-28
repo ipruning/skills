@@ -1,7 +1,6 @@
 ls:
-    .mise:
-        .bash: snake_case
-        .py: snake_case
-        .sh: snake_case
-        .yaml: snake_case
-        .zsh: snake_case
+    .mise/tasks:
+        .bash: kebab-case
+        .py: kebab-case
+        .sh: kebab-case
+        .zsh: kebab-case
