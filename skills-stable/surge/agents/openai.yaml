@@ -1,6 +1,0 @@
-interface:
-  display_name: "Surge"
-  short_description: "Run and automate Surge workflows"
-  default_prompt: "Use $surge to operate Surge with surge-cli safely: prefer --raw output, inspect baseline state first, apply minimal key-path changes, and verify post-change state."
-  icon_large: "./assets/logo.png"
-  icon_small: "./assets/logo.png"
