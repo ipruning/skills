@@ -121,6 +121,25 @@ longbridge filing detail TSLA.US 610186794100660481 --file-index 0
 - **`quote`**: always returns `pre_market_quote` / `post_market_quote` / `overnight_quote` when available (US only). Table format appends an "Extended Hours" section; JSON includes them as nested objects.
 - **`intraday` / `kline` / `kline history`**: default to intraday session only; pass `--session all` to include pre/post-market data. `kline`/`kline history` add a **Session** column when `--session all` is used.
 
+## Short Selling
+
+Submitting a sell order for a symbol with no existing position opens a short position. No special flags are required — `order sell` handles both regular sells and short sells.
+
+```bash
+longbridge order sell META.US 1 --price 620.00   # short sell (no position held)
+longbridge order sell TSLA.US 10 --price 300.00  # regular sell (closes long position)
+```
+
+**Market support:**
+
+**US stocks** can be shorted directly with no additional setup.
+
+**HK stocks** require activation: open the Longbridge mobile app, place your first HK short sell order — the app will trigger a Securities Borrowing and Lending (SBL) agreement signing flow. Complete the signing and wait for approval. Note: HK short selling is subject to a fee levied by the Hong Kong Inland Revenue Department; details are described in the in-app agreement. The API returns error `602301` before the HK SBL agreement is signed.
+
+**A-share (SH/SZ)** short selling is not supported — the CLI does not support Northbound (Stock Connect) trading.
+
+To close a short position, submit a buy order for the same symbol and quantity.
+
 ## Rate Limits
 
 - Max **10 API calls/second**
