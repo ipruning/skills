@@ -12,15 +12,10 @@ For Debian/Ubuntu servers. Use `apt-get`, not `apt`. Apply steps use noninteract
 ## Safety Rules
 
 1. Before changing SSH, firewall, or networking, keep a console/KVM or second live session open. Use `tmux` for long sessions.
-
 2. First round is read-only. Change one surface at a time — SSH, then firewall, then anti-brute-force, then updates, then sysctl — and verify each before moving on.
-
 3. Verify runtime state, not file contents. `sshd -T` shows what SSH is actually enforcing. `nft list ruleset` + `iptables -S` + `ip6tables -S` show what the firewall is actually doing. `ss -tlnup` shows what is actually listening.
-
 4. Patch within the current release only. Major-version upgrades need human approval.
-
 5. Audit and apply are separate phases. Audit uses read-only commands. Package installs, file writes, service reloads, and `nft -f` belong in apply and need human approval.
-
 6. All customizations go into dedicated override files — SSH in `sshd_config.d/`, sysctl in `/etc/sysctl.d/`, fail2ban in `jail.local`, systemd in unit drop-ins. Never modify package-managed defaults. Rollback is `rm <override> + reload` for services that re-read config on reload; for sysctl, deleted parameters persist in memory until reboot — see the sysctl section for full revert steps. Package upgrades never produce conffile conflicts.
 
 ## 1. Routine Maintenance
@@ -552,15 +547,15 @@ After deleting the file, `sysctl --system` reloads all remaining drop-ins but do
 
 The following parameters appear in many tuning guides but should not be set without specific benchmarks proving their benefit:
 
-| Parameter | Why not |
-|---|---|
-| `tcp_fastopen = 3` | The server-side bit (`0x2`) enables support but each listener still needs `setsockopt(TCP_FASTOPEN)`, or add `0x400` to enable it for all listeners by default; `0x3` alone is usually not enough |
-| `rmem_max / wmem_max` | TCP autotuning adjusts buffers automatically; blind overrides can reduce throughput |
-| `tcp_fin_timeout` | Only affects orphan FIN_WAIT_2 sockets, not general connection recycling |
-| `tcp_max_tw_buckets` | The kernel documentation says not to lower it; the default scales with system memory |
-| `tcp_tw_reuse` | The default value 2 (loopback only) is correct for most workloads |
-| `netdev_max_backlog` | Has minimal impact on virtio NICs typical of VMs |
-| `keepalive_*` | Applications manage their own keepalive; system-level changes are usually ignored |
+| Parameter             | Why not                                                                                                                                                                                           |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tcp_fastopen = 3`    | The server-side bit (`0x2`) enables support but each listener still needs `setsockopt(TCP_FASTOPEN)`, or add `0x400` to enable it for all listeners by default; `0x3` alone is usually not enough |
+| `rmem_max / wmem_max` | TCP autotuning adjusts buffers automatically; blind overrides can reduce throughput                                                                                                               |
+| `tcp_fin_timeout`     | Only affects orphan FIN_WAIT_2 sockets, not general connection recycling                                                                                                                          |
+| `tcp_max_tw_buckets`  | The kernel documentation says not to lower it; the default scales with system memory                                                                                                              |
+| `tcp_tw_reuse`        | The default value 2 (loopback only) is correct for most workloads                                                                                                                                 |
+| `netdev_max_backlog`  | Has minimal impact on virtio NICs typical of VMs                                                                                                                                                  |
+| `keepalive_*`         | Applications manage their own keepalive; system-level changes are usually ignored                                                                                                                 |
 
 ### Troubleshooting
 
