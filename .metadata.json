@@ -38,6 +38,21 @@
         "resources/template.html": "sha256:0b1631dd9e293f0a677572c28871c96a7c961fd073b68c990976529c27ce8359"
       }
     },
+    "skills-beta/autoreview": {
+      "source": "https://github.com/openclaw/agent-skills/blob/main/skills/autoreview",
+      "type": "github-subdir",
+      "group": "skills-beta",
+      "installed_at": "2026-05-29T03:23:22.290656+08:00",
+      "repo_url": "https://github.com/openclaw/agent-skills.git",
+      "subdir": "skills/autoreview",
+      "version": "d57761e",
+      "tree_hash": "96a1425d2fc4db973afcad7a89802cd2fee5307b",
+      "file_hashes": {
+        "SKILL.md": "sha256:2da2e2a38661004499ca14f410c79c658b9e1d65e0f44e736d5b9c2696a91ee6",
+        "scripts/autoreview": "sha256:85b8b643f32abfd60b2c86befd402c1c61b50c83779774310c4fe3c12278240d",
+        "scripts/test-review-harness": "sha256:2b149fd74246997fd2554978986fb54958c5b2efdaf79e1078b3941730b9440d"
+      }
+    },
     "skills-beta/browser-harness": {
       "source": "https://github.com/browser-use/browser-harness.git",
       "type": "github",
@@ -284,6 +299,19 @@
         "references/type-venn.md": "sha256:f8d5d4f0506160e0502f932140306b12d25adea1d1f6f319fb38c2345b0c6b42"
       }
     },
+    "skills-beta/handoff": {
+      "source": "https://github.com/openclaw/agent-skills/blob/main/skills/handoff",
+      "type": "github-subdir",
+      "group": "skills-beta",
+      "installed_at": "2026-05-29T03:24:31.374239+08:00",
+      "repo_url": "https://github.com/openclaw/agent-skills.git",
+      "subdir": "skills/handoff",
+      "version": "d57761e",
+      "tree_hash": "7ac25391aca081deaa76e19bd009fb69f57a3f44",
+      "file_hashes": {
+        "SKILL.md": "sha256:c26ed4ea2e4921d23ab2dfdace5ab6458e0185143dc92e9fe8629e92f04df05c"
+      }
+    },
     "skills-beta/manim-video": {
       "source": "https://github.com/NousResearch/hermes-agent.git/skills/creative/manim-video",
       "type": "github-subdir",
@@ -412,6 +440,19 @@
         "references/syntax-frontmatter-merging.md": "sha256:f92f3de298e7b6cdff5e085a4f1f9d2a154878e340063504bfd26a6c94fed336",
         "references/syntax-importing-slides.md": "sha256:5121a7fa19dd0496c4f5f42be0204ada7fb17484665727a1d259e31451c5ef42",
         "references/tool-eject-theme.md": "sha256:c25fb0debc1af89bfe7aad1be3f09c67a9f97eafb051cb852063eaf1c9b995b0"
+      }
+    },
+    "skills-beta/thermo-nuclear-code-quality-review": {
+      "source": "https://github.com/cursor/plugins/blob/main/thermos/skills/thermo-nuclear-code-quality-review",
+      "type": "github-subdir",
+      "group": "skills-beta",
+      "installed_at": "2026-05-29T03:06:50.524858+08:00",
+      "repo_url": "https://github.com/cursor/plugins.git",
+      "subdir": "thermos/skills/thermo-nuclear-code-quality-review",
+      "version": "1e072c7",
+      "tree_hash": "d9c8935dd560b3b6f5941247d04a1843f8c7cc35",
+      "file_hashes": {
+        "SKILL.md": "sha256:7faca08b51b643b2ddd0836f92af15574444024685dcc1e677dbbb39ae8c9e8f"
       }
     },
     "skills-stable/longbridge": {
