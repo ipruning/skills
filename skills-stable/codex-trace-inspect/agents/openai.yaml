@@ -1,4 +1,0 @@
-interface:
-  display_name: "Codex Trace Inspect"
-  short_description: "Summarize and index Codex rollout JSONL traces"
-  default_prompt: "Use $codex-trace-inspect to snapshot a codex://threads link or local Codex rollout JSONL into a corpus directory, then read AGENTS.md and query data/*.jsonl instead of loading the full trace."

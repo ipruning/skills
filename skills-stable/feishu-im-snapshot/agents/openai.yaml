@@ -1,4 +1,0 @@
-interface:
-  display_name: "Feishu IM Snapshot"
-  short_description: "Snapshot Feishu chats and read the corpus for reports"
-  default_prompt: "Use $feishu-im-snapshot to snapshot recent Feishu/Lark IM chats into a corpus directory, then read AGENTS.md and analyze views/ plus data/*.jsonl without loading full raw files."
