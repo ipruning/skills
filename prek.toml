@@ -207,7 +207,7 @@ hooks = [
     {
         id = "ls-lint",
         name = "ls-lint",
-        entry = "ls-lint .",
+        entry = "ls-lint",
         language = "system",
         pass_filenames = false,
         always_run = true,
