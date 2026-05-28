@@ -25,13 +25,16 @@ dev = [
 exclude = [
     "skills-beta/actionbook/",
     "skills-beta/architecture-diagram/",
+    "skills-beta/autoreview/",
     "skills-beta/browser-harness/",
     "skills-beta/diagram-design/",
+    "skills-beta/handoff/",
     "skills-beta/manim-video/",
     "skills-beta/scraping/scrapling-official/",
     "skills-beta/slidev/",
-    "skillshare/",
+    "skills-beta/thermo-nuclear-code-quality-review/",
     "skills-stable/longbridge/",
+    "skillshare/",
 ]
 indent-width = 4
 line-length = 120
@@ -55,13 +58,16 @@ docstring-code-line-length = "dynamic"
 exclude = [
     "skills-beta/actionbook/**",
     "skills-beta/architecture-diagram/**",
+    "skills-beta/autoreview/**",
     "skills-beta/browser-harness/**",
     "skills-beta/diagram-design/**",
+    "skills-beta/handoff/**",
     "skills-beta/manim-video/**",
     "skills-beta/scraping/scrapling-official/**",
     "skills-beta/slidev/**",
-    "skillshare/**",
+    "skills-beta/thermo-nuclear-code-quality-review/**",
     "skills-stable/longbridge/**",
+    "skillshare/**",
 ]
 
 [tool.tombi.format.rules]
@@ -78,11 +84,14 @@ unresolved-import = "warn"
 exclude = [
     "skills-beta/actionbook/",
     "skills-beta/architecture-diagram/",
+    "skills-beta/autoreview/",
     "skills-beta/browser-harness/",
     "skills-beta/diagram-design/",
+    "skills-beta/handoff/",
     "skills-beta/manim-video/",
     "skills-beta/scraping/scrapling-official/",
     "skills-beta/slidev/",
-    "skillshare/",
+    "skills-beta/thermo-nuclear-code-quality-review/",
     "skills-stable/longbridge/",
+    "skillshare/",
 ]
