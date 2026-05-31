@@ -1,6 +1,11 @@
 {
   "version": 1,
   "entries": {
+    "_internal-data-skills": {
+      "source": "https://github.com/jihuanshe/internal-data-skills.git",
+      "tracked": true,
+      "branch": "main"
+    },
     "_jihuanshe-skills": {
       "source": "https://github.com/jihuanshe/skills.git",
       "tracked": true,
@@ -10,7 +15,7 @@
       "source": "https://github.com/actionbook/actionbook.git/packages/openclaw-plugin/skills/actionbook",
       "type": "github-subdir",
       "group": "skills-beta",
-      "installed_at": "2026-05-28T14:40:58.413918+08:00",
+      "installed_at": "2026-05-31T22:41:11.394685+08:00",
       "repo_url": "https://github.com/actionbook/actionbook.git",
       "subdir": "packages/openclaw-plugin/skills/actionbook",
       "version": "40a8093",
@@ -23,7 +28,7 @@
       "source": "https://github.com/Cocoon-AI/architecture-diagram-generator.git/architecture-diagram",
       "type": "github-subdir",
       "group": "skills-beta",
-      "installed_at": "2026-05-28T14:40:44.189764+08:00",
+      "installed_at": "2026-05-31T22:40:55.77989+08:00",
       "repo_url": "https://github.com/Cocoon-AI/architecture-diagram-generator.git",
       "subdir": "architecture-diagram",
       "version": "4b9087d",
@@ -34,25 +39,27 @@
       }
     },
     "skills-beta/autoreview": {
-      "source": "https://github.com/openclaw/agent-skills/blob/main/skills/autoreview",
+      "source": "https://github.com/openclaw/agent-skills.git/skills/autoreview",
       "type": "github-subdir",
       "group": "skills-beta",
-      "installed_at": "2026-05-29T03:23:22.290656+08:00",
+      "installed_at": "2026-05-31T22:40:58.08612+08:00",
       "repo_url": "https://github.com/openclaw/agent-skills.git",
       "subdir": "skills/autoreview",
-      "version": "d57761e",
-      "tree_hash": "96a1425d2fc4db973afcad7a89802cd2fee5307b",
+      "version": "2c90aa8",
+      "tree_hash": "97ca4c320d4ea52c8b036622d0b7027125d399eb",
       "file_hashes": {
-        "SKILL.md": "sha256:2da2e2a38661004499ca14f410c79c658b9e1d65e0f44e736d5b9c2696a91ee6",
-        "scripts/autoreview": "sha256:85b8b643f32abfd60b2c86befd402c1c61b50c83779774310c4fe3c12278240d",
-        "scripts/test-review-harness": "sha256:2b149fd74246997fd2554978986fb54958c5b2efdaf79e1078b3941730b9440d"
+        "SKILL.md": "sha256:19e0f341b28625bb64cf6babd077500639a52c438d9ba3cd753abe853c58427b",
+        "scripts/autoreview": "sha256:d29d9bcab7c79505e927e6e6a89d7350ad8cb92ec8acdfcd79d41f4ca8349562",
+        "scripts/test-review-harness": "sha256:d58e158818a634b291893b74d1e21b0027e187ef6ee28a1cb84361345e1d5308",
+        "scripts/test-review-harness.ps1": "sha256:e182771db1907a11ebcfa588093e889547a48e3f77570d74c06c18f3b16a7fe8",
+        "scripts/test-review-harness.py": "sha256:b894ea4ea4f502ae1894818317424154fb954acb8413a5436dc6e4dd26e9c52c"
       }
     },
     "skills-beta/browser-harness": {
       "source": "https://github.com/browser-use/browser-harness.git",
       "type": "github",
       "group": "skills-beta",
-      "installed_at": "2026-05-28T14:41:01.943046+08:00",
+      "installed_at": "2026-05-31T22:40:36.713189+08:00",
       "repo_url": "https://github.com/browser-use/browser-harness.git",
       "version": "6d20866",
       "file_hashes": {
@@ -220,7 +227,7 @@
       "source": "https://github.com/cathrynlavery/diagram-design.git/skills/diagram-design",
       "type": "github-subdir",
       "group": "skills-beta",
-      "installed_at": "2026-05-28T14:41:04.881834+08:00",
+      "installed_at": "2026-05-31T22:40:39.353962+08:00",
       "repo_url": "https://github.com/cathrynlavery/diagram-design.git",
       "subdir": "skills/diagram-design",
       "version": "0ab077f",
@@ -295,26 +302,26 @@
       }
     },
     "skills-beta/handoff": {
-      "source": "https://github.com/openclaw/agent-skills/blob/main/skills/handoff",
+      "source": "https://github.com/openclaw/agent-skills.git/skills/handoff",
       "type": "github-subdir",
       "group": "skills-beta",
-      "installed_at": "2026-05-29T03:24:31.374239+08:00",
+      "installed_at": "2026-05-31T22:40:58.664227+08:00",
       "repo_url": "https://github.com/openclaw/agent-skills.git",
       "subdir": "skills/handoff",
-      "version": "d57761e",
-      "tree_hash": "7ac25391aca081deaa76e19bd009fb69f57a3f44",
+      "version": "2c90aa8",
+      "tree_hash": "ed9e295d20ea217836f51b809bb728887e55eafd",
       "file_hashes": {
-        "SKILL.md": "sha256:c26ed4ea2e4921d23ab2dfdace5ab6458e0185143dc92e9fe8629e92f04df05c"
+        "SKILL.md": "sha256:cc03b17bdab53c38500381c20ddf3b63a5dbb580909c2ce318452d0055f7a5f4"
       }
     },
     "skills-beta/manim-video": {
       "source": "https://github.com/NousResearch/hermes-agent.git/skills/creative/manim-video",
       "type": "github-subdir",
       "group": "skills-beta",
-      "installed_at": "2026-05-28T14:41:16.979169+08:00",
+      "installed_at": "2026-05-31T22:41:04.772119+08:00",
       "repo_url": "https://github.com/NousResearch/hermes-agent.git",
       "subdir": "skills/creative/manim-video",
-      "version": "7b778db",
+      "version": "04bb74c",
       "tree_hash": "1ea77a2838ab8d35d3468eea25dacffe5a3caba9",
       "file_hashes": {
         "README.md": "sha256:a30f3ec6105d5b23bc5ec28e8e2809e9ceed49f1fd816570d5b5656d0aa65819",
@@ -340,10 +347,10 @@
       "source": "https://github.com/D4Vinci/Scrapling.git/agent-skill/Scrapling-Skill",
       "type": "github-subdir",
       "group": "skills-beta/scraping",
-      "installed_at": "2026-05-28T14:41:20.011782+08:00",
+      "installed_at": "2026-05-31T22:40:42.195402+08:00",
       "repo_url": "https://github.com/D4Vinci/Scrapling.git",
       "subdir": "agent-skill/Scrapling-Skill",
-      "version": "dbd48ff",
+      "version": "a6a57ee",
       "tree_hash": "9f09230fe4a87015b3de4eaa68697f5439d5d913",
       "file_hashes": {
         "LICENSE.txt": "sha256:5c782ef0346e4fbfe0dc76fd435f181a0f1e4a1a7a6b13c169c6e74314ff5964",
@@ -375,7 +382,7 @@
       "source": "https://github.com/slidevjs/slidev.git/skills/slidev",
       "type": "github-subdir",
       "group": "skills-beta",
-      "installed_at": "2026-05-28T14:41:25.294413+08:00",
+      "installed_at": "2026-05-31T22:41:08.226638+08:00",
       "repo_url": "https://github.com/slidevjs/slidev.git",
       "subdir": "skills/slidev",
       "version": "9a10a59",
@@ -438,13 +445,13 @@
       }
     },
     "skills-beta/thermo-nuclear-code-quality-review": {
-      "source": "https://github.com/cursor/plugins/blob/main/thermos/skills/thermo-nuclear-code-quality-review",
+      "source": "https://github.com/cursor/plugins.git/thermos/skills/thermo-nuclear-code-quality-review",
       "type": "github-subdir",
       "group": "skills-beta",
-      "installed_at": "2026-05-29T03:06:50.524858+08:00",
+      "installed_at": "2026-05-31T22:40:44.967801+08:00",
       "repo_url": "https://github.com/cursor/plugins.git",
       "subdir": "thermos/skills/thermo-nuclear-code-quality-review",
-      "version": "1e072c7",
+      "version": "c8402bc",
       "tree_hash": "d9c8935dd560b3b6f5941247d04a1843f8c7cc35",
       "file_hashes": {
         "SKILL.md": "sha256:7faca08b51b643b2ddd0836f92af15574444024685dcc1e677dbbb39ae8c9e8f"
@@ -454,7 +461,7 @@
       "source": "https://github.com/longbridge/developers.git/skills/longbridge",
       "type": "github-subdir",
       "group": "skills-stable",
-      "installed_at": "2026-05-28T14:41:28.174587+08:00",
+      "installed_at": "2026-05-31T22:40:48.335848+08:00",
       "repo_url": "https://github.com/longbridge/developers.git",
       "subdir": "skills/longbridge",
       "version": "31254b9",
@@ -481,13 +488,13 @@
     "skillshare": {
       "source": "https://github.com/runkids/skillshare.git/skills/skillshare",
       "type": "github-subdir",
-      "installed_at": "2026-05-28T14:40:54.773256+08:00",
+      "installed_at": "2026-05-31T22:40:53.34496+08:00",
       "repo_url": "https://github.com/runkids/skillshare.git",
       "subdir": "skills/skillshare",
-      "version": "d32a15f",
-      "tree_hash": "d87fc46896238465f0d6a462aea27630cf86b102",
+      "version": "d35ed81",
+      "tree_hash": "441d28b4088a93d93a2608bddbabb3cefd3d6ad9",
       "file_hashes": {
-        "SKILL.md": "sha256:0d46ff24935f49c4676bdb9093aa35c204bee573c4a008dd056c3f15422dc0fc",
+        "SKILL.md": "sha256:2bf0e8cdc6a23a1150b02e0563f6935c2b29b94d7448e98f472a3da37b3a6a9b",
         "references/TROUBLESHOOTING.md": "sha256:14855dbd2f20ad7042941959f257c79f768d103e89e55d74d8c3b3d38f9ff5ee",
         "references/audit.md": "sha256:85a31c32f17f39ce2baa5189a8004c6adec506e5fcf7d20378caa103b015fd5d",
         "references/backup.md": "sha256:96e2e8d5e2d7cfb8765c2eebb4e6d733b79258de8b3d974fca8972557f7326a6",
