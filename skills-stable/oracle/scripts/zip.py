@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.12"
-# dependencies = ["typer>=0.25.0", "jinja2>=3.1.0"]
+# dependencies = ["typer>=0.25.0"]
 # ///
 """Build a compact Git repository zip for Oracle/ChatGPT review."""
 
@@ -16,17 +16,12 @@ import tempfile
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated
 
 import typer
-from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-SKILL_DIR = SCRIPT_DIR.parent
-TEMPLATE_DIR = SKILL_DIR / "templates"
-
-RESERVED_CONTEXT_NAMES = {"MANIFEST.md", "PROMPT.md"}
-IGNORED_CONTEXT_DIR_NAMES = {".git", "node_modules", ".venv", "__pycache__"}
+PROMPT_NAME = "AGENTS.md"
+DEFAULT_OUTPUT_DIR = Path("/tmp/oracle-work")
 
 
 def fail(message: str) -> None:
@@ -59,49 +54,6 @@ def git_text(args: list[str], cwd: Path) -> str:
 def git_nul_paths(args: list[str], cwd: Path) -> list[str]:
     output = run_git(args, cwd).stdout
     return [os.fsdecode(part) for part in output.split(b"\0") if part]
-
-
-def template_env() -> Environment:
-    return Environment(
-        loader=FileSystemLoader(TEMPLATE_DIR),
-        autoescape=False,
-        keep_trailing_newline=True,
-        lstrip_blocks=True,
-        trim_blocks=True,
-        undefined=StrictUndefined,
-    )
-
-
-def render_template(name: str, **context: Any) -> str:
-    return template_env().get_template(name).render(**context)
-
-
-def non_empty(value: str, label: str) -> str:
-    if value == "":
-        fail(f"{label} requires a non-empty path")
-    return value
-
-
-def validate_single(values: list[str], label: str) -> str | None:
-    if len(values) > 1:
-        fail(f"{label} may only be provided once")
-    if not values:
-        return None
-    return non_empty(values[0], label)
-
-
-def validate_output_dir(output_dir: str | None, output_dir_option: list[str]) -> Path | None:
-    selected_option = validate_single(output_dir_option, "--output-dir")
-    if output_dir == "":
-        fail("output directory must not be empty")
-    if output_dir and selected_option:
-        fail("expected at most one output directory")
-    selected = selected_option or output_dir
-    return Path(selected).expanduser() if selected else None
-
-
-def validate_context_paths(context: list[str]) -> list[Path]:
-    return [Path(non_empty(value, "--context")).expanduser() for value in context]
 
 
 def safe_branch_name(branch: str) -> str:
@@ -141,60 +93,22 @@ def overlay_worktree_files(repo_root: Path, clone_path: Path) -> None:
             copy_file_or_symlink(src, clone_path / rel)
 
 
-def context_basename(src: Path) -> str:
-    base = src.name
-    if base in RESERVED_CONTEXT_NAMES:
-        fail(f"context basename is reserved: {base}")
-    return base
+def write_agents_prompt(package_path: Path, prompt_md: Path, repo_name: str) -> None:
+    if not prompt_md.is_file():
+        fail(f"prompt Markdown not found: {prompt_md}")
 
-
-def copy_context_dir(src: Path, dest: Path) -> None:
-    def ignore(_dir: str, names: list[str]) -> set[str]:
-        return {name for name in names if name in IGNORED_CONTEXT_DIR_NAMES}
-
-    shutil.copytree(src, dest, symlinks=True, ignore=ignore)
-
-
-def write_context_manifest(context_root: Path, entries: list[dict[str, str]]) -> None:
-    context_root.mkdir(parents=True, exist_ok=True)
-    text = render_template("CONTEXT_MANIFEST.md.j2", entries=entries)
-    (context_root / "MANIFEST.md").write_text(text, encoding="utf-8")
-
-
-def add_context(clone_path: Path, prompt_md: Path | None, context_paths: list[Path]) -> None:
-    if not prompt_md and not context_paths:
-        return
-
-    context_root = clone_path / "_repo_zip_context"
-    context_root.mkdir(parents=True, exist_ok=True)
-    entries: list[dict[str, str]] = []
-
-    if prompt_md:
-        if not prompt_md.is_file():
-            fail(f"prompt Markdown not found: {prompt_md}")
-        copy_file_or_symlink(prompt_md, context_root / "PROMPT.md")
-        entries.append({"src": str(prompt_md), "dest": "_repo_zip_context/PROMPT.md"})
-
-    used_names = set(RESERVED_CONTEXT_NAMES)
-    for src in context_paths:
-        if not src.exists() and not src.is_symlink():
-            fail(f"context path not found: {src}")
-        base = context_basename(src)
-        if base in used_names:
-            fail(f"duplicate context basename: {base}")
-        used_names.add(base)
-
-        dest = context_root / base
-        if src.is_file() or src.is_symlink():
-            copy_file_or_symlink(src, dest)
-            entries.append({"src": str(src), "dest": f"_repo_zip_context/{base}"})
-        elif src.is_dir():
-            copy_context_dir(src, dest)
-            entries.append({"src": f"{src}/", "dest": f"_repo_zip_context/{base}/"})
-        else:
-            fail(f"unsupported context path type: {src}")
-
-    write_context_manifest(context_root, entries)
+    prompt_text = prompt_md.read_text(encoding="utf-8")
+    target = package_path / PROMPT_NAME
+    generated_text = (
+        "<!-- Generated by repo-zip from prompt context. -->\n"
+        "# Repository package instructions\n\n"
+        f"{prompt_text.rstrip()}\n\n"
+        "---\n\n"
+        "# Package layout\n\n"
+        f"- The repository checkout is in `{repo_name}/`.\n"
+        f"- The checkout includes `{repo_name}/.git`; use normal git commands from `{repo_name}/` to inspect history, branches, and diffs.\n"
+    )
+    target.write_text(generated_text, encoding="utf-8")
 
 
 def zipinfo_for_path(path: Path, arcname: str) -> zipfile.ZipInfo:
@@ -241,11 +155,10 @@ def resolve_repo_root() -> Path:
     return Path(proc.stdout.decode().strip())
 
 
-def build_zip(output_dir: Path | None, prompt_md: Path | None, context_paths: list[Path]) -> Path:
+def build_zip(output_dir: Path, prompt_md: Path) -> Path:
     repo_root = resolve_repo_root()
     repo_name = repo_root.name
-    repo_parent = repo_root.parent
-    resolved_output_dir = output_dir or repo_parent
+    resolved_output_dir = output_dir.expanduser()
     resolved_output_dir.mkdir(parents=True, exist_ok=True)
     resolved_output_dir = resolved_output_dir.resolve()
 
@@ -254,12 +167,14 @@ def build_zip(output_dir: Path | None, prompt_md: Path | None, context_paths: li
     branch_label = current_branch or f"detached-{git_text(['rev-parse', '--short', 'HEAD'], repo_root)}"
     safe_branch = safe_branch_name(branch_label)
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    output_path = resolved_output_dir / f"{repo_name}-repo-{safe_branch}-{stamp}.zip"
+    output_path = resolved_output_dir / f"{repo_name}-package-{safe_branch}-{stamp}.zip"
 
     with tempfile.TemporaryDirectory() as tmp:
         tmpdir = Path(tmp)
         bundle_path = tmpdir / f"{repo_name}.bundle"
-        clone_path = tmpdir / repo_name
+        package_path = tmpdir / f"{repo_name}-package"
+        clone_path = package_path / repo_name
+        package_path.mkdir()
 
         run_git(["bundle", "create", str(bundle_path), "--all"], repo_root)
         run_command(["git", "clone", "--quiet", str(bundle_path), str(clone_path)])
@@ -276,36 +191,23 @@ def build_zip(output_dir: Path | None, prompt_md: Path | None, context_paths: li
             run_git(["checkout", "--quiet", head_sha], clone_path)
 
         overlay_worktree_files(repo_root, clone_path)
-        add_context(clone_path, prompt_md, context_paths)
-        create_zip(clone_path, output_path)
+        write_agents_prompt(package_path, prompt_md.expanduser(), repo_name)
+        create_zip(package_path, output_path)
 
     return output_path
 
 
 def main(
-    output_dir: Annotated[
-        str | None,
-        typer.Argument(help="Directory where the zip will be written."),
-    ] = None,
-    output_dir_option: Annotated[
-        list[str] | None,
-        typer.Option("--output-dir", "-o", help="Directory where the zip will be written."),
-    ] = None,
-    context: Annotated[
-        list[str] | None,
-        typer.Option("--context", help="Extra file or directory copied into _repo_zip_context/."),
-    ] = None,
     prompt_md: Annotated[
-        list[str] | None,
-        typer.Option("--prompt-md", help="Markdown prompt copied to _repo_zip_context/PROMPT.md."),
-    ] = None,
+        Path,
+        typer.Option("--prompt", help=f"Markdown prompt written to the package root {PROMPT_NAME}."),
+    ],
+    output_dir: Annotated[
+        Path,
+        typer.Option("--output", "-o", help="Directory where the zip will be written."),
+    ] = DEFAULT_OUTPUT_DIR,
 ) -> None:
-    selected_output_dir = validate_output_dir(output_dir, output_dir_option or [])
-    selected_prompt = validate_single(prompt_md or [], "--prompt-md")
-    selected_prompt_path = Path(selected_prompt).expanduser() if selected_prompt else None
-    selected_context_paths = validate_context_paths(context or [])
-
-    output_path = build_zip(selected_output_dir, selected_prompt_path, selected_context_paths)
+    output_path = build_zip(output_dir, prompt_md)
     typer.echo(output_path)
 
 
