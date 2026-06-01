@@ -6,6 +6,7 @@ extend-exclude = [
     "skills-beta/autoreview/",
     "skills-beta/browser-harness/",
     "skills-beta/diagram-design/",
+    "skills-beta/grill-me/",
     "skills-beta/handoff/",
     "skills-beta/manim-video/",
     "skills-beta/scraping/scrapling-official/",
