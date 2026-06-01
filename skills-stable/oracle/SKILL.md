@@ -61,23 +61,21 @@ Write a short `/tmp/oracle-work/PROMPT.md`. Include:
 - desired output format;
 - "Do not invent findings without repository evidence."
 
-Patch/stat files are usually not needed when the attached repo has `.git`; they duplicate information Pro can derive with `git diff`. Add them only when they clarify the boundary or capture information not present in the repo. The review object should still be the Git repo, not a flattened patch bundle.
+Patch/stat files are usually not needed when the attached repo has `.git`; they duplicate information Pro can derive with `git diff`. Put boundary details and any necessary external context in the prompt. The review object should still be the Git repo, not a flattened patch bundle.
 
 Build the zip with the bundled helper, resolved relative to this `SKILL.md`:
 
 ```sh
 uv run --script /path/to/oracle/scripts/zip.py \
-  --prompt-md /tmp/oracle-work/PROMPT.md \
-  --output-dir /tmp/oracle-work
+  --prompt /tmp/oracle-work/PROMPT.md \
+  --output /tmp/oracle-work
 ```
 
-`scripts/zip.py` creates a repository checkout zip including `.git`. When prompt/context paths are provided it also creates `_repo_zip_context/`:
+`scripts/zip.py` creates a package zip with a root `AGENTS.md` and the repository checkout one directory below it. The checkout includes `.git`, and the original repository contents are left intact.
 
-- `--prompt-md` becomes `_repo_zip_context/PROMPT.md`;
-- each `--context` file or directory is copied by basename;
-- `_repo_zip_context/MANIFEST.md` is rendered from `templates/CONTEXT_MANIFEST.md.j2`;
-- context basenames `PROMPT.md` and `MANIFEST.md` are reserved;
-- context directories skip `.git`, `node_modules`, `.venv`, and `__pycache__`.
+- `--prompt` is required and becomes the package root `AGENTS.md`;
+- `--output` / `-o` selects the output directory and defaults to `/tmp/oracle-work`;
+- no additional context directory is created.
 
 Dry-run as an uploaded attachment:
 
@@ -87,7 +85,7 @@ oracle --engine browser --model gpt-5.5-pro \
   --max-file-size-bytes 52428800 \
   --dry-run summary --files-report \
   --file /tmp/oracle-work/<repo-zip>.zip \
-  --prompt 'Review the attached repository zip using _repo_zip_context/PROMPT.md as the review brief. Return concrete findings first with file/path evidence.'
+  --prompt 'Review the attached repository zip. Follow the package root AGENTS.md instructions first. Return concrete findings first with file/path evidence.'
 ```
 
 Proceed only if the dry-run says `Attachments to upload`. If it reports inline zip content, stop and fix the command.
@@ -100,7 +98,7 @@ oracle --engine browser --model gpt-5.5-pro \
   --browser-hide-window \
   --max-file-size-bytes 52428800 \
   --file /tmp/oracle-work/<repo-zip>.zip \
-  --prompt 'Review the attached repository zip using _repo_zip_context/PROMPT.md as the review brief. Return concrete findings first with file/path evidence.' \
+  --prompt 'Review the attached repository zip. Follow the package root AGENTS.md instructions first. Return concrete findings first with file/path evidence.' \
   --slug short-descriptive-slug \
   --write-output /tmp/oracle-work/answer.md
 ```
