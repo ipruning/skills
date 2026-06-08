@@ -1,14 +1,14 @@
 ---
 name: image-generation-workbench
 description: |
-  Use when the task needs AI-generated or AI-edited images from prompts,
-  screenshots, sketches, masks, or reference images. This includes creating
-  tutorial/document figures, repairing a prior generated image, comparing image
-  variants, producing green-screen components, or wiring an OpenAI-compatible
-  image-generation CLI workflow.
+  Use when the task needs AI-generated or AI-edited bitmap visuals from prompts,
+  screenshots, sketches, masks, or reference images. Trigger for source-backed
+  tutorial figures, screenshot annotation, multi-turn image repair, visual QA,
+  variant comparison, green-screen or transparent components, and
+  OpenAI-compatible image-generation CLI workflows.
 metadata:
   version: "1.0"
-  short-description: OpenAI image generation and repair workflow
+  short-description: OpenAI image generation, repair, and visual QA workflow
 ---
 
 # Image Generation Workbench

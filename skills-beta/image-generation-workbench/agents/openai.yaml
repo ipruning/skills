@@ -1,4 +1,4 @@
 interface:
   display_name: "Image Generation Workbench"
-  short_description: "OpenAI Image 2 generation, editing, repair, and visual QA"
-  default_prompt: "Use $image-generation-workbench to turn source images, sketches, or prompts into reviewed visual assets with an external review workflow."
+  short_description: "Generate, edit, repair, and QA images with OpenAI Image 2"
+  default_prompt: "Use $image-generation-workbench for source-backed image generation and editing: attach references, create or repair the visual asset, inspect the output, and keep exact text or final layout in the host document."
