@@ -7,7 +7,35 @@ _jihuanshe-internal-data-skills/
 .DS_Store
 
 # Python
-__pycache__/
-.ruff_cache/
-.venv/
+**/__pycache__/
 *.py[cod]
+*$py.class
+
+# Python tooling caches
+**/.mypy_cache/
+**/.pytest_cache/
+**/.ruff_cache/
+**/.tox/
+**/.nox/
+**/.pytype/
+**/.pyre/
+**/.ty_cache/
+**/.dmypy.json
+**/.hypothesis/
+**/.ipynb_checkpoints/
+
+# Python build/test artifacts
+**/.coverage
+**/.coverage.*
+**/htmlcov/
+**/build/
+**/dist/
+**/.eggs/
+**/*.egg-info/
+**/*.egg
+**/pip-wheel-metadata/
+
+# Local Python environments
+.venv/
+venv/
+env/

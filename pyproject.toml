@@ -5,20 +5,21 @@ description = "Skills for Amp & Codex"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
-    "logfire>=4.31.0",
-    "modal>=1.4.1",
-    "openai>=2.30.0",
-    "tiktoken>=0.12.0",
-    "torch>=2.11.0",
-    "turbopuffer>=1.19.0",
-    "typer>=0.24.1",
+    "logfire>=4.35.0",
+    "modal>=1.4.3",
+    "openai>=2.41.0",
+    "pillow>=12.2.0",
+    "tiktoken>=0.13.0",
+    "torch>=2.12.0",
+    "turbopuffer>=2.3.0",
+    "typer>=0.26.7",
 ]
 
 [dependency-groups]
 dev = [
-    "basedpyright>=1.38.4",
-    "ruff>=0.15.8",
-    "ty>=0.0.26",
+    "basedpyright>=1.39.7",
+    "ruff>=0.15.16",
+    "ty>=0.0.44",
 ]
 
 [tool.ruff]
