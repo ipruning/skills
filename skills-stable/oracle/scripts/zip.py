@@ -21,7 +21,7 @@ from typing import Annotated
 import typer
 
 PROMPT_NAME = "AGENTS.md"
-DEFAULT_OUTPUT_DIR = Path("/tmp/oracle-work")
+DEFAULT_OUTPUT_DIR = Path(tempfile.gettempdir()) / "oracle-work"
 
 
 def fail(message: str) -> None:

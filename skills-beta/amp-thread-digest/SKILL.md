@@ -33,7 +33,8 @@ flowchart LR
 
 ```bash
 # 用 Thread ID 命名，便于后续查询和关联
-amp threads markdown T-xxx > /tmp/T-xxx.md
+THREAD_MD="${TMPDIR:-/tmp}/T-xxx.md"
+amp threads markdown T-xxx > "$THREAD_MD"
 ```
 
 > **为什么不用 `read_thread` 工具？** 该工具输出 AI 摘要，依赖 goal 质量，可能丢失用户反馈细节。直接用 `amp threads markdown` 导出 + grep 更接近 ground truth。
@@ -41,7 +42,7 @@ amp threads markdown T-xxx > /tmp/T-xxx.md
 ### Step 2: Run Analysis Script
 
 ```bash
-./scripts/main.sh /tmp/T-xxx.md
+./scripts/main.sh "$THREAD_MD"
 ```
 
 输出内容：
@@ -95,27 +96,28 @@ Review analysis output，用表格列出发现：
 
 ```bash
 # Export + analyze in one command (用 Thread ID 命名)
-amp threads markdown T-xxx > /tmp/T-xxx.md && \
-  ./scripts/main.sh /tmp/T-xxx.md
+THREAD_MD="${TMPDIR:-/tmp}/T-xxx.md"
+amp threads markdown T-xxx > "$THREAD_MD" && \
+  ./scripts/main.sh "$THREAD_MD"
 ```
 
 ### Manual Commands
 
 ```bash
 # 预览
-head -100 /tmp/T-xxx.md
+head -100 "$THREAD_MD"
 
 # 搜索错误（带上下文）
-rg -n -C3 "Error|error|Failed" /tmp/T-xxx.md
+rg -n -C3 "Error|error|Failed" "$THREAD_MD"
 
 # 提取真正的人类反馈（过滤 Tool Result）
-awk '/^## User/{getline; getline; if(!/Tool Result/) print NR": "$0}' /tmp/T-xxx.md
+awk '/^## User/{getline; getline; if(!/Tool Result/) print NR": "$0}' "$THREAD_MD"
 
 # 失败的工具调用（高价值信号）
-rg -n '"exitCode": [^0]' /tmp/T-xxx.md
+rg -n '"exitCode": [^0]' "$THREAD_MD"
 
 # Tool 调用及结果
-rg -n -C5 "Tool Use:" /tmp/T-xxx.md
+rg -n -C5 "Tool Use:" "$THREAD_MD"
 ```
 
 > **失败调用是高价值信号**：每次工具调用应最大化信息熵。失败调用不仅浪费 token，还会用无用上下文污染 context。分析失败原因并沉淀到技能中，避免重复踩坑。
@@ -129,19 +131,19 @@ mq 是 Markdown 处理工具，类似 jq 处理 JSON。关键参数：
 
 ```bash
 # 提取所有 h2 标题（会话轮次）
-mq '.h2' /tmp/T-xxx.md
+mq '.h2' "$THREAD_MD"
 
 # 统计 User/Assistant 轮次
-mq -A -F json 'group_by(filter(., is_h2), to_text)' /tmp/T-xxx.md
+mq -A -F json 'group_by(filter(., is_h2), to_text)' "$THREAD_MD"
 
 # 提取所有代码块语言类型
-mq '.code.lang' /tmp/T-xxx.md
+mq '.code.lang' "$THREAD_MD"
 
 # 筛选包含 Error 的代码块
-mq '.code | select(contains("Error"))' /tmp/T-xxx.md
+mq '.code | select(contains("Error"))' "$THREAD_MD"
 
 # 提取所有链接 URL
-mq '.link.url' /tmp/T-xxx.md
+mq '.link.url' "$THREAD_MD"
 ```
 
 ### 技能遵循度分析
@@ -150,13 +152,13 @@ mq '.link.url' /tmp/T-xxx.md
 
 ```bash
 # 列出所有 SQL 查询
-rg -n "duckdb -c" /tmp/T-xxx.md
+rg -n "duckdb -c" "$THREAD_MD"
 
 # 检查特定模式（如 COALESCE 用法）
-rg -n "COALESCE.*stock" /tmp/T-xxx.md
+rg -n "COALESCE.*stock" "$THREAD_MD"
 
 # 检查目录读取方式
-rg -n "FROM.*parquet" /tmp/T-xxx.md
+rg -n "FROM.*parquet" "$THREAD_MD"
 
 # 对照技能踩坑清单逐条验证
 ```

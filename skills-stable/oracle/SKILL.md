@@ -50,10 +50,11 @@ For dirty worktrees, inspect `git diff` and untracked files before the run. Afte
 Create a temporary work directory:
 
 ```sh
-mkdir -p /tmp/oracle-work
+ORACLE_WORK_DIR="${TMPDIR:-/tmp}/oracle-work"
+mkdir -p "$ORACLE_WORK_DIR"
 ```
 
-Write a short `/tmp/oracle-work/PROMPT.md`. Include:
+Write a short `$ORACLE_WORK_DIR/PROMPT.md`. Include:
 
 - project/problem;
 - exact review boundary, including base/head/branch or dirty-worktree scope, so Pro can inspect it with git in the attached repo; for PRs, tell Pro which refs to compare, for example `git diff $(git merge-base HEAD origin/main)..HEAD`;
@@ -66,15 +67,16 @@ Patch/stat files are usually not needed when the attached repo has `.git`; they 
 Build the zip with the bundled helper, resolved relative to this `SKILL.md`:
 
 ```sh
-uv run --script /path/to/oracle/scripts/zip.py \
-  --prompt /tmp/oracle-work/PROMPT.md \
-  --output /tmp/oracle-work
+ORACLE_SKILL_DIR="<directory containing this SKILL.md>"
+uv run --script "$ORACLE_SKILL_DIR/scripts/zip.py" \
+  --prompt "$ORACLE_WORK_DIR/PROMPT.md" \
+  --output "$ORACLE_WORK_DIR"
 ```
 
 `scripts/zip.py` creates a package zip with a root `AGENTS.md` and the repository checkout one directory below it. The checkout includes `.git`, and the original repository contents are left intact.
 
 - `--prompt` is required and becomes the package root `AGENTS.md`;
-- `--output` / `-o` selects the output directory and defaults to `/tmp/oracle-work`;
+- `--output` / `-o` selects the output directory and defaults to `<system-temp>/oracle-work`;
 - no additional context directory is created.
 
 Dry-run as an uploaded attachment:
@@ -84,7 +86,7 @@ oracle --engine browser --model gpt-5.5-pro \
   --browser-attachments always \
   --max-file-size-bytes 52428800 \
   --dry-run summary --files-report \
-  --file /tmp/oracle-work/<repo-zip>.zip \
+  --file "$ORACLE_WORK_DIR/<repo-zip>.zip" \
   --prompt 'Review the attached repository zip. Follow the package root AGENTS.md instructions first. Return concrete findings first with file/path evidence.'
 ```
 
@@ -97,10 +99,10 @@ oracle --engine browser --model gpt-5.5-pro \
   --browser-attachments always \
   --browser-hide-window \
   --max-file-size-bytes 52428800 \
-  --file /tmp/oracle-work/<repo-zip>.zip \
+  --file "$ORACLE_WORK_DIR/<repo-zip>.zip" \
   --prompt 'Review the attached repository zip. Follow the package root AGENTS.md instructions first. Return concrete findings first with file/path evidence.' \
   --slug short-descriptive-slug \
-  --write-output /tmp/oracle-work/answer.md
+  --write-output "$ORACLE_WORK_DIR/answer.md"
 ```
 
 For long runs, wait and inspect instead of restarting:
@@ -108,7 +110,7 @@ For long runs, wait and inspect instead of restarting:
 ```sh
 sleep 60
 oracle status <slug>
-test -s /tmp/oracle-work/answer.md && sed -n '1,220p' /tmp/oracle-work/answer.md
+test -s "$ORACLE_WORK_DIR/answer.md" && sed -n '1,220p' "$ORACLE_WORK_DIR/answer.md"
 ```
 
 ## Failure Handling

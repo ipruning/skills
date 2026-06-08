@@ -27,7 +27,7 @@ git branch -f main origin/main
 
 ```bash
 TASK_ID="$(date +%Y%m%d-%H%M%S)"
-WORK_DIR="/tmp/review-$TASK_ID"
+WORK_DIR="${TMPDIR:-/tmp}/review-$TASK_ID"
 mkdir -p "$WORK_DIR"
 ```
 

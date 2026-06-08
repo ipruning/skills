@@ -1,6 +1,6 @@
 # PR Review SOP（自动化）
 
-通过克隆到 `/tmp`、使用 rp-cli 在独立窗口中操作、并提交给 Oracle 来审查 GitHub PR。
+通过克隆到系统临时目录、使用 rp-cli 在独立窗口中操作、并提交给 Oracle 来审查 GitHub PR。
 
 与 [review.md](review.md)（手动、单仓库、基于分支）相比，本 SOP 处理**任意仓库和 PR**，具备完整的工作区隔离。
 
@@ -8,7 +8,7 @@
 
 ```
 # 工作目录
-/tmp/ralph/{owner}/{repo}/{pr}/
+${TMPDIR:-/tmp}/ralph/{owner}/{repo}/{pr}/
   ├── repo/            # 浅克隆
   ├── prompt.md        # 导出的审查提示词
   ├── review-result.md # Oracle 输出
@@ -23,11 +23,11 @@ ralph-{owner}-{repo}-{pr}
 使用 `gh pr view` 获取标题、基础分支、变更文件数。设置变量：
 
 - `OWNER`、`REPO`、`PR_NUMBER`
-- `WORK_DIR="/tmp/ralph/$OWNER/$REPO/$PR_NUMBER"`
+- `WORK_DIR="${TMPDIR:-/tmp}/ralph/$OWNER/$REPO/$PR_NUMBER"`
 - `WS_NAME="ralph-$REPO-$PR_NUMBER"`
 - `BASE_REF` 取自 PR 的 `baseRefName`
 
-## 第二步：克隆 PR 到 /tmp
+## 第二步：克隆 PR 到系统临时目录
 
 ```bash
 mkdir -p "$WORK_DIR"

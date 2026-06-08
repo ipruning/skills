@@ -2,14 +2,14 @@
 set -euo pipefail
 
 # Analyze an exported Amp thread for knowledge extraction.
-# Usage: ./main.sh /tmp/T-xxx.md
+# Usage: ./main.sh "${TMPDIR:-/tmp}/T-xxx.md"
 
 THREAD_FILE="${1:-}"
 
 if [[ -z "$THREAD_FILE" || ! -f "$THREAD_FILE" ]]; then
     echo "Error: Thread file not found: $THREAD_FILE" >&2
     echo "Usage: $0 <thread_file>" >&2
-    echo "  First export: amp threads markdown T-xxx > /tmp/T-xxx.md" >&2
+    printf '%s\n' "  First export: THREAD_MD=\"\${TMPDIR:-/tmp}/T-xxx.md\"; amp threads markdown T-xxx > \"\$THREAD_MD\"" >&2
     exit 1
 fi
 
