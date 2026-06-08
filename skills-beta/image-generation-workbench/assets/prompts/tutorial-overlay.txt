@@ -3,6 +3,7 @@ Create a high-fidelity tutorial figure from the provided source image.
 Preserve the source information:
 - Keep the important objects, spatial relationships, UI/card/screenshot content, colors, and layout as close as possible to the input.
 - Do not reinterpret the source as a new scene.
+- Preserve the intended output aspect ratio. Do not recompose a portrait/mobile UI into a landscape board unless that was explicitly requested.
 - Remove irrelevant window chrome only if it can be done without changing the meaningful content.
 
 Add a light editorial teaching layer:

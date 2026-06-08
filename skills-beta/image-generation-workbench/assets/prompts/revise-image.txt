@@ -2,6 +2,7 @@ Revise the previous generated image while preserving the original source informa
 
 Keep:
 - the important source objects, colors, positions, and layout;
+- the intended output aspect ratio and canvas orientation;
 - the overall annotation and illustration style;
 - existing readable labels unless the issue explicitly asks to change them.
 

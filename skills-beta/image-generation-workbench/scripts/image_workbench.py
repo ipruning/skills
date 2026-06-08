@@ -1,12 +1,12 @@
 #!/usr/bin/env -S uv run --script
 # /// script
-# requires-python = ">=3.11"
+# requires-python = ">=3.12"
 # dependencies = [
 #   "openai>=2.41.0",
 #   "pillow>=12.2.0",
-#   "pydantic>=2.12.0",
-#   "pydantic-settings>=2.12.0",
-#   "typer>=0.20.0",
+#   "pydantic>=2.13.4",
+#   "pydantic-settings>=2.14.1",
+#   "typer>=0.26.7",
 # ]
 # ///
 from __future__ import annotations
@@ -14,6 +14,7 @@ from __future__ import annotations
 import base64
 import json
 import mimetypes
+import re
 from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
@@ -48,7 +49,8 @@ API_BASE_URL_ENV = "OPENAI_BASE_URL"
 GATEWAY_API_KEY_ENV = "PYDANTIC_AI_GATEWAY_API_KEY"
 GATEWAY_BASE_URL_ENV = "PYDANTIC_AI_GATEWAY_BASE_URL"
 
-ResponseImageSize = Literal["1024x1024", "1024x1536", "1536x1024", "auto"]
+SIZE_PATTERN = re.compile(r"^(?P<width>[1-9][0-9]*)x(?P<height>[1-9][0-9]*)$")
+ALLOWED_BACKGROUNDS = {"auto", "opaque"}
 
 app = typer.Typer(
     help="General image generation workbench",
@@ -82,22 +84,20 @@ class ResponseAction(StrEnum):
     AUTO = "auto"
 
 
+class AspectPolicy(StrEnum):
+    AUTO = "auto"
+    MATCH_INPUT = "match-input"
+    LANDSCAPE = "landscape"
+    PORTRAIT = "portrait"
+    SQUARE = "square"
+    EXPLICIT = "explicit"
+
+
 class ImageDetail(StrEnum):
     LOW = "low"
     HIGH = "high"
     AUTO = "auto"
     ORIGINAL = "original"
-
-
-class Background(StrEnum):
-    TRANSPARENT = "transparent"
-    OPAQUE = "opaque"
-    AUTO = "auto"
-
-
-class InputFidelity(StrEnum):
-    HIGH = "high"
-    LOW = "low"
 
 
 class Moderation(StrEnum):
@@ -138,13 +138,13 @@ class ResponseImageMetadata(WorkbenchModel):
     response_path: str
     response_id: object
     reasoning_model: str
-    image_model_override: str | None
+    image_model: str
+    aspect_policy: str | None
     size: str
     quality: str
     action: str
     output_format: str
     background: str | None
-    input_fidelity: str | None
     mask: str | None
     moderation: str | None
     output_compression: int | None
@@ -162,6 +162,7 @@ class DirectImageMetadata(WorkbenchModel):
     metadata_path: str
     response_path: str
     model: str
+    aspect_policy: str | None
     size: str
     quality: str
     output_format: str
@@ -171,7 +172,6 @@ class DirectImageMetadata(WorkbenchModel):
     prompt: str
     client: ClientMetadata
     moderation: str | None = None
-    input_fidelity: str | None = None
     images: list[str] | None = None
     mask: str | None = None
 
@@ -204,6 +204,18 @@ class ChromaAlphaMetadata(WorkbenchModel):
     color: str
     tolerance: int
     feather: int
+
+
+class ProfileCommand(WorkbenchModel):
+    command: str
+    arguments: dict[str, str | int]
+
+
+class ParameterProfile(WorkbenchModel):
+    name: str
+    use_when: str
+    commands: list[ProfileCommand]
+    notes: list[str]
 
 
 def find_workspace_root(start: Path) -> Path:
@@ -326,6 +338,169 @@ def emit_result(json_output: bool, data: BaseModel) -> None:
         typer.echo(str(response_id))
 
 
+PARAMETER_PROFILES = [
+    ParameterProfile(
+        name="source-final",
+        use_when="Final source-backed screenshot, UI, card, logo, or object-preserving edit.",
+        commands=[
+            ProfileCommand(
+                command="annotate-image",
+                arguments={
+                    "aspect-policy": "match-input",
+                    "quality": "high",
+                    "output-format": "png",
+                    "detail": "high",
+                    "background": "auto",
+                },
+            ),
+            ProfileCommand(
+                command="repair-image",
+                arguments={
+                    "aspect-policy": "match-input",
+                    "quality": "high",
+                    "output-format": "png",
+                    "detail": "high",
+                    "background": "auto",
+                },
+            ),
+            ProfileCommand(
+                command="response-image",
+                arguments={
+                    "action": "edit",
+                    "aspect-policy": "match-input",
+                    "quality": "high",
+                    "output-format": "png",
+                    "detail": "high",
+                    "background": "auto",
+                },
+            ),
+            ProfileCommand(
+                command="image-edit",
+                arguments={
+                    "aspect-policy": "match-input",
+                    "quality": "high",
+                    "output-format": "png",
+                    "background": "auto",
+                },
+            ),
+        ],
+        notes=[
+            "Use exact --size instead of --aspect-policy only when the destination canvas is fixed.",
+            "Long screenshots beyond 3:1 must be cropped, sliced, or composed outside the raster image.",
+        ],
+    ),
+    ParameterProfile(
+        name="source-draft",
+        use_when="Cheap first pass for source-backed work where preservation still matters.",
+        commands=[
+            ProfileCommand(
+                command="annotate-image",
+                arguments={
+                    "aspect-policy": "match-input",
+                    "quality": "low",
+                    "output-format": "png",
+                    "detail": "high",
+                    "background": "auto",
+                },
+            ),
+            ProfileCommand(
+                command="response-image",
+                arguments={
+                    "action": "edit",
+                    "aspect-policy": "match-input",
+                    "quality": "low",
+                    "output-format": "png",
+                    "detail": "high",
+                    "background": "auto",
+                },
+            ),
+            ProfileCommand(
+                command="image-edit",
+                arguments={
+                    "aspect-policy": "match-input",
+                    "quality": "low",
+                    "output-format": "png",
+                    "background": "auto",
+                },
+            ),
+        ],
+        notes=["Upgrade to source-final before publishing or integrating into a document."],
+    ),
+    ParameterProfile(
+        name="new-art-final",
+        use_when="New generated artwork without source-image preservation requirements.",
+        commands=[
+            ProfileCommand(
+                command="image-generate",
+                arguments={
+                    "aspect-policy": "auto",
+                    "quality": "high",
+                    "output-format": "png",
+                    "background": "auto",
+                },
+            ),
+            ProfileCommand(
+                command="response-image",
+                arguments={
+                    "action": "generate",
+                    "aspect-policy": "auto",
+                    "quality": "high",
+                    "output-format": "png",
+                    "background": "auto",
+                },
+            ),
+        ],
+        notes=["Use portrait, landscape, square, or exact --size when the destination frame is known."],
+    ),
+    ParameterProfile(
+        name="web-compressed",
+        use_when="Web asset where file size matters more than lossless preservation.",
+        commands=[
+            ProfileCommand(
+                command="image-generate",
+                arguments={
+                    "aspect-policy": "auto",
+                    "quality": "medium",
+                    "output-format": "webp",
+                    "output-compression": 85,
+                    "background": "auto",
+                },
+            ),
+            ProfileCommand(
+                command="response-image",
+                arguments={
+                    "action": "generate",
+                    "aspect-policy": "auto",
+                    "quality": "medium",
+                    "output-format": "webp",
+                    "output-compression": 85,
+                    "background": "auto",
+                },
+            ),
+        ],
+        notes=["For source-backed edits, also add --detail high and choose match-input."],
+    ),
+]
+
+
+@app.command("profiles", help="Print recommended explicit parameter bundles")
+def profiles(
+    json_output: Annotated[bool, typer.Option("--json", help="Print profiles as JSON")] = False,
+) -> None:
+    if json_output:
+        typer.echo(json.dumps([profile.model_dump(mode="json") for profile in PARAMETER_PROFILES], indent=2))
+        return
+    for profile in PARAMETER_PROFILES:
+        typer.echo(profile.name)
+        typer.echo(f"  use: {profile.use_when}")
+        for command in profile.commands:
+            args = " ".join(f"--{key} {value}" for key, value in command.arguments.items())
+            typer.echo(f"  {command.command}: {args}")
+        for note in profile.notes:
+            typer.echo(f"  note: {note}")
+        typer.echo("")
+
+
 def write_b64_image(data: str, out: Path) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(base64.b64decode(data))
@@ -393,31 +568,173 @@ def enum_value(value: StrEnum | None) -> str | None:
     return value.value if value is not None else None
 
 
-def check_image_model_options(
+def require_choice[T](value: T | None, option: str, meaning: str, recommendation: str) -> T:
+    if value is not None:
+        return value
+    fail(f"{option} is required. {meaning} Recommendation: {recommendation}")
+
+
+def parse_size(value: str) -> tuple[int, int] | None:
+    match = SIZE_PATTERN.match(value)
+    if not match:
+        return None
+    return int(match["width"]), int(match["height"])
+
+
+def validate_size_value(value: str) -> None:
+    if value == "auto":
+        return
+    parsed = parse_size(value)
+    if parsed is None:
+        fail(f'Invalid --size "{value}". Use WIDTHxHEIGHT, for example 1024x1536, 1536x1024, 1024x1024, or auto.')
+    width, height = parsed
+    pixels = width * height
+    ratio = max(width, height) / min(width, height)
+    if width % 16 != 0 or height % 16 != 0:
+        fail(f'Invalid --size "{value}". gpt-image-2 custom dimensions must be multiples of 16 pixels on both sides.')
+    if max(width, height) > 3840:
+        fail(f'Invalid --size "{value}". gpt-image-2 allows a maximum side length of 3840 pixels.')
+    if ratio > 3:
+        fail(f'Invalid --size "{value}". gpt-image-2 requires the long side to be no more than 3x the short side.')
+    if not 655_360 <= pixels <= 8_294_400:
+        fail(f'Invalid --size "{value}". gpt-image-2 requires total pixels between 655,360 and 8,294,400.')
+
+
+def image_dimensions(path: str) -> tuple[int, int]:
+    resolved = work_path(path)
+    try:
+        with Image.open(resolved) as image:
+            return image.size
+    except OSError as exc:
+        fail(f"Could not read image dimensions for {resolved}: {exc}")
+
+
+class ImageInfo(BaseModel):
+    path: str
+    width: int
+    height: int
+    format: str | None
+    mode: str
+    bytes_size: int
+    has_alpha: bool
+
+
+def image_info(path: str) -> ImageInfo:
+    resolved = work_path(path)
+    try:
+        with Image.open(resolved) as image:
+            return ImageInfo(
+                path=str(resolved),
+                width=image.width,
+                height=image.height,
+                format=image.format,
+                mode=image.mode,
+                bytes_size=resolved.stat().st_size,
+                has_alpha=image.mode in {"RGBA", "LA"} or "transparency" in image.info,
+            )
+    except OSError as exc:
+        fail(f"Could not read image metadata for {resolved}: {exc}")
+
+
+def resolve_size(
     *,
-    image_model: str | None,
-    background: str | None,
-    input_fidelity: str | None,
-) -> None:
-    if image_model == "gpt-image-2" and input_fidelity:
-        fail("Do not pass input_fidelity with gpt-image-2; image inputs are high fidelity by default for this model.")
-    if image_model == "gpt-image-2" and background == "transparent":
+    size: str | None,
+    aspect_policy: AspectPolicy | None,
+    reference_images: list[str] | None,
+) -> tuple[str, str]:
+    if size is not None:
+        validate_size_value(size)
+        if aspect_policy is None or aspect_policy == AspectPolicy.EXPLICIT:
+            return size, AspectPolicy.EXPLICIT.value
         fail(
-            'gpt-image-2 does not support background="transparent". Use opaque/auto or post-process a green-screen image.'
+            "--size and --aspect-policy conflict. Remove --aspect-policy, or use --aspect-policy explicit with the exact --size."
+        )
+
+    policy = require_choice(
+        aspect_policy,
+        "--aspect-policy",
+        "It decides the output canvas ratio before generation, so the model does not silently recompose the image.",
+        "source-backed mobile UI: match-input; new illustrations: auto; known target: portrait, landscape, or square.",
+    )
+    if policy == AspectPolicy.AUTO:
+        return "auto", policy.value
+    if policy == AspectPolicy.LANDSCAPE:
+        return "1536x1024", policy.value
+    if policy == AspectPolicy.PORTRAIT:
+        return "1024x1536", policy.value
+    if policy == AspectPolicy.SQUARE:
+        return "1024x1024", policy.value
+    if policy == AspectPolicy.EXPLICIT:
+        fail("--aspect-policy explicit requires --size WIDTHxHEIGHT.")
+
+    if not reference_images:
+        fail("--aspect-policy match-input requires at least one --image reference.")
+
+    width, height = image_dimensions(reference_images[0])
+    ratio = width / height
+    if ratio > 3 or ratio < 1 / 3:
+        fail(
+            f"The first input image is {width}x{height} ({ratio:.2f}:1). gpt-image-2 cannot preserve that extreme ratio directly; crop, slice, or compose the long page outside the raster image."
+        )
+    if ratio >= 1.2:
+        return "1536x1024", policy.value
+    if ratio <= 0.83:
+        return "1024x1536", policy.value
+    return "1024x1024", policy.value
+
+
+def resolve_detail(detail: ImageDetail | None, reference_images: list[str] | None) -> str:
+    if not reference_images:
+        return (detail or ImageDetail.AUTO).value
+    return require_choice(
+        detail,
+        "--detail",
+        "It controls how much visual information the reasoning model reads from each reference image.",
+        "high for source-backed editing or QA; auto for loose style references; low only for cheap smoke tests.",
+    ).value
+
+
+def validate_background(background: str) -> None:
+    if background == "transparent":
+        fail(
+            "--background transparent is not supported with gpt-image-2. Use --background auto or opaque; for transparent assets generate a chroma-green component and run chroma-alpha."
+        )
+    if background not in ALLOWED_BACKGROUNDS:
+        fail(f'Invalid --background "{background}". Use auto or opaque.')
+
+
+def validate_latest_image_options(*, background: str, output_format: str, output_compression: int | None) -> None:
+    validate_background(background)
+    if output_compression is not None:
+        if not 0 <= output_compression <= 100:
+            fail("--output-compression must be between 0 and 100.")
+        if output_format == OutputFormat.PNG.value:
+            fail("--output-compression only applies to jpeg or webp. Remove it for png outputs.")
+    elif output_format in {OutputFormat.JPEG.value, OutputFormat.WEBP.value}:
+        fail(
+            "--output-compression is required with jpeg or webp. It controls the size/quality tradeoff; use 95 for review drafts, 85 for web assets, or 100 for maximum quality."
         )
 
 
-def check_direct_image_options(
-    *,
-    model: str,
-    background: str | None,
-    input_fidelity: str | None,
-) -> None:
-    check_image_model_options(
-        image_model=model,
-        background=background,
-        input_fidelity=input_fidelity,
-    )
+def validate_mask(mask: str | None, reference_images: list[str] | None) -> None:
+    if mask is None:
+        return
+    if not reference_images:
+        fail("--mask requires at least one --image input because a mask edits an existing image.")
+    mask_info = image_info(mask)
+    source_info = image_info(reference_images[0])
+    if mask_info.bytes_size > 50 * 1024 * 1024 or source_info.bytes_size > 50 * 1024 * 1024:
+        fail("--mask and the first --image must each be smaller than 50MB for image edit requests.")
+    if (mask_info.width, mask_info.height) != (source_info.width, source_info.height):
+        fail(
+            f"--mask dimensions must match the first --image. Mask is {mask_info.width}x{mask_info.height}, source is {source_info.width}x{source_info.height}."
+        )
+    if mask_info.format != source_info.format:
+        fail(
+            f"--mask format must match the first --image. Mask is {mask_info.format or 'unknown'}, source is {source_info.format or 'unknown'}."
+        )
+    if not mask_info.has_alpha:
+        fail("--mask must contain an alpha channel so the API can tell which pixels to edit.")
 
 
 def call_response_image(
@@ -426,15 +743,13 @@ def call_response_image(
     reference_images: list[str] | None,
     out: str,
     previous_response_id: str | None,
-    reasoning_model: str,
-    image_model: str | None,
+    aspect_policy: str | None,
     size: str,
     quality: str,
     output_format: str,
     action: str,
     detail: str,
     background: str | None,
-    input_fidelity: str | None,
     mask: str | None,
     moderation: str | None,
     output_compression: int | None,
@@ -442,11 +757,16 @@ def call_response_image(
     timeout: float,
     json_output: bool,
 ) -> None:
-    check_image_model_options(
-        image_model=image_model,
-        background=background,
-        input_fidelity=input_fidelity,
+    if mask and action != ResponseAction.EDIT.value:
+        fail("--mask requires --action edit because masks define which pixels of an input image to modify.")
+    if action == ResponseAction.EDIT.value and not reference_images and not previous_response_id:
+        fail("--action edit requires at least one --image reference or a --previous-response-id with image context.")
+    validate_latest_image_options(
+        background=background or "auto",
+        output_format=output_format,
+        output_compression=output_compression,
     )
+    validate_mask(mask, reference_images)
     if partial_images is not None and not 0 <= partial_images <= 3:
         fail("partial_images must be between 0 and 3.")
 
@@ -458,23 +778,20 @@ def call_response_image(
         image_item: ResponseInputImageParam = {
             "type": "input_image",
             "image_url": image_data_url(image),
-            "detail": cast(Literal["low", "high", "auto"], detail),
+            "detail": cast(Literal["low", "high", "auto", "original"], detail),
         }
         content.append(image_item)
 
     tool: ImageGeneration = {
         "type": "image_generation",
-        "size": cast(ResponseImageSize, size),
+        "size": cast(Any, size),
         "quality": cast(Literal["low", "medium", "high", "auto"], quality),
         "output_format": cast(Literal["png", "jpeg", "webp"], output_format),
         "action": cast(Literal["generate", "edit", "auto"], action),
     }
-    if image_model:
-        tool["model"] = image_model
+    tool["model"] = DEFAULT_IMAGE_MODEL
     if background:
-        tool["background"] = cast(Literal["transparent", "opaque", "auto"], background)
-    if input_fidelity:
-        tool["input_fidelity"] = cast(Literal["high", "low"], input_fidelity)
+        tool["background"] = cast(Literal["opaque", "auto"], background)
     if mask:
         input_image_mask: ImageGenerationInputImageMask = {"image_url": image_data_url(mask)}
         tool["input_image_mask"] = input_image_mask
@@ -493,7 +810,7 @@ def call_response_image(
 
     if partial_images is None:
         response = client.responses.create(
-            model=reasoning_model,
+            model=DEFAULT_CONTROLLER_MODEL,
             input=[message],
             previous_response_id=previous_response_id,
             tools=[tool],
@@ -505,7 +822,7 @@ def call_response_image(
     else:
         data: dict[str, Any] | None = None
         stream = client.responses.create(
-            model=reasoning_model,
+            model=DEFAULT_CONTROLLER_MODEL,
             input=[message],
             previous_response_id=previous_response_id,
             tools=[tool],
@@ -554,14 +871,14 @@ def call_response_image(
         metadata_path=str(metadata_path),
         response_path=str(response_path),
         response_id=data.get("id"),
-        reasoning_model=reasoning_model,
-        image_model_override=image_model,
+        reasoning_model=DEFAULT_CONTROLLER_MODEL,
+        image_model=DEFAULT_IMAGE_MODEL,
+        aspect_policy=aspect_policy,
         size=size,
         quality=quality,
         action=action,
         output_format=output_format,
         background=background,
-        input_fidelity=input_fidelity,
         mask=mask,
         moderation=moderation,
         output_compression=output_compression,
@@ -584,28 +901,41 @@ def response_image(
         list[str] | None, typer.Option("--image", help="Reference image path; pass once per image")
     ] = None,
     previous_response_id: Annotated[str | None, typer.Option("--previous-response-id")] = None,
-    reasoning_model: Annotated[
-        str, typer.Option("--reasoning-model", "--model", help="Responses API controller model")
-    ] = DEFAULT_CONTROLLER_MODEL,
-    image_model: Annotated[
-        str | None,
+    aspect_policy: Annotated[
+        AspectPolicy | None,
         typer.Option(
-            "--image-model", help="Optional image generation tool model override; omit to let Responses API select"
+            "--aspect-policy",
+            help="Required unless --size is passed: auto, match-input, landscape, portrait, square, or explicit",
         ),
     ] = None,
-    size: Annotated[str, typer.Option("--size")] = "1536x1024",
-    quality: Annotated[Quality, typer.Option("--quality")] = Quality.MEDIUM,
-    output_format: Annotated[OutputFormat, typer.Option("--output-format")] = OutputFormat.PNG,
-    action: Annotated[ResponseAction, typer.Option("--action")] = ResponseAction.AUTO,
-    detail: Annotated[ImageDetail, typer.Option("--detail")] = ImageDetail.HIGH,
-    background: Annotated[Background | None, typer.Option("--background")] = None,
-    input_fidelity: Annotated[
-        InputFidelity | None,
-        typer.Option("--input-fidelity", help="Only for models that support it; do not use with gpt-image-2"),
+    size: Annotated[
+        str | None, typer.Option("--size", help="Exact output size, e.g. 1024x1536, 1536x1024, or auto")
+    ] = None,
+    quality: Annotated[
+        Quality | None,
+        typer.Option("--quality", help="Required: low for drafts, high for final assets, auto to delegate"),
+    ] = None,
+    output_format: Annotated[
+        OutputFormat | None,
+        typer.Option("--output-format", help="Required: png for lossless, jpeg for speed, webp for compression"),
+    ] = None,
+    action: Annotated[
+        ResponseAction | None,
+        typer.Option(
+            "--action", help="Required: edit source pixels, generate new pixels, or auto when deliberately delegating"
+        ),
+    ] = None,
+    detail: Annotated[ImageDetail | None, typer.Option("--detail")] = None,
+    background: Annotated[
+        str | None,
+        typer.Option("--background", help="Required: auto or opaque. Transparent is rejected for gpt-image-2."),
     ] = None,
     mask: Annotated[str | None, typer.Option("--mask", help="Image mask for edit operations")] = None,
     moderation: Annotated[Moderation | None, typer.Option("--moderation")] = None,
-    output_compression: Annotated[int | None, typer.Option("--output-compression")] = None,
+    output_compression: Annotated[
+        int | None,
+        typer.Option("--output-compression", min=0, max=100, help="Required with jpeg or webp; rejected with png"),
+    ] = None,
     json_output: Annotated[bool, typer.Option("--json", help="Print result metadata as JSON")] = False,
     partial_images: Annotated[
         int | None,
@@ -613,20 +943,44 @@ def response_image(
     ] = None,
     timeout: Annotated[float, typer.Option("--timeout")] = 1200,
 ) -> None:
+    resolved_size, resolved_aspect_policy = resolve_size(size=size, aspect_policy=aspect_policy, reference_images=image)
+    resolved_quality = require_choice(
+        quality,
+        "--quality",
+        "It controls cost, latency, and final visual polish.",
+        "low for first drafts, high for final source-backed assets, auto only when you truly want the API to choose.",
+    )
+    resolved_format = require_choice(
+        output_format,
+        "--output-format",
+        "It decides the artifact format and whether compression is meaningful.",
+        "png for source-backed UI/card work; jpeg for quick throwaway drafts; webp for compressed web assets.",
+    )
+    resolved_action = require_choice(
+        action,
+        "--action",
+        "It tells the image tool whether references are edit targets or inspiration.",
+        "edit when preserving a screenshot/card/UI; generate for new artwork; auto only when the distinction is intentionally delegated.",
+    )
+    resolved_background = require_choice(
+        background,
+        "--background",
+        "It controls how the image model fills transparent or unspecified canvas areas.",
+        "auto for most work; opaque for predictable post-processing.",
+    )
+    resolved_detail = resolve_detail(detail, image)
     call_response_image(
         prompt=read_prompt(prompt),
         reference_images=image,
         out=out,
         previous_response_id=previous_response_id,
-        reasoning_model=reasoning_model,
-        image_model=image_model,
-        size=size,
-        quality=quality.value,
-        output_format=output_format.value,
-        action=action.value,
-        detail=detail.value,
-        background=enum_value(background),
-        input_fidelity=enum_value(input_fidelity),
+        aspect_policy=resolved_aspect_policy,
+        size=resolved_size,
+        quality=resolved_quality.value,
+        output_format=resolved_format.value,
+        action=resolved_action.value,
+        detail=resolved_detail,
+        background=cast(Literal["opaque", "auto"], resolved_background),
         mask=mask,
         moderation=enum_value(moderation),
         output_compression=output_compression,
@@ -644,35 +998,65 @@ def annotate_image(
     out: Annotated[str, typer.Option("--out")],
     prompt: Annotated[str | None, typer.Option("--prompt", help="Override the default tutorial prompt")] = None,
     json_output: Annotated[bool, typer.Option("--json", help="Print result metadata as JSON")] = False,
-    reasoning_model: Annotated[str, typer.Option("--reasoning-model", "--model")] = DEFAULT_CONTROLLER_MODEL,
-    image_model: Annotated[
-        str | None,
-        typer.Option(
-            "--image-model", help="Optional image generation tool model override; omit to let Responses API select"
-        ),
+    aspect_policy: Annotated[
+        AspectPolicy | None,
+        typer.Option("--aspect-policy", help="Required unless --size is passed; recommended: match-input"),
     ] = None,
-    size: Annotated[str, typer.Option("--size")] = "1536x1024",
-    quality: Annotated[Quality, typer.Option("--quality")] = Quality.MEDIUM,
-    detail: Annotated[ImageDetail, typer.Option("--detail")] = ImageDetail.HIGH,
+    size: Annotated[str | None, typer.Option("--size", help="Exact output size, e.g. 1024x1536 or auto")] = None,
+    quality: Annotated[
+        Quality | None,
+        typer.Option("--quality", help="Required: low for drafts, high for final tutorial figures"),
+    ] = None,
+    output_format: Annotated[
+        OutputFormat | None, typer.Option("--output-format", help="Required; recommended: png for source-backed work")
+    ] = None,
+    detail: Annotated[
+        ImageDetail | None, typer.Option("--detail", help="Required for reference images; recommended: high")
+    ] = None,
+    background: Annotated[
+        str | None, typer.Option("--background", help="Required: auto or opaque. Transparent is rejected.")
+    ] = None,
+    output_compression: Annotated[
+        int | None,
+        typer.Option("--output-compression", min=0, max=100, help="Required with jpeg or webp; rejected with png"),
+    ] = None,
     timeout: Annotated[float, typer.Option("--timeout")] = 1200,
 ) -> None:
+    resolved_size, resolved_aspect_policy = resolve_size(size=size, aspect_policy=aspect_policy, reference_images=image)
+    resolved_quality = require_choice(
+        quality,
+        "--quality",
+        "It controls cost, latency, and final polish.",
+        "low for exploration, high for final source-backed tutorial figures.",
+    )
+    resolved_format = require_choice(
+        output_format,
+        "--output-format",
+        "It decides the artifact format.",
+        "png for UI/card screenshots because it preserves sharp edges and text best.",
+    )
+    resolved_background = require_choice(
+        background,
+        "--background",
+        "It controls how unspecified canvas areas are filled.",
+        "auto for most source-backed edits; opaque if the result will be post-processed.",
+    )
+    resolved_detail = resolve_detail(detail, image)
     call_response_image(
         prompt=read_prompt(prompt or DEFAULT_TUTORIAL_PROMPT),
         reference_images=image,
         out=out,
         previous_response_id=None,
-        reasoning_model=reasoning_model,
-        image_model=image_model,
-        size=size,
-        quality=quality.value,
-        output_format="png",
+        aspect_policy=resolved_aspect_policy,
+        size=resolved_size,
+        quality=resolved_quality.value,
+        output_format=resolved_format.value,
         action="edit",
-        detail=detail.value,
-        background=None,
-        input_fidelity=None,
+        detail=resolved_detail,
+        background=cast(Literal["opaque", "auto"], resolved_background),
         mask=None,
         moderation=None,
-        output_compression=None,
+        output_compression=output_compression,
         partial_images=None,
         timeout=timeout,
         json_output=json_output,
@@ -689,18 +1073,50 @@ def repair_image(
     out: Annotated[str, typer.Option("--out")],
     prompt: Annotated[str | None, typer.Option("--prompt", help="Override the default repair prompt")] = None,
     json_output: Annotated[bool, typer.Option("--json", help="Print result metadata as JSON")] = False,
-    reasoning_model: Annotated[str, typer.Option("--reasoning-model", "--model")] = DEFAULT_CONTROLLER_MODEL,
-    image_model: Annotated[
-        str | None,
-        typer.Option(
-            "--image-model", help="Optional image generation tool model override; omit to let Responses API select"
-        ),
+    aspect_policy: Annotated[
+        AspectPolicy | None,
+        typer.Option("--aspect-policy", help="Required unless --size is passed; recommended: match-input"),
     ] = None,
-    size: Annotated[str, typer.Option("--size")] = "1536x1024",
-    quality: Annotated[Quality, typer.Option("--quality")] = Quality.MEDIUM,
-    detail: Annotated[ImageDetail, typer.Option("--detail")] = ImageDetail.HIGH,
+    size: Annotated[str | None, typer.Option("--size", help="Exact output size, e.g. 1024x1536 or auto")] = None,
+    quality: Annotated[
+        Quality | None,
+        typer.Option("--quality", help="Required: low for drafts, high for final repairs"),
+    ] = None,
+    output_format: Annotated[
+        OutputFormat | None, typer.Option("--output-format", help="Required; usually keep the original format")
+    ] = None,
+    detail: Annotated[
+        ImageDetail | None, typer.Option("--detail", help="Required for reference images; recommended: high")
+    ] = None,
+    background: Annotated[
+        str | None, typer.Option("--background", help="Required: auto or opaque. Transparent is rejected.")
+    ] = None,
+    output_compression: Annotated[
+        int | None,
+        typer.Option("--output-compression", min=0, max=100, help="Required with jpeg or webp; rejected with png"),
+    ] = None,
     timeout: Annotated[float, typer.Option("--timeout")] = 1200,
 ) -> None:
+    resolved_size, resolved_aspect_policy = resolve_size(size=size, aspect_policy=aspect_policy, reference_images=image)
+    resolved_quality = require_choice(
+        quality,
+        "--quality",
+        "It controls cost, latency, and final polish.",
+        "high for final repairs; medium only when speed matters more than polish.",
+    )
+    resolved_format = require_choice(
+        output_format,
+        "--output-format",
+        "It decides the artifact format.",
+        "png for source-backed UI/card work.",
+    )
+    resolved_background = require_choice(
+        background,
+        "--background",
+        "It controls how unspecified canvas areas are filled.",
+        "auto for most repairs.",
+    )
+    resolved_detail = resolve_detail(detail, image)
     base_prompt = read_prompt(prompt or DEFAULT_REPAIR_PROMPT)
     repair_prompt = f"{base_prompt}\n\nIssue to fix:\n{issue.strip()}\n"
     call_response_image(
@@ -708,18 +1124,16 @@ def repair_image(
         reference_images=image,
         out=out,
         previous_response_id=previous_response_id,
-        reasoning_model=reasoning_model,
-        image_model=image_model,
-        size=size,
-        quality=quality.value,
-        output_format="png",
+        aspect_policy=resolved_aspect_policy,
+        size=resolved_size,
+        quality=resolved_quality.value,
+        output_format=resolved_format.value,
         action="edit",
-        detail=detail.value,
-        background=None,
-        input_fidelity=None,
+        detail=resolved_detail,
+        background=cast(Literal["opaque", "auto"], resolved_background),
         mask=None,
         moderation=None,
-        output_compression=None,
+        output_compression=output_compression,
         partial_images=None,
         timeout=timeout,
         json_output=json_output,
@@ -733,22 +1147,26 @@ def diagnose_image(
         typer.Option("--candidate", help="Candidate generated image to evaluate; pass multiple times if needed"),
     ],
     out: Annotated[str, typer.Option("--out", help="Diagnosis JSON output path")],
+    criteria: Annotated[str, typer.Option("--criteria", help="Required acceptance criteria text or file")],
     source: Annotated[
         list[str] | None,
         typer.Option("--source", help="Original source/reference image; pass multiple times if needed"),
     ] = None,
-    criteria: Annotated[str | None, typer.Option("--criteria", help="Acceptance criteria text or file")] = None,
     prompt: Annotated[str | None, typer.Option("--prompt", help="Override the default diagnosis prompt")] = None,
     json_output: Annotated[bool, typer.Option("--json", help="Print result metadata as JSON")] = False,
-    reasoning_model: Annotated[str, typer.Option("--reasoning-model", "--model")] = DEFAULT_CONTROLLER_MODEL,
-    detail: Annotated[ImageDetail, typer.Option("--detail")] = ImageDetail.HIGH,
+    detail: Annotated[ImageDetail | None, typer.Option("--detail", help="Required: high, auto, or low")] = None,
     timeout: Annotated[float, typer.Option("--timeout")] = 1200,
 ) -> None:
     require_key()
-    criteria_text = read_prompt(criteria) if criteria else ""
+    criteria_text = read_prompt(criteria)
     diagnosis_prompt = read_prompt(prompt or DEFAULT_DIAGNOSE_PROMPT)
-    if criteria_text:
-        diagnosis_prompt = f"{diagnosis_prompt}\n\nIntended teaching goal or acceptance criteria:\n{criteria_text}\n"
+    diagnosis_prompt = f"{diagnosis_prompt}\n\nIntended teaching goal or acceptance criteria:\n{criteria_text}\n"
+    resolved_detail = require_choice(
+        detail,
+        "--detail",
+        "It controls how much visual information the judge reads from the source and candidate images.",
+        "high for source-backed QA; auto only for loose visual checks.",
+    )
 
     content: list[ResponseInputTextParam | ResponseInputImageParam | ResponseInputFileParam] = [
         {"type": "input_text", "text": diagnosis_prompt}
@@ -758,7 +1176,7 @@ def diagnose_image(
             {
                 "type": "input_image",
                 "image_url": image_data_url(source_image),
-                "detail": cast(Literal["low", "high", "auto"], detail.value),
+                "detail": resolved_detail.value,
             }
         )
     for candidate_image in candidate:
@@ -766,14 +1184,14 @@ def diagnose_image(
             {
                 "type": "input_image",
                 "image_url": image_data_url(candidate_image),
-                "detail": cast(Literal["low", "high", "auto"], detail.value),
+                "detail": resolved_detail.value,
             }
         )
 
     client = make_client(timeout)
     message: Message = {"role": "user", "content": content}
     response = client.responses.create(
-        model=reasoning_model,
+        model=DEFAULT_CONTROLLER_MODEL,
         input=[message],
         store=True,
     )
@@ -789,7 +1207,7 @@ def diagnose_image(
         output_path=str(output_path),
         response_path=str(response_path),
         response_id=data.get("id"),
-        reasoning_model=reasoning_model,
+        reasoning_model=DEFAULT_CONTROLLER_MODEL,
         sources=source or [],
         candidates=candidate,
         criteria=criteria_text,
@@ -804,32 +1222,69 @@ def diagnose_image(
 def image_generate(
     prompt: Annotated[str, typer.Option("--prompt", help="Prompt text or prompt file")],
     out: Annotated[str, typer.Option("--out")],
-    model: Annotated[str, typer.Option("--model")] = DEFAULT_IMAGE_MODEL,
-    size: Annotated[str, typer.Option("--size")] = "1536x1024",
-    quality: Annotated[DirectQuality, typer.Option("--quality")] = DirectQuality.MEDIUM,
-    background: Annotated[Background | None, typer.Option("--background")] = None,
-    output_format: Annotated[OutputFormat, typer.Option("--output-format")] = OutputFormat.PNG,
-    output_compression: Annotated[int | None, typer.Option("--output-compression")] = None,
+    aspect_policy: Annotated[
+        AspectPolicy | None,
+        typer.Option(
+            "--aspect-policy", help="Required unless --size is passed: auto, landscape, portrait, square, or explicit"
+        ),
+    ] = None,
+    size: Annotated[
+        str | None, typer.Option("--size", help="Exact output size, e.g. 1024x1536, 1536x1024, or auto")
+    ] = None,
+    quality: Annotated[
+        DirectQuality | None,
+        typer.Option("--quality", help="Required: low for drafts, high for final images, auto to delegate"),
+    ] = None,
+    background: Annotated[
+        str | None,
+        typer.Option("--background", help="Required: auto or opaque. Transparent is rejected for gpt-image-2."),
+    ] = None,
+    output_format: Annotated[
+        OutputFormat | None, typer.Option("--output-format", help="Required: png, jpeg, or webp")
+    ] = None,
+    output_compression: Annotated[
+        int | None,
+        typer.Option("--output-compression", min=0, max=100, help="Required with jpeg or webp; rejected with png"),
+    ] = None,
     moderation: Annotated[Moderation | None, typer.Option("--moderation")] = None,
-    n: Annotated[int, typer.Option("--n")] = 1,
+    n: Annotated[int, typer.Option("--n", min=1, max=10)] = 1,
     json_output: Annotated[bool, typer.Option("--json", help="Print result metadata as JSON")] = False,
     timeout: Annotated[float, typer.Option("--timeout")] = 1200,
 ) -> None:
-    check_direct_image_options(
-        model=model,
-        background=enum_value(background),
-        input_fidelity=None,
+    resolved_size, resolved_aspect_policy = resolve_size(size=size, aspect_policy=aspect_policy, reference_images=None)
+    resolved_quality = require_choice(
+        quality,
+        "--quality",
+        "It controls cost, latency, and final polish.",
+        "low for drafts, high for final images, auto only when you deliberately delegate.",
+    )
+    resolved_format = require_choice(
+        output_format,
+        "--output-format",
+        "It decides the artifact format and whether compression can apply.",
+        "png for lossless assets, jpeg for fast drafts, webp for compressed web assets.",
+    )
+    resolved_background = require_choice(
+        background,
+        "--background",
+        "It controls the generated canvas background.",
+        "auto for ordinary images; opaque for predictable post-processing.",
+    )
+    validate_latest_image_options(
+        background=resolved_background,
+        output_format=resolved_format.value,
+        output_compression=output_compression,
     )
     require_key()
     client = make_client(timeout)
     prompt_text = read_prompt(prompt)
     response = client.images.generate(
-        model=model,
+        model=DEFAULT_IMAGE_MODEL,
         prompt=prompt_text,
-        size=size,
-        quality=quality.value,
-        background=background.value if background is not None else omit,
-        output_format=output_format.value,
+        size=resolved_size,
+        quality=resolved_quality.value,
+        background=cast(Literal["opaque", "auto"], resolved_background),
+        output_format=resolved_format.value,
         output_compression=output_compression if output_compression is not None else omit,
         moderation=moderation.value if moderation is not None else omit,
         n=n,
@@ -845,11 +1300,12 @@ def image_generate(
         output_path=str(output_path),
         metadata_path=str(metadata_path),
         response_path=str(response_path),
-        model=model,
-        size=size,
-        quality=quality.value,
-        output_format=output_format.value,
-        background=enum_value(background),
+        model=DEFAULT_IMAGE_MODEL,
+        aspect_policy=resolved_aspect_policy,
+        size=resolved_size,
+        quality=resolved_quality.value,
+        output_format=resolved_format.value,
+        background=resolved_background,
         moderation=enum_value(moderation),
         output_compression=output_compression,
         n=n,
@@ -866,27 +1322,59 @@ def image_edit(
     image: Annotated[list[str], typer.Option("--image", help="Input image path; pass once per image")],
     out: Annotated[str, typer.Option("--out")],
     mask: Annotated[str | None, typer.Option("--mask", help="Optional image mask path")] = None,
-    input_fidelity: Annotated[
-        InputFidelity | None,
-        typer.Option("--input-fidelity", help="Only for models that support it; do not use with gpt-image-2"),
+    aspect_policy: Annotated[
+        AspectPolicy | None,
+        typer.Option("--aspect-policy", help="Required unless --size is passed; recommended: match-input"),
     ] = None,
-    model: Annotated[str, typer.Option("--model")] = DEFAULT_IMAGE_MODEL,
-    size: Annotated[str, typer.Option("--size")] = "1536x1024",
-    quality: Annotated[DirectQuality, typer.Option("--quality")] = DirectQuality.MEDIUM,
-    background: Annotated[Background | None, typer.Option("--background")] = None,
-    output_format: Annotated[OutputFormat, typer.Option("--output-format")] = OutputFormat.PNG,
-    output_compression: Annotated[int | None, typer.Option("--output-compression")] = None,
+    size: Annotated[
+        str | None, typer.Option("--size", help="Exact output size, e.g. 1024x1536, 1536x1024, or auto")
+    ] = None,
+    quality: Annotated[
+        DirectQuality | None,
+        typer.Option("--quality", help="Required: low for drafts, high for final edits, auto to delegate"),
+    ] = None,
+    background: Annotated[
+        str | None,
+        typer.Option("--background", help="Required: auto or opaque. Transparent is rejected for gpt-image-2."),
+    ] = None,
+    output_format: Annotated[
+        OutputFormat | None, typer.Option("--output-format", help="Required: png, jpeg, or webp")
+    ] = None,
+    output_compression: Annotated[
+        int | None,
+        typer.Option("--output-compression", min=0, max=100, help="Required with jpeg or webp; rejected with png"),
+    ] = None,
     moderation: Annotated[Moderation | None, typer.Option("--moderation")] = None,
-    n: Annotated[int, typer.Option("--n")] = 1,
+    n: Annotated[int, typer.Option("--n", min=1, max=10)] = 1,
     json_output: Annotated[bool, typer.Option("--json", help="Print result metadata as JSON")] = False,
     timeout: Annotated[float, typer.Option("--timeout")] = 1200,
 ) -> None:
-    check_direct_image_options(
-        model=model,
-        background=enum_value(background),
-        input_fidelity=enum_value(input_fidelity),
+    resolved_size, resolved_aspect_policy = resolve_size(size=size, aspect_policy=aspect_policy, reference_images=image)
+    resolved_quality = require_choice(
+        quality,
+        "--quality",
+        "It controls cost, latency, and final polish.",
+        "high for final edits; low only for quick drafts.",
+    )
+    resolved_format = require_choice(
+        output_format,
+        "--output-format",
+        "It decides the artifact format and whether compression can apply.",
+        "png for source-backed edits; jpeg only for throwaway drafts.",
+    )
+    resolved_background = require_choice(
+        background,
+        "--background",
+        "It controls how unspecified canvas areas are filled.",
+        "auto for most edits; opaque for predictable post-processing.",
+    )
+    validate_latest_image_options(
+        background=resolved_background,
+        output_format=resolved_format.value,
+        output_compression=output_compression,
     )
     require_key()
+    validate_mask(mask, image)
     image_paths = [work_path(path) for path in image]
     mask_path = work_path(mask) if mask else None
     output_path = work_path(out)
@@ -898,16 +1386,17 @@ def image_edit(
     try:
         kwargs: dict[str, Any] = {
             "image": files,
-            "model": model,
+            "model": DEFAULT_IMAGE_MODEL,
             "prompt": prompt_text,
-            "size": size,
-            "quality": quality.value,
-            "background": background.value if background is not None else omit,
-            "input_fidelity": input_fidelity.value if input_fidelity is not None else omit,
-            "output_format": output_format.value,
+            "size": resolved_size,
+            "quality": resolved_quality.value,
+            "background": cast(Literal["opaque", "auto"], resolved_background),
+            "output_format": resolved_format.value,
             "output_compression": output_compression if output_compression is not None else omit,
             "n": n,
         }
+        if moderation is not None:
+            kwargs["moderation"] = moderation.value
         if mask_file:
             kwargs["mask"] = mask_file
         response = client.images.edit(**kwargs)
@@ -927,12 +1416,12 @@ def image_edit(
         output_path=str(output_path),
         metadata_path=str(metadata_path),
         response_path=str(response_path),
-        model=model,
-        size=size,
-        quality=quality.value,
-        output_format=output_format.value,
-        background=enum_value(background),
-        input_fidelity=enum_value(input_fidelity),
+        model=DEFAULT_IMAGE_MODEL,
+        aspect_policy=resolved_aspect_policy,
+        size=resolved_size,
+        quality=resolved_quality.value,
+        output_format=resolved_format.value,
+        background=resolved_background,
         output_compression=output_compression,
         n=n,
         prompt=prompt_text,
