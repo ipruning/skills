@@ -11,6 +11,11 @@
       "tracked": true,
       "branch": "main"
     },
+    "_jihuanshe-tcg-backend-doc": {
+      "source": "https://github.com/jihuanshe/tcg-backend-doc.git",
+      "tracked": true,
+      "branch": "main"
+    },
     "skills-beta/actionbook": {
       "source": "https://github.com/actionbook/actionbook.git/packages/openclaw-plugin/skills/actionbook",
       "type": "github-subdir",
