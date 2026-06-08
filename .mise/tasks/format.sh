@@ -190,7 +190,7 @@ task_summary_run "ruff format ." uv run ruff format .
 
 task_summary_run "ruff check . --fix" uv run ruff check . --fix
 
-task_summary_run "tombi format ." uvx tombi format .
+task_summary_run "tombi format ." tombi format .
 
 task_summary_run "biome format . --write" biome format . --write
 
