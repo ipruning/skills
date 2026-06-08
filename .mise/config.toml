@@ -1,7 +1,7 @@
 [tools]
 "github:huacnlee/autocorrect" = "2.16.3"
 "github:runkids/skillshare" = "0.20.9"
-biome = "2.4.15"
+biome = "2.4.16"
 gum = "0.17.0"
 jq = "1.8.1"
 ls-lint = "2.3.1"

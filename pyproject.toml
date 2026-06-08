@@ -11,7 +11,7 @@ dependencies = [
     "pillow>=12.2.0",
     "tiktoken>=0.13.0",
     "torch>=2.12.0",
-    "turbopuffer>=2.3.0",
+    "turbopuffer>=2.4.0",
     "typer>=0.26.7",
 ]
 
@@ -19,7 +19,7 @@ dependencies = [
 dev = [
     "basedpyright>=1.39.7",
     "ruff>=0.15.16",
-    "ty>=0.0.44",
+    "ty>=0.0.45",
 ]
 
 [tool.ruff]
