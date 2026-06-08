@@ -179,5 +179,5 @@ uv run --script scripts/image_workbench.py --help
 Before finishing work that used real API keys:
 
 ```bash
-rg -n "/[U]sers/|[g]ateway-us|[j]ihuanshe-openai|[r]esponse_format|[s]k-proj|[p]ylf_v2|OPENAI_API_KEY=.*[s]k|PYDANTIC_AI_GATEWAY_API_KEY=.*[p]ylf" .
+rg -n "/[U]sers/|[g]ateway-us|[j]ihuanshe-openai|r[e]sponse_format|[s]k-proj|[p]ylf_v2|OPENAI_API_KEY=.*[s]k|PYDANTIC_AI_GATEWAY_API_KEY=.*[p]ylf" .
 ```

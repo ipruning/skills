@@ -134,5 +134,5 @@ generation works. In that case, prefer `response-image` or `annotate-image`.
 - Scan before closeout:
 
 ```bash
-rg -n "/[U]sers/|[g]ateway-us|[j]ihuanshe-openai|[r]esponse_format|[s]k-proj|[p]ylf_v2|OPENAI_API_KEY=.*[s]k|PYDANTIC_AI_GATEWAY_API_KEY=.*[p]ylf" .
+rg -n "/[U]sers/|[g]ateway-us|[j]ihuanshe-openai|r[e]sponse_format|[s]k-proj|[p]ylf_v2|OPENAI_API_KEY=.*[s]k|PYDANTIC_AI_GATEWAY_API_KEY=.*[p]ylf" .
 ```
