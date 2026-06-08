@@ -22,7 +22,8 @@ For temporary agent work, copy `scripts/brrr-send.sh` to a temp directory and ca
 
 ```bash
 tmpdir="$(mktemp -d)"
-cp /path/to/skill/scripts/brrr-send.sh "$tmpdir/brrr-send.sh"
+BRRR_SKILL_DIR="<directory containing the brrr-now SKILL.md>"
+cp "$BRRR_SKILL_DIR/scripts/brrr-send.sh" "$tmpdir/brrr-send.sh"
 chmod +x "$tmpdir/brrr-send.sh"
 
 if long_running_command; then
