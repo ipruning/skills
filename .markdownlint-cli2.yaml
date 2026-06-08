@@ -15,6 +15,7 @@ ignores:
     - "skills-beta/manim-video/"
     - "skills-beta/scraping/scrapling-official/"
     - "skills-beta/slidev/"
+    - "skills-beta/text-to-lottie/"
     - "skills-beta/thermo-nuclear-code-quality-review/"
     - "skills-stable/longbridge/"
     - "skillshare/"
