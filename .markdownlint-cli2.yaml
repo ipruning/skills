@@ -11,6 +11,7 @@ ignores:
     - "skills-beta/diagram-design/"
     - "skills-beta/grill-me/"
     - "skills-beta/handoff/"
+    - "skills-beta/improve-codebase-architecture/"
     - "skills-beta/manim-video/"
     - "skills-beta/scraping/scrapling-official/"
     - "skills-beta/slidev/"
