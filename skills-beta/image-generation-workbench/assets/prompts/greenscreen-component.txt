@@ -1,0 +1,10 @@
+Create one reusable visual component on a solid chroma green background (#00ff00).
+
+Requirements:
+- Single centered object.
+- Clean silhouette with no background texture.
+- No text unless explicitly requested.
+- No watermark, logo, frame, or drop shadow that blends into the background.
+- Leave a small margin around the object for cropping.
+
+The output will be post-processed with chroma keying, so keep the green background flat and uniform.
