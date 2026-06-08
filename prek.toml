@@ -179,7 +179,7 @@ hooks = [
     {
         id = "shellcheck",
         name = "shellcheck",
-        entry = "shellcheck",
+        entry = "mise exec -- shellcheck",
         language = "system",
         types = ["shell"],
         stages = ["pre-commit"],
@@ -188,7 +188,7 @@ hooks = [
     {
         id = "autocorrect",
         name = "autocorrect",
-        entry = "autocorrect --lint . .mise/",
+        entry = "mise exec -- autocorrect --lint . .mise/",
         language = "system",
         pass_filenames = false,
         stages = ["pre-push"],
@@ -197,7 +197,7 @@ hooks = [
     {
         id = "tombi",
         name = "tombi",
-        entry = "uvx tombi lint .",
+        entry = "mise exec -- tombi lint .",
         language = "system",
         pass_filenames = false,
         types = ["toml"],
@@ -207,7 +207,7 @@ hooks = [
     {
         id = "ls-lint",
         name = "ls-lint",
-        entry = "ls-lint",
+        entry = "mise exec -- ls-lint",
         language = "system",
         pass_filenames = false,
         always_run = true,
@@ -217,7 +217,7 @@ hooks = [
     {
         id = "ty",
         name = "ty",
-        entry = "uv run ty check .",
+        entry = "mise exec -- uv run ty check .",
         language = "system",
         pass_filenames = false,
         types = ["python"],
