@@ -2,10 +2,8 @@
 extend-exclude = [
     ".metadata.json",
     "skills-beta/actionbook/",
-    "skills-beta/architecture-diagram/",
     "skills-beta/autoreview/",
     "skills-beta/browser-harness/",
-    "skills-beta/diagram-design/",
     "skills-beta/grill-me/",
     "skills-beta/handoff/",
     "skills-beta/improve-codebase-architecture/",

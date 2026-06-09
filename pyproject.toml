@@ -25,10 +25,8 @@ dev = [
 [tool.ruff]
 exclude = [
     "skills-beta/actionbook/",
-    "skills-beta/architecture-diagram/",
     "skills-beta/autoreview/",
     "skills-beta/browser-harness/",
-    "skills-beta/diagram-design/",
     "skills-beta/grill-me/",
     "skills-beta/handoff/",
     "skills-beta/improve-codebase-architecture/",
@@ -61,10 +59,8 @@ docstring-code-line-length = "dynamic"
 [tool.tombi.files]
 exclude = [
     "skills-beta/actionbook/**",
-    "skills-beta/architecture-diagram/**",
     "skills-beta/autoreview/**",
     "skills-beta/browser-harness/**",
-    "skills-beta/diagram-design/**",
     "skills-beta/grill-me/**",
     "skills-beta/handoff/**",
     "skills-beta/improve-codebase-architecture/**",
@@ -90,10 +86,8 @@ unresolved-import = "warn"
 [tool.ty.src]
 exclude = [
     "skills-beta/actionbook/",
-    "skills-beta/architecture-diagram/",
     "skills-beta/autoreview/",
     "skills-beta/browser-harness/",
-    "skills-beta/diagram-design/",
     "skills-beta/grill-me/",
     "skills-beta/handoff/",
     "skills-beta/improve-codebase-architecture/",
