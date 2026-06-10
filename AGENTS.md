@@ -31,6 +31,15 @@ skills/
 - Do not edit generated, vendored, or externally synced content. For external skills, prefer updating through `skillshare` or the upstream source.
 - After adding, deleting, moving, installing, uninstalling, updating, or collecting synced skills or extras, run `skillshare sync --all`. Changes under ignored paths, such as the current `skills-beta/` ignore, are not exposed to targets unless the ignore or target configuration changes.
 
+## Working on Skillshare extras
+
+- Use `extras/<name>/...` for non-skill resources. For global harness prompts, keep the simple target-grouped layout: `extras/amp/AGENTS.md`, `extras/codex/AGENTS.md`, and `extras/claude/CLAUDE.md`.
+- Do not use Skillshare `agents_source` for `AGENTS.md` / `CLAUDE.md`; Skillshare agents are single-file sub-agent definitions, while these files are always-loaded harness instructions.
+- Keep global harness prompt files as complete, directly editable documents. Avoid shared-template generators unless the user explicitly asks for a generated model again.
+- When adding a new extra or target, update the active Skillshare config (`extras_source` and `extras:` entries) in the environment that syncs it. If that config is maintained by another repo, make that repo change as a separate logical commit.
+- Use `mode: copy` for extras whose target is a tool root containing unrelated files, such as `~/.codex`, `~/.claude`, or `~/.config/amp`. Use `merge` only for dedicated target directories where pruning Skillshare-managed symlinks is safe.
+- Before a real sync after config changes, run `skillshare extras list --json` and `skillshare sync extras --dry-run --force --json`; confirm the expected targets, modes, and `pruned` counts. After syncing copy-mode prompt files, `cmp` the source and live target when practical.
+
 ## Code Style
 
 4-space indent by default, 2-space for Markdown. LF line endings. Final newline required. Follow the formatter/config for file-type exceptions.
