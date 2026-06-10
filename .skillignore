@@ -21,3 +21,6 @@ skills-beta/scraping
 skills-beta/text-to-lottie
 skills-stable/linux-server
 skills-stable/network-triage
+
+.venv/
+venv/
