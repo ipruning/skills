@@ -2,15 +2,19 @@
 
 ## Architecture
 
-This repo is the source of truth for AI-tool skills. A skill is any directory that contains a `SKILL.md`, plus optional supporting files such as scripts, references, or assets. Skills may live at the repo root or inside grouping directories such as `skills-stable/` and `skills-beta/`.
+This repo is the source of truth for AI-tool skills and Skillshare extras. A skill is any directory that contains a `SKILL.md`, plus optional supporting files such as scripts, references, or assets. Skills may live at the repo root or inside grouping directories such as `skills-stable/` and `skills-beta/`.
 
-`skillshare` syncs non-ignored skills to configured AI tool targets, usually by symlink. Run `skillshare sync` after mutating synced skills so configured tools see the latest content. `.skillignore` controls which source skills are skipped.
+`skillshare` syncs non-ignored skills to configured AI tool targets, usually by symlink. It also syncs non-skill resources from `extras/` to configured target directories. Run `skillshare sync --all` after mutating synced skills or extras so configured tools see the latest content. `.skillignore` controls which source skills are skipped.
 
 Directories prefixed with `_` are externally synced, gitignored, and overwritten on update. Never edit `_`-prefixed directories directly.
 
 ```text
 skills/
 ├── AGENTS.md
+├── extras/                  # Skillshare extras, grouped by target tool
+│   ├── amp/AGENTS.md
+│   ├── codex/AGENTS.md
+│   └── claude/CLAUDE.md
 ├── skills-stable/           # Stable tracked skills and grouped external skills
 ├── skills-beta/             # Experimental tracked skills and grouped external skills
 ├── skillshare/              # Skillshare-related skill content
@@ -21,10 +25,11 @@ skills/
 ## Working on skills
 
 - Prefer editing the existing `SKILL.md` and nearby supporting files over creating new structure.
+- For global harness instructions, edit the full target-specific file under `extras/{amp,codex,claude}/`; do not generate these files from a shared template.
 - Keep trigger guidance explicit: a skill should say when to use it and when not to use it.
 - Keep `SKILL.md` concise. Put long scripts, templates, examples, or large references in supporting files and link to them.
 - Do not edit generated, vendored, or externally synced content. For external skills, prefer updating through `skillshare` or the upstream source.
-- After adding, deleting, moving, installing, uninstalling, updating, or collecting synced skills, run `skillshare sync`. Changes under ignored paths, such as the current `skills-beta/` ignore, are not exposed to targets unless the ignore or target configuration changes.
+- After adding, deleting, moving, installing, uninstalling, updating, or collecting synced skills or extras, run `skillshare sync --all`. Changes under ignored paths, such as the current `skills-beta/` ignore, are not exposed to targets unless the ignore or target configuration changes.
 
 ## Code Style
 
@@ -64,4 +69,4 @@ After a skillshare version upgrade or `skillshare update`, directory names may c
 
 ## Running skillshare
 
-AI agents cannot answer prompts. Use supported non-interactive flags such as `--force`, `--all`, `--yes`, `--no-tui`, explicit selectors, and `--json`; do not start prompt-only workflows. Always run `skillshare sync` after any mutation (`install`, `uninstall`, `update`, `collect`, `target`). Use `--json` when you need to parse output.
+AI agents cannot answer prompts. Use supported non-interactive flags such as `--force`, `--all`, `--yes`, `--no-tui`, explicit selectors, and `--json`; do not start prompt-only workflows. Always run `skillshare sync --all` after any mutation (`install`, `uninstall`, `update`, `collect`, `target`, or extras edits). Use `--json` when you need to parse output.
