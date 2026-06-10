@@ -4,6 +4,7 @@ globs:
     - "**/*.md"
 
 ignores:
+    - "_convex-skills/"
     - "skills-beta/actionbook/"
     - "skills-beta/autoreview/"
     - "skills-beta/browser-harness/"
