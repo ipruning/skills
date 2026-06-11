@@ -219,6 +219,19 @@
         "tests/unit/test_run.py": "sha256:5157d35c85da6f5e1f71740fc1123edff030ec7eb894e9b7605af0e92ed2bd3c"
       }
     },
+    "skills-beta/frontend-design": {
+      "source": "https://github.com/anthropics/claude-code/blob/main/plugins/frontend-design/skills/frontend-design",
+      "type": "github-subdir",
+      "group": "skills-beta",
+      "installed_at": "2026-06-11T21:03:39.914259+08:00",
+      "repo_url": "https://github.com/anthropics/claude-code.git",
+      "subdir": "plugins/frontend-design/skills/frontend-design",
+      "version": "3a7c736",
+      "tree_hash": "3bd61bab4d6b858c5d3af8adf14b917ce853e4c5",
+      "file_hashes": {
+        "SKILL.md": "sha256:d39adf3a983de7dafc75991590d54f091755f7e4163d5a5ed085ecd719157184"
+      }
+    },
     "skills-beta/handoff": {
       "source": "https://github.com/openclaw/agent-skills.git/skills/handoff",
       "type": "github-subdir",

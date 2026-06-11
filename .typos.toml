@@ -4,6 +4,7 @@ extend-exclude = [
     "skills-beta/actionbook/",
     "skills-beta/autoreview/",
     "skills-beta/browser-harness/",
+    "skills-beta/frontend-design/",
     "skills-beta/handoff/",
     "skills-beta/improve-codebase-architecture/",
     "skills-beta/manim-video/",
