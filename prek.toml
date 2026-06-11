@@ -4,7 +4,7 @@
 
 default_install_hook_types = ["pre-commit", "pre-push"]
 default_stages = ["pre-commit", "pre-push"]
-exclude = "^skills-beta/actionbook/|^skills-beta/autoreview/|^skills-beta/browser-harness/|^skills-beta/handoff/|^skills-beta/improve-codebase-architecture/|^skills-beta/manim-video/|^skills-beta/scraping/scrapling-official/|^skills-beta/slidev/|^skills-beta/text-to-lottie/|^skills-beta/thermo-nuclear-code-quality-review/|^skills-stable/longbridge/|^skillshare/"
+exclude = "^skills-beta/actionbook/|^skills-beta/autoreview/|^skills-beta/browser-harness/|^skills-beta/frontend-design/|^skills-beta/handoff/|^skills-beta/improve-codebase-architecture/|^skills-beta/manim-video/|^skills-beta/scraping/scrapling-official/|^skills-beta/slidev/|^skills-beta/text-to-lottie/|^skills-beta/thermo-nuclear-code-quality-review/|^skills-stable/longbridge/|^skillshare/"
 fail_fast = false
 
 # =============================================================================
