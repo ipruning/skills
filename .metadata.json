@@ -219,19 +219,6 @@
         "tests/unit/test_run.py": "sha256:5157d35c85da6f5e1f71740fc1123edff030ec7eb894e9b7605af0e92ed2bd3c"
       }
     },
-    "skills-beta/grill-me": {
-      "source": "https://github.com/mattpocock/skills.git/skills/productivity/grill-me",
-      "type": "github-subdir",
-      "group": "skills-beta",
-      "installed_at": "2026-06-10T20:12:19.064875+08:00",
-      "repo_url": "https://github.com/mattpocock/skills.git",
-      "subdir": "skills/productivity/grill-me",
-      "version": "e3d8b73",
-      "tree_hash": "2a1ad17028306ebe45f0e49703fa28b9b2e7f499",
-      "file_hashes": {
-        "SKILL.md": "sha256:74147eb6010a65957efef2b9e0f0b3ff935c1def7fc117697151b1d0f3610556"
-      }
-    },
     "skills-beta/handoff": {
       "source": "https://github.com/openclaw/agent-skills.git/skills/handoff",
       "type": "github-subdir",
