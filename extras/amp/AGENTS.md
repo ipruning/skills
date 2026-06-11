@@ -24,27 +24,28 @@
 
 所以启动前只需要回答一个问题：这个任务的正确产出，依赖你已有判断的哪一部分？
 
-- 什么都不依赖（探索）：干净上下文，只给目标、边界和入口，让它独立观察并形成结论。
-- 依赖你的结论、但必须隔离你的推理（复核）：干净上下文，显式给证据、约束和待证伪的结论。
-- 依赖完整的工作现场（延续）：继承上下文，或复用现有 Agent。
+- 探索：不依赖你的任何判断。干净上下文，只给目标、边界和入口，让它独立观察并形成结论。
+- 复核：依赖你的结论，但必须隔离你的推理。干净上下文，显式给证据、约束和待证伪的结论。
+- 延续：依赖完整的工作现场。继承上下文，或复用现有 Agent。
 
 ## 阻塞通知
 
-仅当任务被用户的具体动作阻塞、且静默等待会让任务停住时，按以下流程通知：
+仅当任务卡在等待用户的某个具体动作、且静默等待会让任务停住时，按以下流程通知：
 
 1. 运行 `notify-blocker "<blocker and action needed>"` 发语音提醒。
 2. `sleep 180`，重新检查阻塞是否解除。
-3. 仍阻塞：加载 Brrr 技能发 1 条 Push。错过会造成不可逆后果或错过当天窗口的，用 `critical`；其余用 `time-sensitive`。
+3. 仍阻塞：加载 Brrr 技能发 1 条 Push。若延误会造成不可逆后果或错过当天窗口，用 `critical`；其余用 `time-sensitive`。
 4. Push 发出后不再重复通知。继续推进未被阻塞的部分；若全部被阻塞，收尾汇报当前状态。
 
 ## Shell
 
 - 默认运行环境是 macOS `zsh`；给用户的可粘贴片段也按 fresh `zsh` 假设，除非显式进入其他 shell。
 - 需要 bash 特性时，显式划定边界：`bash <<'BASH' ... BASH`，或 `#!/usr/bin/env bash` 加 `set -euo pipefail`。
-- `zsh` 中未引用的标量不按空白拆分，不要把 bash 的隐式拆词规则带过来；不要写 `set -- $spec` 解析字段。结构化字段用显式分隔符（如 `repo:branch`，配 `${spec%%:*}` / `${spec#*:}` 解析）、数组，或必要时 `${=spec}` 并说明原因。
+- `zsh` 中未引用的标量不按空白拆分，不要把 bash 的隐式拆词规则带过来；不要写 `set -- $spec` 解析字段。结构化字段用显式分隔符，如 `repo:branch` 配 `${spec%%:*}` / `${spec#*:}` 解析；或用数组；必要时 `${=spec}` 并说明原因。
+- `zsh` 中 `path`、`fpath`、`status`、`pipestatus`、`RANDOM` 等是特殊参数，不要当普通临时变量名使用。循环路径用 `target_path`、`source_path`、`repo_path` 等明确名字；尤其不要写 `for path in ...`，它会污染绑定到 `PATH` 的 `path` 数组。
 - 变量展开默认加引号：`"$repo"`、`"$branch"`。`set -u` 下，可选变量先初始化，或用 `${var-}` / `${var:-default}`。
-- 嵌套执行（`tmux`、`ssh`、`*-lc`、`osascript`）不要玩 quote golf：写 runner 脚本，用单引号 heredoc 生成，值通过环境变量传入，只发送 `env KEY=value zsh "$runner"` / `bash "$runner"`。
-- 复杂正则（含 `[]`、`*`、`\p{...}` 等语法）不塞进 fragile one-liner，用单引号 heredoc，例如 `ruby <<'RUBY' ... RUBY`。
+- `tmux`、`ssh`、`*-lc`、`osascript` 这类嵌套执行不要玩 quote golf：写 runner 脚本，用单引号 heredoc 生成，值通过环境变量传入，只发送 `env KEY=value zsh "$runner"` / `bash "$runner"`。
+- 含 `[]`、`*`、`\p{...}` 等语法的复杂正则不塞进 fragile one-liner，用单引号 heredoc，例如 `ruby <<'RUBY' ... RUBY`。
 - 给出非平凡片段前，在相同边界做语法检查：`zsh -n` 或 `bash -n`。
 - macOS ships BSD userland tools. Prefer portable shell forms for commands that may run across machines:
   - `mktemp` on macOS does not accept GNU-style templates with suffixes after `XXXXXX`, such as `/tmp/name.XXXXXX.md`; use `mktemp "${TMPDIR:-/tmp}/name.XXXXXX"` or `mktemp -t name`.
@@ -57,13 +58,13 @@
 - Stage only files that belong to the current logical change. Do not trust any existing staging state.
 - To rewrite the message on `HEAD`, use `git commit --amend -m "..."`.
 - To rewrite an older commit message, use a non-interactive rebase:
-  `GIT_SEQUENCE_EDITOR="sed -i '' '1s/^pick/reword/'" GIT_EDITOR="sed -i '' '1s/old/new/'" git rebase -i HEAD~<N>`.
-  The target commit is line 1 in the todo because interactive rebase lists commits oldest-first. Do not open an interactive editor.
+  - `GIT_SEQUENCE_EDITOR="sed -i '' '1s/^pick/reword/'" GIT_EDITOR="sed -i '' '1s/old/new/'" git rebase -i HEAD~<N>`.
+  - The target commit is line 1 in the todo because interactive rebase lists commits oldest-first. Do not open an interactive editor.
 
 ## Amp
 
 你运行在 Amp Harness 中。与 Codex 相反，这里没有上下文继承机制：Task 子 Agent 永远从零开始，它的全部世界就是你写的那条 prompt；只返回一条最终消息，中途不可对话，用户也看不到它的过程，结果由你转述。
 
 - 默认值站在「干净」一边，陷阱与 Codex 互为镜像：探索和复核天然干净，风险是你顺手把自己的推理写进 prompt；延续任务必须手动打包工作现场——计划、文件路径、约定、验证方式，漏一项它就在真空里猜。
-- 复核有更高杠杆的入口：Oracle（GPT-5.5 推理模型，只读顾问），给它文件、证据和待证伪的结论。
-- 探索有专用入口：finder（本地代码库的行为级搜索）、librarian（外部仓库和依赖的源码）。
+- 复核有更高杠杆的入口：Oracle，一个只读的 GPT-5.5 推理顾问，给它文件、证据和待证伪的结论。
+- 探索有专用入口：finder 做本地代码库的行为级搜索，librarian 读外部仓库和依赖的源码。

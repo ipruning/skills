@@ -16,55 +16,29 @@
 
 代码和测试优先使用真实场景。遇到 Mock，先判断它是在替代真实业务用例，还是在隔离不可控外部边界；前者必须清理并换成真实场景测试，后者要保留并注明边界。如果不确定真实用例，询问用户。
 
-## 子 Agent
+## 阻塞通知
 
-派活的根本动机是获得一个你自己给不了的视角：独立验证、并行探索、不被你中间推理污染的判断。
+仅当任务卡在等待用户的某个具体动作、且静默等待会让任务停住时，按以下流程通知：
+
+1. 运行 `notify-blocker "<blocker and action needed>"` 发语音提醒。
+2. `sleep 180`，重新检查阻塞是否解除。
+3. 仍阻塞：加载 Brrr 技能发 1 条 Push。若延误会造成不可逆后果或错过当天窗口，用 `critical`；其余用 `time-sensitive`。
+4. Push 发出后不再重复通知。继续推进未被阻塞的部分；若全部被阻塞，收尾汇报当前状态。
+
+## Codex
+
+你运行在 Codex Harness 中。每个会话是一个 Thread，有 id 和名字，可恢复、可分叉；子 Agent 也是 Thread。工具调用和 shell 是同一能力的两个入口，选哪个入口不重要，重要的是你决定让新 Thread 看见多少你的历史：
+
+- 工具层：`spawn_agent` 新建子 Agent，`fork_turns` 控制它继承你多少对话历史，**默认 `all`**——默认值站在「延续」一边，做探索或复核时必须显式传 `"none"` 并把所需上下文写进 `message`。`send_input` / `followup_task` 复用现有 Agent；`wait_agent` 等待并收取结果。
+- Shell 层：`codex exec -C <dir> "<task>"` 起干净的新 Thread，`-o <file>` 把最终回复写进文件；`codex exec resume <id|name> "<prompt>"` 延续既有 Thread 的全部历史；`codex fork` 分叉出平行现场做对照实验。
+- 子 Agent 默认用 GPT-5.5；`reasoning_effort` 不传则继承你的档位。
+
+你要注意，派活的根本动机是获得一个你自己给不了的视角：独立验证、并行探索、不被你中间推理污染的判断。
 
 子 Agent 的上下文就是它的全部世界。它无法区分「你验证过的事实」和「你顺手写下的猜测」——继承你的历史，就是继承你的偏见。如果它带着你的全部推理出发，你想要的那个独立视角就不存在了，你只是雇了一个会附和你的自己。
 
 所以启动前只需要回答一个问题：这个任务的正确产出，依赖你已有判断的哪一部分？
 
-- 什么都不依赖（探索）：干净上下文，只给目标、边界和入口，让它独立观察并形成结论。
-- 依赖你的结论、但必须隔离你的推理（复核）：干净上下文，显式给证据、约束和待证伪的结论。
-- 依赖完整的工作现场（延续）：继承上下文，或复用现有 Agent。
-
-## 阻塞通知
-
-仅当任务被用户的具体动作阻塞、且静默等待会让任务停住时，按以下流程通知：
-
-1. 运行 `notify-blocker "<blocker and action needed>"` 发语音提醒。
-2. `sleep 180`，重新检查阻塞是否解除。
-3. 仍阻塞：加载 Brrr 技能发 1 条 Push。错过会造成不可逆后果或错过当天窗口的，用 `critical`；其余用 `time-sensitive`。
-4. Push 发出后不再重复通知。继续推进未被阻塞的部分；若全部被阻塞，收尾汇报当前状态。
-
-## Shell
-
-- 默认运行环境是 macOS `zsh`；给用户的可粘贴片段也按 fresh `zsh` 假设，除非显式进入其他 shell。
-- 需要 bash 特性时，显式划定边界：`bash <<'BASH' ... BASH`，或 `#!/usr/bin/env bash` 加 `set -euo pipefail`。
-- `zsh` 中未引用的标量不按空白拆分，不要把 bash 的隐式拆词规则带过来；不要写 `set -- $spec` 解析字段。结构化字段用显式分隔符（如 `repo:branch`，配 `${spec%%:*}` / `${spec#*:}` 解析）、数组，或必要时 `${=spec}` 并说明原因。
-- `zsh` 中 `path`、`fpath`、`status`、`pipestatus`、`RANDOM` 等是特殊参数，不要当普通临时变量名使用。循环路径用 `target_path`、`source_path`、`repo_path` 等明确名字；尤其不要写 `for path in ...`，它会污染绑定到 `PATH` 的 `path` 数组。
-- 变量展开默认加引号：`"$repo"`、`"$branch"`。`set -u` 下，可选变量先初始化，或用 `${var-}` / `${var:-default}`。
-- 嵌套执行（`tmux`、`ssh`、`*-lc`、`osascript`）不要玩 quote golf：写 runner 脚本，用单引号 heredoc 生成，值通过环境变量传入，只发送 `env KEY=value zsh "$runner"` / `bash "$runner"`。
-- 复杂正则（含 `[]`、`*`、`\p{...}` 等语法）不塞进 fragile one-liner，用单引号 heredoc，例如 `ruby <<'RUBY' ... RUBY`。
-- 给出非平凡片段前，在相同边界做语法检查：`zsh -n` 或 `bash -n`。
-- macOS ships BSD userland tools. Prefer portable shell forms for commands that may run across machines:
-  - `mktemp` on macOS does not accept GNU-style templates with suffixes after `XXXXXX`, such as `/tmp/name.XXXXXX.md`; use `mktemp "${TMPDIR:-/tmp}/name.XXXXXX"` or `mktemp -t name`.
-  - BSD `grep` does not support `-P`; use `rg` instead of `grep -P`.
-
-## Git
-
-- If the current working directory is not a repository and the task is disposable, use `$TMPDIR` for temporary code and data.
-- Before any commit, run `git status --short`.
-- Stage only files that belong to the current logical change. Do not trust any existing staging state.
-- To rewrite the message on `HEAD`, use `git commit --amend -m "..."`.
-- To rewrite an older commit message, use a non-interactive rebase:
-  `GIT_SEQUENCE_EDITOR="sed -i '' '1s/^pick/reword/'" GIT_EDITOR="sed -i '' '1s/old/new/'" git rebase -i HEAD~<N>`.
-  The target commit is line 1 in the todo because interactive rebase lists commits oldest-first. Do not open an interactive editor.
-
-## Codex
-
-你运行在 Codex Harness 中。每个会话是一个 Thread（有 id 和名字，可恢复、可分叉）；子 Agent 也是 Thread。工具调用和 shell 是同一能力的两个入口，选哪个入口不重要，重要的是你决定让新 Thread 看见多少你的历史：
-
-- 工具层：`spawn_agent` 新建子 Agent，`fork_turns` 控制它继承你多少对话历史，**默认 `all`**——默认值站在「延续」一边，探索和复核必须显式传 `"none"` 并把所需上下文写进 `message`。`send_input` / `followup_task` 复用现有 Agent；`wait_agent` 等待并收割结果。
-- Shell 层：`codex exec -C <dir> "<task>"` 起干净的新 Thread，`-o <file>` 把最终回复写进文件；`codex exec resume <id|name> "<prompt>"` 延续既有 Thread 的全部历史；`codex fork` 分叉出平行现场做对照实验。
-- 子 Agent 默认用 GPT-5.5 High；`reasoning_effort` 不传则继承你的档位。
+- 探索：不依赖你的任何判断。干净上下文，只给目标、边界和入口，让它独立观察并形成结论。
+- 复核：依赖你的结论，但必须隔离你的推理。干净上下文，显式给证据、约束和待证伪的结论。
+- 延续：依赖完整的工作现场。继承上下文，或复用现有 Agent。
