@@ -1,0 +1,4 @@
+interface:
+  display_name: "Oracle（外部二次意见）"
+  short_description: "通过 ChatGPT 浏览器模式获取一次有边界的外部二次意见"
+  default_prompt: "使用 $oracle 在本地检查之后，通过 ChatGPT 浏览器模式获取一次有边界的外部二次意见，并回到本地证据验证关键结论。"

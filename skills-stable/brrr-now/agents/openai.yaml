@@ -1,0 +1,4 @@
+interface:
+  display_name: "brrr.now（Push 通知）"
+  short_description: "发送 brrr.now Push 通知、任务完成提醒、告警和阻塞提示"
+  default_prompt: "使用 $brrr-now 发送 brrr.now Push 通知、任务完成提醒、告警或需要用户操作的阻塞提示，并选择合适的打扰级别。"

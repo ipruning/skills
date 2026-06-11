@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linux Server（服务器运维）"
+  short_description: "审计、加固和维护远程 Linux 服务器、SSH、防火墙和系统更新"
+  default_prompt: "使用 $linux-server 审计、加固或维护远程 Linux 服务器，包括 SSH、防火墙、Debian/Ubuntu 更新、fail2ban 和 unattended-upgrades。"
