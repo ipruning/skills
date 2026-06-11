@@ -42,6 +42,7 @@
 - 默认运行环境是 macOS `zsh`；给用户的可粘贴片段也按 fresh `zsh` 假设，除非显式进入其他 shell。
 - 需要 bash 特性时，显式划定边界：`bash <<'BASH' ... BASH`，或 `#!/usr/bin/env bash` 加 `set -euo pipefail`。
 - `zsh` 中未引用的标量不按空白拆分，不要把 bash 的隐式拆词规则带过来；不要写 `set -- $spec` 解析字段。结构化字段用显式分隔符（如 `repo:branch`，配 `${spec%%:*}` / `${spec#*:}` 解析）、数组，或必要时 `${=spec}` 并说明原因。
+- `zsh` 中 `path`、`fpath`、`status`、`pipestatus`、`RANDOM` 等是特殊参数，不要当普通临时变量名使用。循环路径用 `target_path`、`source_path`、`repo_path` 等明确名字；尤其不要写 `for path in ...`，它会污染绑定到 `PATH` 的 `path` 数组。
 - 变量展开默认加引号：`"$repo"`、`"$branch"`。`set -u` 下，可选变量先初始化，或用 `${var-}` / `${var:-default}`。
 - 嵌套执行（`tmux`、`ssh`、`*-lc`、`osascript`）不要玩 quote golf：写 runner 脚本，用单引号 heredoc 生成，值通过环境变量传入，只发送 `env KEY=value zsh "$runner"` / `bash "$runner"`。
 - 复杂正则（含 `[]`、`*`、`\p{...}` 等语法）不塞进 fragile one-liner，用单引号 heredoc，例如 `ruby <<'RUBY' ... RUBY`。
