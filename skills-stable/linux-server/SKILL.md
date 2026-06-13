@@ -37,7 +37,7 @@ Keep:
 - Open only currently needed or explicitly planned ports
 - Do not force a non-root admin, `AllowUsers`, fail2ban, SSH algorithm lists, or sysctl tuning by default
 
-Use [references/ssh.md](references/ssh.md) for SSH changes and [references/firewall.md](references/firewall.md) for firewall changes.
+For Snell VPS setup or repair, use [references/snell-vps.md](references/snell-vps.md). Use [references/ssh.md](references/ssh.md) for SSH changes and [references/firewall.md](references/firewall.md) for firewall changes.
 
 ### Team Admin Server
 
@@ -140,6 +140,7 @@ When the user has asked to apply changes:
 - UFW/nftables, port/process alignment, rollback, listener exposure: [references/firewall.md](references/firewall.md)
 - Package updates, unattended-upgrades, needrestart, reboot checks: [references/maintenance.md](references/maintenance.md)
 - Swap inventory and resizing: [references/swap.md](references/swap.md)
+- Snell VPS minimal setup: [references/snell-vps.md](references/snell-vps.md)
 - Unclear-server or compromise-sign read-only audit: [references/unknown-server-audit.md](references/unknown-server-audit.md)
 - Docker, container firewalls, Docker group risk, service users: [references/containers.md](references/containers.md)
 - BBR/sysctl/network tuning and crypto-algorithm caution: [references/performance-tuning.md](references/performance-tuning.md)
