@@ -35,7 +35,9 @@ If output still does not include `bbr`, omit `net.ipv4.tcp_congestion_control` a
 
 ## Proxy/VPN Sysctls
 
-Use only after confirming BBR support, VM/container sysctl writability, and the service port that must be reserved:
+These are conditional proxy/VPN tuning candidates, not a generic VPS security
+baseline. Use them only after confirming BBR support, VM/container sysctl
+writability, and the service port that must be reserved:
 
 ```ini
 net.core.default_qdisc = fq
@@ -44,7 +46,6 @@ net.core.somaxconn = 8192
 net.ipv4.tcp_max_syn_backlog = 8192
 net.ipv4.ip_local_port_range = 20000 65000
 net.ipv4.ip_local_reserved_ports = 22,<SERVICE_PORT>
-net.ipv4.tcp_mtu_probing = 1
 net.ipv4.tcp_syncookies = 1
 ```
 
@@ -60,7 +61,6 @@ net.core.somaxconn = 8192
 net.ipv4.tcp_max_syn_backlog = 8192
 net.ipv4.ip_local_port_range = 20000 65000
 net.ipv4.ip_local_reserved_ports = 22,<SERVICE_PORT>
-net.ipv4.tcp_mtu_probing = 1
 net.ipv4.tcp_syncookies = 1
 EOF
 sysctl -p /etc/sysctl.d/99-vps-tuning.conf
@@ -81,6 +81,7 @@ Do not set these from copied tuning lists without benchmarks:
 | `tcp_tw_reuse` | Keep the kernel default unless packet capture or connection metrics show TIME_WAIT reuse as the bottleneck |
 | `netdev_max_backlog` | Tune only when NIC receive drops are visible in `ip -s link` or driver counters |
 | `keepalive_*` | Tune in the application first when the application exposes keepalive settings |
+| `tcp_mtu_probing = 1` | Use as a fleet convention or when PMTU black-hole symptoms are visible; do not make it a universal default |
 
 ## SSH Crypto Algorithms
 
