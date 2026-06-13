@@ -1,4 +1,4 @@
 interface:
   display_name: "Surge Snell VPS"
-  short_description: "审计和修复 Surge/Snell VPS"
-  default_prompt: "Use $surge-patch to audit or repair a Surge/Snell VPS with a recoverable run directory."
+  short_description: "读取 Surge/Snell VPS 状态，不改服务器"
+  default_prompt: "Use $surge-patch to read a Surge/Snell VPS, inspect the local audit files, and print manual repair actions only if needed."

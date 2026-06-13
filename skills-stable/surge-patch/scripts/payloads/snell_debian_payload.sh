@@ -7,24 +7,13 @@ LOG_DIR="${RUN_DIR}/logs"
 RESULT_FILE="${RUN_DIR}/result.json"
 STDOUT_JSON_EMITTED=false
 
-BINARY_PATH="/usr/local/bin/snell-server"
-CONFIG_DIR="/etc/snell"
-CONFIG_FILE="${CONFIG_DIR}/snell-server.conf"
 SERVICE_NAME="snell-server"
-SERVICE_FILE="/etc/systemd/system/snell-server.service"
-SWAP_FILE="/swapfile"
+DEFAULT_BINARY_PATH="/usr/local/bin/snell-server"
+DEFAULT_CONFIG_FILE="/etc/snell/snell-server.conf"
 
 SURGE_PATCH_OPERATION=""
 SNELL_PORT="14180"
-SNELL_VERSION=""
 SNELL_JOURNAL_SINCE="10 min ago"
-SNELL_NAME=""
-SNELL_PSK=""
-SNELL_REPLACE_PSK=false
-SNELL_SHA256=""
-SNELL_OPEN_UFW=false
-SNELL_ENSURE_SWAP=false
-SNELL_SWAP_SIZE_GIB=4
 
 mkdir -p "$LOG_DIR"
 
@@ -44,14 +33,6 @@ json_escape() {
       printf "%s", $0
     }
   '
-}
-
-json_bool() {
-  if [ "$1" = true ]; then
-    printf 'true'
-  else
-    printf 'false'
-  fi
 }
 
 write_result() {
@@ -103,10 +84,6 @@ die() {
   exit 1
 }
 
-log() {
-  printf '[INFO] %s\n' "$1" >&2
-}
-
 validate_port() {
   case "$SNELL_PORT" in
   '' | *[!0-9]*)
@@ -118,591 +95,437 @@ validate_port() {
   fi
 }
 
-validate_bool() {
-  local name=$1
-  local value=$2
-  case "$value" in
-  true | false)
-    ;;
-  *)
-    die "${name} must be true or false"
-    ;;
-  esac
-}
-
 validate_common() {
   [ -r "$INPUT_ENV" ] || die "missing input.env"
   validate_port
-  validate_bool SNELL_REPLACE_PSK "$SNELL_REPLACE_PSK"
-  validate_bool SNELL_OPEN_UFW "$SNELL_OPEN_UFW"
-  validate_bool SNELL_ENSURE_SWAP "$SNELL_ENSURE_SWAP"
-  case "$SNELL_SWAP_SIZE_GIB" in
-  '' | *[!0-9]*)
-    die "SNELL_SWAP_SIZE_GIB must be a positive integer"
-    ;;
-  esac
-  if [ "$SNELL_SWAP_SIZE_GIB" -lt 1 ]; then
-    die "SNELL_SWAP_SIZE_GIB must be at least 1"
-  fi
 }
 
-validate_snell_version_required() {
-  [ -n "$SNELL_VERSION" ] || die "SNELL_VERSION is required"
-  case "$SNELL_VERSION" in
-  *[!A-Za-z0-9._-]*)
-    die "SNELL_VERSION contains unsupported characters"
-    ;;
-  esac
+trim() {
+  awk '{$1=$1; print}'
 }
 
-validate_psk() {
-  if [ -z "$SNELL_PSK" ]; then
-    return
-  fi
-  case "$SNELL_PSK" in
-  *','* | *' '* | *'	'*)
-    die "SNELL_PSK must not contain commas or whitespace"
-    ;;
-  esac
-}
-
-require_root_debian_systemd() {
-  [ "$(id -u)" -eq 0 ] || die "run as root"
-  command -v apt-get >/dev/null 2>&1 || die "apt-get is required"
-  command -v systemctl >/dev/null 2>&1 || die "systemd is required"
-}
-
-validate_architecture() {
-  local arch
-  arch="$(uname -m)"
-  case "$arch" in
-  x86_64 | amd64)
-    ;;
-  *)
-    die "only x86_64/amd64 Snell server install is supported by this payload, got: $arch"
-    ;;
-  esac
-}
-
-major_version() {
-  printf '%s' "${SNELL_VERSION%%.*}"
-}
-
-snell_binary_name() {
-  printf 'snell-server-v%s-linux-amd64.zip' "$SNELL_VERSION"
-}
-
-snell_download_url() {
-  printf 'https://dl.nssurge.com/snell/%s' "$(snell_binary_name)"
-}
-
-existing_config_value() {
+kv() {
   local key=$1
-  [ -r "$CONFIG_FILE" ] || return 1
-  awk -F= -v key="$key" '
-    $1 ~ "^[[:space:]]*" key "[[:space:]]*$" {
-      value=$2
-      sub(/^[[:space:]]*/, "", value)
-      sub(/[[:space:]]*$/, "", value)
-      print value
-      exit
-    }
-  ' "$CONFIG_FILE"
+  local value=${2:-}
+  printf '%s=%s\n' "$key" "$value"
 }
 
-generate_psk() {
-  od -An -N16 -tx1 /dev/urandom | tr -d ' \n'
-}
-
-choose_psk() {
-  local existing_psk
-  if [ -n "$SNELL_PSK" ]; then
-    return
+command_or_empty() {
+  if command -v "$1" >/dev/null 2>&1; then
+    command -v "$1"
+  else
+    printf ''
   fi
-  if [ "$SNELL_REPLACE_PSK" != true ]; then
-    existing_psk="$(existing_config_value psk || true)"
-    if [ -n "$existing_psk" ]; then
-      SNELL_PSK="$existing_psk"
+}
+
+service_cat() {
+  systemctl cat "$SERVICE_NAME" 2>/dev/null || true
+}
+
+service_show() {
+  local prop=$1
+  systemctl show "$SERVICE_NAME" -p "$prop" --value 2>/dev/null || true
+}
+
+detect_exec_start_line() {
+  service_cat | awk -F= '
+    /^[[:space:]]*#/ { next }
+    /^[[:space:]]*ExecStart=/ {
+      line=$0
+      sub(/^[^=]*=/, "", line)
+      print line
+    }
+  ' | tail -1
+}
+
+detect_binary_path() {
+  local exec_line=$1
+  if [ -n "$exec_line" ]; then
+    # shellcheck disable=SC2086 # ExecStart is intentionally tokenized like systemd does.
+    set -- $exec_line
+    if [ -n "${1:-}" ]; then
+      printf '%s' "$1"
       return
     fi
   fi
-  SNELL_PSK="$(generate_psk)"
+  printf '%s' "$DEFAULT_BINARY_PATH"
 }
 
-backup_file() {
-  local path=$1
-  if [ -f "$path" ]; then
-    cp -a "$path" "${path}.bak.$(date +%Y%m%d%H%M%S)"
+detect_config_file() {
+  local exec_line=$1
+  local previous=""
+  if [ -n "$exec_line" ]; then
+    # shellcheck disable=SC2086 # ExecStart is intentionally tokenized like systemd does.
+    set -- $exec_line
+    for token in "$@"; do
+      if [ "$previous" = "-c" ]; then
+        printf '%s' "$token"
+        return
+      fi
+      previous="$token"
+    done
   fi
+  printf '%s' "$DEFAULT_CONFIG_FILE"
 }
 
-install_dependencies() {
-  log "Installing Snell payload dependencies"
-  DEBIAN_FRONTEND=noninteractive apt-get update -qq >&2
-  DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl unzip >&2
-}
-
-download_snell() {
-  local archive
-  local temp_binary
-  local tmp_dir
-  local unpack_dir
-  tmp_dir="$(mktemp -d)"
-  archive="${tmp_dir}/$(snell_binary_name)"
-  unpack_dir="${tmp_dir}/unpack"
-  mkdir -p "$unpack_dir"
-
-  log "Downloading $(snell_binary_name)"
-  curl --fail --location --show-error --silent --connect-timeout 10 --retry 3 \
-    --output "$archive" "$(snell_download_url)"
-
-  if [ -n "$SNELL_SHA256" ]; then
-    printf '%s  %s\n' "$SNELL_SHA256" "$archive" | sha256sum -c -
+redact_config() {
+  local config_file=$1
+  if [ ! -r "$config_file" ]; then
+    printf 'missing/unreadable %s\n' "$config_file"
+    return
   fi
-
-  unzip -q -o "$archive" -d "$unpack_dir"
-  [ -f "${unpack_dir}/snell-server" ] || die "Snell archive did not contain snell-server"
-  temp_binary="${BINARY_PATH}.new.$$"
-  install -m 755 "${unpack_dir}/snell-server" "$temp_binary"
-  mv -f "$temp_binary" "$BINARY_PATH"
-  rm -rf "$tmp_dir"
+  awk -F= '
+    {
+      key=$1
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", key)
+      lower=tolower(key)
+      if (lower == "psk") {
+        printf "%s = <redacted>\n", key
+      } else {
+        print
+      }
+    }
+  ' "$config_file" | sed -n '1,120p'
 }
 
-ensure_snell_user() {
-  if ! getent group snell >/dev/null 2>&1; then
-    groupadd --system snell
-  fi
-  if ! id snell >/dev/null 2>&1; then
-    useradd --system --gid snell --home-dir /nonexistent --shell /usr/sbin/nologin snell
-  fi
+config_value() {
+  local config_file=$1
+  local key=$2
+  [ -r "$config_file" ] || return 0
+  awk -F= -v wanted="$key" '
+    {
+      key=$1
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", key)
+      if (tolower(key) == wanted) {
+        value=$2
+        sub(/^[[:space:]]*/, "", value)
+        sub(/[[:space:]]*$/, "", value)
+        print value
+        exit
+      }
+    }
+  ' "$config_file"
 }
 
-write_config() {
-  local temp_config
-  ensure_snell_user
-  install -d -m 750 -o root -g snell "$CONFIG_DIR"
-  backup_file "$CONFIG_FILE"
-  temp_config="${RUN_DIR}/snell-server.conf.$$"
-  cat >"$temp_config" <<CONF
-[snell-server]
-listen = 0.0.0.0:${SNELL_PORT}
-psk = ${SNELL_PSK}
-ipv6 = false
-CONF
-  install -m 640 -o root -g snell "$temp_config" "$CONFIG_FILE"
-  rm -f "$temp_config"
+config_key_present() {
+  local config_file=$1
+  local key=$2
+  [ -r "$config_file" ] || return 1
+  awk -F= -v wanted="$key" '
+    {
+      key=$1
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", key)
+      if (tolower(key) == wanted) {
+        found=1
+      }
+    }
+    END { exit found ? 0 : 1 }
+  ' "$config_file"
 }
 
-remove_incompatible_service_dropins() {
-  local backup_path
-  local dropin
-  local dropin_dir
-  dropin_dir="${SERVICE_FILE}.d"
-  if [ ! -d "$dropin_dir" ]; then
-    return 0
-  fi
-  for dropin in "$dropin_dir"/*.conf; do
-    [ -f "$dropin" ] || continue
-    if grep -Eq '^[[:space:]]*(PrivateDevices|ProtectSystem|RestrictAddressFamilies|CapabilityBoundingSet)[[:space:]=]' "$dropin"; then
-      log "Removing incompatible systemd hardening drop-in: $dropin"
-      backup_path="${dropin}.bak.$(date +%Y%m%d%H%M%S)"
-      cp -a "$dropin" "$backup_path"
-      rm -f "$dropin"
+config_legacy_keys() {
+  local config_file=$1
+  local keys=""
+  local key
+  for key in ipv6 obfs reuse version; do
+    if config_key_present "$config_file" "$key"; then
+      if [ -n "$keys" ]; then
+        keys="${keys},${key}"
+      else
+        keys="$key"
+      fi
     fi
   done
-  rmdir "$dropin_dir" 2>/dev/null || true
+  printf '%s' "$keys"
 }
 
-write_service() {
-  local temp_service
-  backup_file "$SERVICE_FILE"
-  remove_incompatible_service_dropins
-  temp_service="${RUN_DIR}/snell-server.service.$$"
-  cat >"$temp_service" <<SERVICE
-[Unit]
-Description=Snell Proxy Service
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-User=snell
-Group=snell
-ExecStart=${BINARY_PATH} -c ${CONFIG_FILE}
-Restart=always
-RestartSec=2
-LimitNOFILE=1048576
-UMask=0077
-
-[Install]
-WantedBy=multi-user.target
-SERVICE
-  install -m 644 -o root -g root "$temp_service" "$SERVICE_FILE"
-  rm -f "$temp_service"
+sshd_effective() {
+  if command -v sshd >/dev/null 2>&1; then
+    sshd -T 2>/dev/null || true
+  elif [ -x /usr/sbin/sshd ]; then
+    /usr/sbin/sshd -T 2>/dev/null || true
+  fi
 }
 
-configure_ufw() {
-  local ssh_port
-  local ssh_ports
-  local ufw_status
-  if [ "$SNELL_OPEN_UFW" != true ]; then
+sshd_value() {
+  local key=$1
+  awk -v wanted="$key" '$1 == wanted { print $2; exit }' "${LOG_DIR}/sshd_effective.log" 2>/dev/null || true
+}
+
+root_authorized_keys_count() {
+  local file="/root/.ssh/authorized_keys"
+  if [ ! -r "$file" ]; then
+    printf '0'
     return
   fi
-  if ! command -v ufw >/dev/null 2>&1; then
-    log "ufw is not installed; skipping firewall rule"
-    return
-  fi
-  ssh_ports="$({ /usr/sbin/sshd -T 2>/dev/null || true; } | awk '$1 == "port" { print $2 }')"
-  [ -n "$ssh_ports" ] || ssh_ports="22"
-  for ssh_port in $ssh_ports; do
-    ufw allow "${ssh_port}/tcp" comment ssh
-  done
-  ufw allow "${SNELL_PORT}/tcp" comment snell
-  ufw allow "${SNELL_PORT}/udp" comment snell
-  ufw_status="$(ufw status | awk '/^Status:/ { print $2; exit }')"
-  if [ "$ufw_status" != "active" ]; then
-    ufw --force enable
-  fi
+  awk 'NF && $1 !~ /^#/ { count++ } END { print count + 0 }' "$file"
 }
 
-swap_is_active() {
-  local path=$1
-  awk -v path="$path" 'NR > 1 && $1 == path { found=1 } END { exit found ? 0 : 1 }' /proc/swaps
+sysctl_value() {
+  local key=$1
+  sysctl -n "$key" 2>/dev/null || true
 }
 
-file_size_bytes() {
-  local path=$1
-  if [ -e "$path" ]; then
-    stat -c '%s' "$path"
+listener_present() {
+  local proto=$1
+  awk -v proto="$proto" -v port=":${SNELL_PORT}" '
+    $0 ~ port && $1 ~ "^" proto { found=1 }
+    END { print found ? "yes" : "no" }
+  ' "${LOG_DIR}/listeners.log" 2>/dev/null || printf 'no'
+}
+
+ufw_status_value() {
+  awk '/^Status:/ { print $2; exit }' "${LOG_DIR}/ufw_status.log" 2>/dev/null || true
+}
+
+ufw_port_proto_present() {
+  local proto=$1
+  awk -v port="${SNELL_PORT}/${proto}" '
+    index($0, port) > 0 { found=1 }
+    END { print found ? "yes" : "no" }
+  ' "${LOG_DIR}/ufw_status.log" 2>/dev/null || printf 'no'
+}
+
+line_count_file() {
+  local file=$1
+  if [ -r "$file" ]; then
+    wc -l <"$file" | tr -d ' '
   else
     printf '0'
   fi
 }
 
-create_swap_file() {
-  local path=$1
-  rm -f "$path"
-  if ! fallocate -l "${SNELL_SWAP_SIZE_GIB}G" "$path" 2>/dev/null; then
-    dd if=/dev/zero of="$path" bs=1M count=$((SNELL_SWAP_SIZE_GIB * 1024)) status=none
-  fi
-  chmod 600 "$path"
-  mkswap -f "$path" >/dev/null
-}
-
-ensure_fstab_swap() {
-  local temp_fstab
-  backup_file /etc/fstab
-  temp_fstab="${RUN_DIR}/fstab.$$"
-  awk -v path="$SWAP_FILE" '($1 == path && $3 == "swap") { next } { print }' /etc/fstab >"$temp_fstab"
-  printf '%s none swap sw 0 0\n' "$SWAP_FILE" >>"$temp_fstab"
-  install -m 644 -o root -g root "$temp_fstab" /etc/fstab
-  rm -f "$temp_fstab"
-}
-
-configure_swap() {
-  local current_size
-  local required_size
-  local temp_swap
-  if [ "$SNELL_ENSURE_SWAP" != true ]; then
-    return
-  fi
-  command -v mkswap >/dev/null 2>&1 || die "mkswap is required"
-  command -v swapon >/dev/null 2>&1 || die "swapon is required"
-  command -v swapoff >/dev/null 2>&1 || die "swapoff is required"
-  required_size=$((SNELL_SWAP_SIZE_GIB * 1024 * 1024 * 1024))
-  current_size="$(file_size_bytes "$SWAP_FILE")"
-  if [ "$current_size" -lt "$required_size" ]; then
-    temp_swap="${SWAP_FILE}.surge-patch-new"
-    create_swap_file "$temp_swap"
-    if swap_is_active "$SWAP_FILE"; then
-      swapoff "$SWAP_FILE"
-    fi
-    rm -f "$SWAP_FILE"
-    mv "$temp_swap" "$SWAP_FILE"
-  fi
-  chmod 600 "$SWAP_FILE"
-  if ! swap_is_active "$SWAP_FILE"; then
-    if ! swapon "$SWAP_FILE" 2>/dev/null; then
-      mkswap -f "$SWAP_FILE" >/dev/null
-      swapon "$SWAP_FILE"
-    fi
-  fi
-  rm -f "${SWAP_FILE}.surge-patch-new"
-  ensure_fstab_swap
-}
-
-start_service() {
-  systemctl daemon-reload
-  systemctl enable "$SERVICE_NAME" >/dev/null
-  systemctl restart "$SERVICE_NAME"
-}
-
-verify_installation() {
-  local attempt=0
-  systemctl is-active --quiet "$SERVICE_NAME" || die "snell-server is not active"
-  command -v ss >/dev/null 2>&1 || return
-  while [ "$attempt" -lt 10 ]; do
-    if ss -tuln | awk -v port=":${SNELL_PORT}" '$0 ~ port { found=1 } END { exit found ? 0 : 1 }'; then
-      return
-    fi
-    attempt=$((attempt + 1))
-    sleep 1
-  done
-  die "snell-server is active but port ${SNELL_PORT} was not found"
-}
-
-public_ip() {
-  curl -4fsS --max-time 5 https://icanhazip.com 2>/dev/null ||
-    hostname -I 2>/dev/null | awk '{ print $1 }' ||
-    printf 'UNKNOWN_IP'
-}
-
-summary_value() {
-  local key=$1
-  local file=$2
-  awk -F= -v key="$key" '
-    $1 == key {
-      value=$0
-      sub("^[^=]*=", "", value)
-      print value
-      exit
-    }
-  ' "$file"
-}
-
-append_json_item() {
-  local current=$1
-  local item=$2
-  if [ -n "$current" ]; then
-    printf '%s," %s"' "$current" "$(json_escape "$item")" | sed 's/," /,"/'
-  else
-    printf '"%s"' "$(json_escape "$item")"
-  fi
-}
-
-nonzero() {
-  [ -n "$1" ] && [ "$1" != "0" ]
-}
-
-write_audit_raw() {
-  local raw_file=$1
+collect_raw_logs() {
+  local binary_path=$1
+  local config_file=$2
   {
     printf '## identity\n'
     hostname -f 2>/dev/null || hostname 2>/dev/null || true
     date -u '+%Y-%m-%dT%H:%M:%SZ' || true
     uname -a || true
+
     printf '\n## snell_binary\n'
-    if [ -x "$BINARY_PATH" ]; then
-      "$BINARY_PATH" -v 2>&1 || true
-      sha256sum "$BINARY_PATH" 2>/dev/null || true
+    if [ -x "$binary_path" ]; then
+      "$binary_path" -v 2>&1 || true
+      sha256sum "$binary_path" 2>/dev/null || true
     else
-      printf 'missing %s\n' "$BINARY_PATH"
+      printf 'missing %s\n' "$binary_path"
     fi
-    printf '\n## snell_config\n'
-    if [ -r "$CONFIG_FILE" ]; then
-      sed -n '1,80p' "$CONFIG_FILE"
-    else
-      printf 'missing/unreadable %s\n' "$CONFIG_FILE"
-    fi
+
+    printf '\n## snell_config_redacted\n'
+    redact_config "$config_file"
+
     printf '\n## service_state\n'
-    systemctl show "$SERVICE_NAME" -p ActiveState -p SubState -p Result -p NRestarts -p LimitNOFILE 2>/dev/null || true
+    systemctl show "$SERVICE_NAME" \
+      -p ActiveState -p SubState -p Result -p NRestarts -p LimitNOFILE \
+      -p User -p Group -p Restart -p MainPID 2>/dev/null || true
     systemctl is-enabled "$SERVICE_NAME" 2>/dev/null || true
-    printf '\n## service_files\n'
-    systemctl cat "$SERVICE_NAME" 2>/dev/null || true
+
     printf '\n## listeners\n'
-    ss -lntup 2>/dev/null | awk -v port=":${SNELL_PORT}" '$0 ~ port { print }' || true
-    printf '\n## journal_recent\n'
-    journalctl -u "$SERVICE_NAME" --since "$SNELL_JOURNAL_SINCE" --no-pager 2>/dev/null |
-      awk '/WARN|ERROR|assert|Failed|failed|exited|signal 6|Decryption failed|DNS error|connect error/ { print }' |
-      tail -120 || true
-    printf '\n## summary_kv\n'
-    audit_summary_kv
-  } >"$raw_file"
+    cat "${LOG_DIR}/listeners.log" 2>/dev/null || true
+
+    printf '\n## sshd_effective\n'
+    cat "${LOG_DIR}/sshd_effective.log" 2>/dev/null || true
+
+    printf '\n## ufw_status\n'
+    cat "${LOG_DIR}/ufw_status.log" 2>/dev/null || true
+
+    printf '\n## sysctl\n'
+    cat "${LOG_DIR}/sysctl.log" 2>/dev/null || true
+
+    printf '\n## journal_recent_filtered\n'
+    cat "${LOG_DIR}/journal_recent.log" 2>/dev/null || true
+  } >"${LOG_DIR}/audit_raw.log"
 }
 
-audit_summary_kv() {
-  local active
-  local apt_duplicate_sources
-  local decryption_total
-  local hardening_mentions
-  local nofile
-  local restarts
-  local sub
-  local tcp_listen
-  local top_decryption
-  local udp_crash_markers
-  local udp_listen
-  local version
-  version="$("$BINARY_PATH" -v 2>&1 | sed -n 's/^.*snell-server /snell-server /p' | head -1 || true)"
-  active="$(systemctl show "$SERVICE_NAME" -p ActiveState --value 2>/dev/null || true)"
-  sub="$(systemctl show "$SERVICE_NAME" -p SubState --value 2>/dev/null || true)"
-  restarts="$(systemctl show "$SERVICE_NAME" -p NRestarts --value 2>/dev/null || true)"
-  nofile="$(systemctl show "$SERVICE_NAME" -p LimitNOFILE --value 2>/dev/null || true)"
-  if command -v ss >/dev/null 2>&1; then
-    tcp_listen="$(ss -lntup 2>/dev/null | awk -v port=":${SNELL_PORT}" '$0 ~ port && $1 == "tcp" { found=1 } END { print found ? "yes" : "no" }')"
-    udp_listen="$(ss -lntup 2>/dev/null | awk -v port=":${SNELL_PORT}" '$0 ~ port && $1 == "udp" { found=1 } END { print found ? "yes" : "no" }')"
+collect_supporting_files() {
+  service_cat >"${LOG_DIR}/service_cat.log"
+  ss -lntup >"${LOG_DIR}/listeners.log" 2>/dev/null || true
+  sshd_effective >"${LOG_DIR}/sshd_effective.log"
+  if command -v ufw >/dev/null 2>&1; then
+    ufw status verbose >"${LOG_DIR}/ufw_status.log" 2>/dev/null || true
   else
-    tcp_listen="no"
-    udp_listen="no"
+    printf 'ufw unavailable\n' >"${LOG_DIR}/ufw_status.log"
   fi
-  hardening_mentions="$({ systemctl cat "$SERVICE_NAME" 2>/dev/null || true; } | awk '
-    /^[[:space:]]*#/ { next }
-    /^[[:space:]]*(PrivateDevices|ProtectSystem|RestrictAddressFamilies|CapabilityBoundingSet)[[:space:]=]/ { count++ }
-    END { print count + 0 }
-  ')"
-  apt_duplicate_sources=0
-  if [ -f /etc/apt/sources.list.d/debian-security-autofix.list ] &&
-    [ -f /etc/apt/sources.list ] &&
-    grep -q 'security.debian.org/debian-security' /etc/apt/sources.list.d/debian-security-autofix.list &&
-    grep -q 'security.debian.org/debian-security' /etc/apt/sources.list; then
-    apt_duplicate_sources=1
+  if command -v nft >/dev/null 2>&1; then
+    nft list ruleset >"${LOG_DIR}/nft_ruleset.log" 2>/dev/null || true
+  else
+    printf 'nft unavailable\n' >"${LOG_DIR}/nft_ruleset.log"
   fi
-  decryption_total="$({ journalctl -u "$SERVICE_NAME" --since "$SNELL_JOURNAL_SINCE" --no-pager 2>/dev/null || true; } | awk '/Decryption failed/ { count++ } END { print count + 0 }')"
-  udp_crash_markers="$({ journalctl -u "$SERVICE_NAME" --since "$SNELL_JOURNAL_SINCE" --no-pager 2>/dev/null || true; } | awk '/UDP socket send error|uv_close|signal 6|Main process exited|Failed with result/ { count++ } END { print count + 0 }')"
-  top_decryption="$({ journalctl -u "$SERVICE_NAME" --since "$SNELL_JOURNAL_SINCE" --no-pager 2>/dev/null || true; } | awk '/Decryption failed/ { count[$NF]++ } END { topc=0; topip="-"; for (ip in count) if (count[ip] > topc) { topc=count[ip]; topip=ip } print topc ":" topip }')"
-  printf 'version=%s\n' "$version"
-  printf 'active=%s\n' "$active"
-  printf 'sub=%s\n' "$sub"
-  printf 'restarts=%s\n' "$restarts"
-  printf 'nofile=%s\n' "$nofile"
-  printf 'tcp_listen=%s\n' "$tcp_listen"
-  printf 'udp_listen=%s\n' "$udp_listen"
-  printf 'hardening_mentions=%s\n' "$hardening_mentions"
-  printf 'apt_duplicate_sources=%s\n' "$apt_duplicate_sources"
-  printf 'decryption_total=%s\n' "$decryption_total"
-  printf 'top_decryption=%s\n' "$top_decryption"
-  printf 'udp_crash_markers=%s\n' "$udp_crash_markers"
+  iptables -S >"${LOG_DIR}/iptables_rules.log" 2>/dev/null || true
+  ip6tables -S >"${LOG_DIR}/ip6tables_rules.log" 2>/dev/null || true
+  if command -v docker >/dev/null 2>&1; then
+    docker ps --format '{{.ID}} {{.Names}} {{.Ports}}' >"${LOG_DIR}/docker_ports.log" 2>/dev/null || true
+  else
+    printf 'docker unavailable\n' >"${LOG_DIR}/docker_ports.log"
+  fi
+  {
+    for key in \
+      net.core.default_qdisc \
+      net.ipv4.tcp_congestion_control \
+      net.core.somaxconn \
+      net.ipv4.tcp_max_syn_backlog \
+      net.ipv4.tcp_syncookies \
+      net.ipv4.ip_local_port_range \
+      net.ipv4.ip_local_reserved_ports \
+      net.ipv4.tcp_mtu_probing \
+      net.netfilter.nf_conntrack_count \
+      net.netfilter.nf_conntrack_max; do
+      printf '%s=%s\n' "$key" "$(sysctl_value "$key")"
+    done
+  } >"${LOG_DIR}/sysctl.log"
+  swapon --show --bytes >"${LOG_DIR}/swaps.log" 2>/dev/null || true
+  df -Pk / /var /boot >"${LOG_DIR}/df.log" 2>/dev/null || df -Pk >"${LOG_DIR}/df.log" 2>/dev/null || true
+  journalctl -u "$SERVICE_NAME" --since "$SNELL_JOURNAL_SINCE" -o short-iso --no-pager 2>/dev/null |
+    awk '/WARN|ERROR|assert|Failed|failed|exited|signal 6|Decryption failed|DNS error|connect error|UDP socket send error|uv_close/ { print }' |
+    tail -500 >"${LOG_DIR}/journal_recent.log" || true
 }
 
-audit_result_json() {
-  local active
-  local apt_dupes
-  local crashes
-  local decryption
-  local failed_checks=""
-  local hardening
-  local nofile
-  local raw_file=$1
-  local restarts
-  local status
-  local sub
-  local tcp_listen
-  local top_decryption
-  local udp_listen
-  local version
-  local warning_checks=""
+hardening_directives() {
+  awk '
+    /^[[:space:]]*#/ { next }
+    /^[[:space:]]*(PrivateDevices|ProtectSystem|RestrictAddressFamilies|CapabilityBoundingSet|NoNewPrivileges|PrivateTmp)[[:space:]=]/ {
+      key=$1
+      sub(/[=:].*/, "", key)
+      seen[key]=1
+    }
+    END {
+      first=1
+      for (key in seen) {
+        if (!first) {
+          printf ","
+        }
+        printf "%s", key
+        first=0
+      }
+    }
+  ' "${LOG_DIR}/service_cat.log" 2>/dev/null || true
+}
 
-  active="$(summary_value active "$raw_file")"
-  sub="$(summary_value sub "$raw_file")"
-  restarts="$(summary_value restarts "$raw_file")"
-  nofile="$(summary_value nofile "$raw_file")"
-  version="$(summary_value version "$raw_file")"
-  tcp_listen="$(summary_value tcp_listen "$raw_file")"
-  udp_listen="$(summary_value udp_listen "$raw_file")"
-  hardening="$(summary_value hardening_mentions "$raw_file")"
-  apt_dupes="$(summary_value apt_duplicate_sources "$raw_file")"
-  decryption="$(summary_value decryption_total "$raw_file")"
-  top_decryption="$(summary_value top_decryption "$raw_file")"
-  crashes="$(summary_value udp_crash_markers "$raw_file")"
+write_summary_kv() {
+  local binary_path=$1
+  local config_file=$2
+  local directives
+  local mem_total
+  local swap_free
+  local swap_total
+  local root_available
+  directives="$(hardening_directives)"
+  mem_total="$(awk '/^MemTotal:/ { print $2; exit }' /proc/meminfo 2>/dev/null || true)"
+  swap_total="$(awk '/^SwapTotal:/ { print $2; exit }' /proc/meminfo 2>/dev/null || true)"
+  swap_free="$(awk '/^SwapFree:/ { print $2; exit }' /proc/meminfo 2>/dev/null || true)"
+  root_available="$(df -Pk / 2>/dev/null | awk 'NR == 2 { print $4; exit }')"
 
-  [ "$active" = "active" ] || failed_checks="$(append_json_item "$failed_checks" "service_inactive")"
-  [ "$sub" = "running" ] || failed_checks="$(append_json_item "$failed_checks" "service_not_running")"
-  [ "$tcp_listen" = "yes" ] || failed_checks="$(append_json_item "$failed_checks" "tcp_not_listening")"
-  [ "$udp_listen" = "yes" ] || failed_checks="$(append_json_item "$failed_checks" "udp_not_listening")"
-  nonzero "$hardening" && failed_checks="$(append_json_item "$failed_checks" "systemd_hardening_present")"
-  nonzero "$apt_dupes" && failed_checks="$(append_json_item "$failed_checks" "apt_duplicate_security_sources")"
-  nonzero "$crashes" && failed_checks="$(append_json_item "$failed_checks" "udp_crash_markers_present")"
-  nonzero "$decryption" && warning_checks="$(append_json_item "$warning_checks" "decryption_failed_seen")"
+  {
+    kv schema_version "surge-patch.audit.remote.v1"
+    kv collected_at "$(date -u '+%Y-%m-%dT%H:%M:%SZ' || true)"
+    kv hostname "$(hostname -f 2>/dev/null || hostname 2>/dev/null || true)"
+    kv kernel "$(uname -r 2>/dev/null || true)"
+    kv os_pretty_name "$(awk -F= '$1 == "PRETTY_NAME" { gsub(/"/, "", $2); print $2; exit }' /etc/os-release 2>/dev/null || true)"
 
-  status="ok"
-  if [ -n "$failed_checks" ]; then
-    status="issue"
-  elif [ -n "$warning_checks" ]; then
-    status="warn"
-  fi
+    kv snell_port "$SNELL_PORT"
+    kv snell_binary_path "$binary_path"
+    if [ -x "$binary_path" ]; then
+      kv snell_version_text "$("$binary_path" -v 2>&1 | head -1 || true)"
+      kv snell_binary_sha256 "$(sha256sum "$binary_path" 2>/dev/null | awk '{ print $1 }')"
+    else
+      kv snell_version_text ""
+      kv snell_binary_sha256 ""
+    fi
+    kv snell_config_path "$config_file"
+    if [ -r "$config_file" ]; then
+      kv config_present "yes"
+      if config_key_present "$config_file" psk; then kv config_psk_present "yes"; else kv config_psk_present "no"; fi
+      kv config_listen "$(config_value "$config_file" listen)"
+      kv config_legacy_keys "$(config_legacy_keys "$config_file")"
+      if config_key_present "$config_file" dns-ip-preference; then
+        kv config_dns_ip_preference_present "yes"
+      else
+        kv config_dns_ip_preference_present "no"
+      fi
+    else
+      kv config_present "no"
+      kv config_psk_present "no"
+      kv config_listen ""
+      kv config_legacy_keys ""
+      kv config_dns_ip_preference_present "no"
+    fi
 
-  printf '{'
-  printf '"status":"%s","operation":"audit-snell","port":"%s","failed_checks":[%s],"warning_checks":[%s],"raw_log":"%s","values":{' \
-    "$status" "$(json_escape "$SNELL_PORT")" "$failed_checks" "$warning_checks" "$(json_escape "$raw_file")"
-  printf '"version":"%s","active":"%s","sub":"%s","restarts":"%s","nofile":"%s"' \
-    "$(json_escape "$version")" "$(json_escape "$active")" "$(json_escape "$sub")" "$(json_escape "$restarts")" "$(json_escape "$nofile")"
-  printf ',"tcp_listen":"%s","udp_listen":"%s","hardening_mentions":"%s","apt_duplicate_sources":"%s"' \
-    "$(json_escape "$tcp_listen")" "$(json_escape "$udp_listen")" "$(json_escape "$hardening")" "$(json_escape "$apt_dupes")"
-  printf ',"decryption_total":"%s","top_decryption":"%s","udp_crash_markers":"%s"}}' \
-    "$(json_escape "$decryption")" "$(json_escape "$top_decryption")" "$(json_escape "$crashes")"
+    kv systemd_active "$(service_show ActiveState)"
+    kv systemd_sub "$(service_show SubState)"
+    kv systemd_result "$(service_show Result)"
+    kv systemd_nrestarts "$(service_show NRestarts)"
+    kv systemd_limit_nofile "$(service_show LimitNOFILE)"
+    kv systemd_user "$(service_show User)"
+    kv systemd_group "$(service_show Group)"
+    kv systemd_restart "$(service_show Restart)"
+    kv systemd_main_pid "$(service_show MainPID)"
+    if [ -n "$directives" ]; then
+      kv systemd_hardening_mentions "$(printf '%s' "$directives" | awk -F, '{ print NF }')"
+    else
+      kv systemd_hardening_mentions "0"
+    fi
+    kv systemd_hardening_directives "$directives"
+
+    kv tcp_listen "$(listener_present tcp)"
+    kv udp_listen "$(listener_present udp)"
+
+    kv ssh_permitrootlogin "$(sshd_value permitrootlogin)"
+    kv ssh_passwordauthentication "$(sshd_value passwordauthentication)"
+    kv ssh_kbdinteractiveauthentication "$(sshd_value kbdinteractiveauthentication)"
+    kv ssh_pubkeyauthentication "$(sshd_value pubkeyauthentication)"
+    kv ssh_maxauthtries "$(sshd_value maxauthtries)"
+    kv ssh_authenticationmethods "$(sshd_value authenticationmethods)"
+    kv ssh_root_authorized_keys_count "$(root_authorized_keys_count)"
+
+    kv ufw_status "$(ufw_status_value)"
+    kv ufw_snell_tcp "$(ufw_port_proto_present tcp)"
+    kv ufw_snell_udp "$(ufw_port_proto_present udp)"
+    kv nft_ruleset_lines "$(line_count_file "${LOG_DIR}/nft_ruleset.log")"
+    kv iptables_rules_lines "$(line_count_file "${LOG_DIR}/iptables_rules.log")"
+    kv ip6tables_rules_lines "$(line_count_file "${LOG_DIR}/ip6tables_rules.log")"
+    if command -v docker >/dev/null 2>&1; then kv docker_present "yes"; else kv docker_present "no"; fi
+    kv docker_published_ports_lines "$(awk 'index($0, "->") > 0 { count++ } END { print count + 0 }' "${LOG_DIR}/docker_ports.log" 2>/dev/null || true)"
+
+    kv sysctl_net_core_default_qdisc "$(sysctl_value net.core.default_qdisc)"
+    kv sysctl_net_ipv4_tcp_congestion_control "$(sysctl_value net.ipv4.tcp_congestion_control)"
+    kv sysctl_net_core_somaxconn "$(sysctl_value net.core.somaxconn)"
+    kv sysctl_net_ipv4_tcp_max_syn_backlog "$(sysctl_value net.ipv4.tcp_max_syn_backlog)"
+    kv sysctl_net_ipv4_tcp_syncookies "$(sysctl_value net.ipv4.tcp_syncookies)"
+    kv sysctl_net_ipv4_ip_local_port_range "$(sysctl_value net.ipv4.ip_local_port_range)"
+    kv sysctl_net_ipv4_ip_local_reserved_ports "$(sysctl_value net.ipv4.ip_local_reserved_ports)"
+    kv sysctl_net_ipv4_tcp_mtu_probing "$(sysctl_value net.ipv4.tcp_mtu_probing)"
+    kv sysctl_net_netfilter_nf_conntrack_count "$(sysctl_value net.netfilter.nf_conntrack_count)"
+    kv sysctl_net_netfilter_nf_conntrack_max "$(sysctl_value net.netfilter.nf_conntrack_max)"
+
+    kv mem_total_kib "$mem_total"
+    kv swap_total_kib "$swap_total"
+    kv swap_free_kib "$swap_free"
+    kv fstab_swap_entries "$(awk '$3 == "swap" { count++ } END { print count + 0 }' /etc/fstab 2>/dev/null || true)"
+    kv root_available_kib "$root_available"
+    kv journald_disk_usage "$(journalctl --disk-usage 2>&1 | tr '\n' ' ' | trim)"
+  } >"${LOG_DIR}/audit_summary.kv"
 }
 
 run_audit() {
-  local payload
-  local raw_file="${LOG_DIR}/audit_raw.log"
+  local exec_line
+  local binary_path
+  local config_file
   validate_common
-  write_audit_raw "$raw_file"
-  payload="$(audit_result_json "$raw_file")"
-  write_result "$payload"
-  case "$payload" in
-  *'"status":"issue"'*)
-    exit 1
-    ;;
-  esac
-}
-
-run_install() {
-  local audit_payload
-  local ip
-  local payload
-  local proxy_line
-  local raw_file="${LOG_DIR}/post_install_audit_raw.log"
-  validate_common
-  validate_snell_version_required
-  validate_psk
-  require_root_debian_systemd
-  validate_architecture
-  [ -n "$SNELL_NAME" ] || SNELL_NAME="$(hostname -s 2>/dev/null || hostname 2>/dev/null || printf 'snell-vps')"
-  choose_psk
-  configure_swap
-  install_dependencies
-  download_snell
-  write_config
-  write_service
-  configure_ufw
-  start_service
-  verify_installation
-  write_audit_raw "$raw_file"
-  audit_payload="$(audit_result_json "$raw_file")"
-  ip="$(public_ip)"
-  proxy_line="${SNELL_NAME} = snell, ${ip}, ${SNELL_PORT}, psk=${SNELL_PSK}, version=$(major_version)"
-  payload=$(printf '{')
-  payload="${payload}\"status\":\"installed\""
-  payload="${payload},\"operation\":\"install-snell\""
-  payload="${payload},\"persistent_effects\":[\"install_or_replace_/usr/local/bin/snell-server\",\"backup_and_replace_/etc/snell/snell-server.conf\",\"backup_and_replace_/etc/systemd/system/snell-server.service\",\"remove_incompatible_snell_systemd_hardening_dropins\",\"enable_and_restart_snell-server\""
-  if [ "$SNELL_OPEN_UFW" = true ]; then
-    payload="${payload},\"allow_snell_tcp_udp_in_ufw\""
-  fi
-  if [ "$SNELL_ENSURE_SWAP" = true ]; then
-    payload="${payload},\"ensure_swapfile_and_fstab_entry\""
-  fi
-  payload="${payload}]"
-  payload="${payload},\"name\":\"$(json_escape "$SNELL_NAME")\""
-  payload="${payload},\"public_ip\":\"$(json_escape "$ip")\""
-  payload="${payload},\"port\":\"$(json_escape "$SNELL_PORT")\""
-  payload="${payload},\"psk\":\"$(json_escape "$SNELL_PSK")\""
-  payload="${payload},\"version\":\"$(json_escape "$(major_version)")\""
-  payload="${payload},\"snell_version\":\"$(json_escape "$SNELL_VERSION")\""
-  payload="${payload},\"config_file\":\"$(json_escape "$CONFIG_FILE")\""
-  payload="${payload},\"service_file\":\"$(json_escape "$SERVICE_FILE")\""
-  payload="${payload},\"surge_proxy_line\":\"$(json_escape "$proxy_line")\""
-  payload="${payload},\"post_install_audit\":${audit_payload}}"
-  write_result "$payload"
+  exec_line="$(detect_exec_start_line)"
+  binary_path="$(detect_binary_path "$exec_line")"
+  config_file="$(detect_config_file "$exec_line")"
+  collect_supporting_files
+  collect_raw_logs "$binary_path" "$config_file"
+  write_summary_kv "$binary_path" "$config_file"
+  write_result '{"status":"audited","operation":"audit-snell","persistent_effects":[],"summary_kv":"logs/audit_summary.kv","raw_log":"logs/audit_raw.log"}'
 }
 
 case "$SURGE_PATCH_OPERATION" in
-install-snell)
-  run_install
-  ;;
 audit-snell)
   run_audit
   ;;
 *)
-  die "unsupported SURGE_PATCH_OPERATION: ${SURGE_PATCH_OPERATION}"
+  die "unsupported read-only operation: ${SURGE_PATCH_OPERATION}"
   ;;
 esac
