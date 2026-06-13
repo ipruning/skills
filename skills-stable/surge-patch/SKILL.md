@@ -1,78 +1,103 @@
 ---
 name: surge-patch
 description: |
-  Operate Surge/Snell VPS audits, repairs, and smoke checks with a uv-based
-  Python CLI. Use for Snell install or repair, read-only VPS audits, systemd
-  UDP/QUIC checks, and local Surge TCP/UDP/external-IP/NAT probes.
+  Read Snell VPS state over SSH and test local Surge policies without changing
+  servers. Use for Surge/Snell outages, Snell v5/v6 listener checks, systemd
+  UDP crash evidence, SSH/firewall/sysctl/swap inventory, and manual repair
+  planning. Do not use to install, repair, restart, or tune a VPS.
 ---
 
-# Surge Snell Operations
+# Surge Snell Checks
 
-`scripts/surge_patch.py` prepares a run directory, uploads it when the work is
-remote, runs the operation, and collects the result. Run it with
-`uv run --script`.
+Use `scripts/surge_patch.py` with `uv run --script`.
 
-## Workflow
+The script reads what is on the machine. It does not fix the machine. If a
+change is needed, write the change down and leave execution to the operator.
 
-1. Read [Snell VPS Triage](references/snell-vps-triage.md) when changing a VPS,
-   systemd service, UDP behavior, or Surge routing.
-2. Prepare one run directory for `install-snell`, `audit-snell`, or
-   `surge-smoke`.
-3. For remote Snell work, upload the run directory, run it over SSH, then
-   collect it. The remote directory remains on the VPS for later audit.
-4. For local Surge smoke checks, prepare the run locally, run it, then collect
-   with
-   `--local-only`.
-5. Keep endpoint IPs, PSKs, profile names, and inventories in the user's current
-   task input or private config.
+## Work
 
-## Output
+1. Read [Snell VPS Triage](references/snell-vps-triage.md) before judging a
+   VPS, systemd service, UDP behavior, firewall exposure, proxy sysctls, or
+   Surge route.
+2. For one VPS, run `audit-snell`. For several VPSes, put one SSH target per
+   line in a hosts file and run `audit-fleet`.
+3. Open `audit.json`. Read `facts`, `findings`, `evidence_paths`, and
+   `recommended_manual_actions`.
+4. If a repair is needed, run `render-repair-plan --audit <audit.json>`. The
+   command prints manual actions. It does not run them.
+5. Use `smoke-surge` for local Surge policy checks. It does not touch the VPS.
 
-Every structured command prints one JSON object to stdout. Progress,
-diagnostics, package-manager output, SSH output, and probe details go to stderr
-or files inside the run directory.
+Keep endpoint IPs, PSKs, profile names, and inventories in the user's task or
+private config. Audit logs must not contain plaintext Snell PSKs.
 
-Remote run directories include:
+## Commands
 
-- `manifest.json`: run id, operation, target, persistent effects, and paths
-- `input.json`: structured input
-- `input.env`: private shell input for the remote payload
-- `stdout`, `stderr`, `exit_code`: captured payload result
-- `result.json`: parsed operation result
-- `logs/`: raw audit, runner, and probe logs
-
-## Operations
-
-`install-snell` is persistent. It may install or replace
-`/usr/local/bin/snell-server`, back up and replace the Snell config and systemd
-service files, remove incompatible Snell hardening drop-ins, and restart
-`snell-server`. Prepare it with `--confirm-persistent`.
-
-`audit-snell` is read-only on the VPS. It records systemd state, listeners,
-recent Snell logs, hardening signals, and derived checks.
-
-`surge-smoke` is local and read-only for Surge configuration. It runs supported
-`surge-cli --raw` TCP, UDP, external IP, and NAT policy probes and stores raw
-probe files in the local run directory.
-
-## Examples
+Audit one VPS:
 
 ```bash
-uv run --script scripts/surge_patch.py prepare \
-  --operation audit-snell \
+uv run --script scripts/surge_patch.py audit-snell \
   --host root@203.0.113.10 \
-  --port 14180
-
-uv run --script scripts/surge_patch.py upload --run-dir /tmp/surge-patch-runs/<run_id>
-uv run --script scripts/surge_patch.py run --run-dir /tmp/surge-patch-runs/<run_id>
-uv run --script scripts/surge_patch.py collect --run-dir /tmp/surge-patch-runs/<run_id>
+  --journal-since "6 hours ago" \
+  --out /tmp/surge-patch-runs
 ```
+
+Audit a fleet:
 
 ```bash
-uv run --script scripts/surge_patch.py prepare \
-  --operation install-snell \
-  --host root@203.0.113.10 \
-  --snell-version 5.0.1 \
-  --port 14180 \
-  --confirm-persistent
+uv run --script scripts/surge_patch.py audit-fleet \
+  --hosts ./snell-hosts.txt \
+  --journal-since "6 hours ago" \
+  --out /tmp/surge-patch-runs
 ```
+
+Print manual repair actions:
+
+```bash
+uv run --script scripts/surge_patch.py render-repair-plan \
+  --audit /tmp/surge-patch-runs/<run_id>/audit.json
+```
+
+Check a local Surge policy:
+
+```bash
+uv run --script scripts/surge_patch.py smoke-surge \
+  --policy "My Snell Policy" \
+  --test tcp \
+  --test udp
+```
+
+## Files
+
+`audit-snell` and `audit-fleet` write a local directory under `--out`.
+
+Read these files first:
+
+- `audit.json`: the result to quote in the answer
+- `logs/audit_raw.log`: redacted raw evidence
+- `logs/audit_summary.kv`: compact facts from the VPS
+- `logs/journal_recent.log`: recent Snell log markers
+- `logs/service_cat.log`: effective systemd unit and drop-ins
+- `logs/listeners.log`: TCP and UDP listeners
+- `logs/sshd_effective.log`: effective SSH settings
+- `logs/ufw_status.log`, `logs/nft_ruleset.log`, `logs/iptables_rules.log`
+- `logs/docker_ports.log`: Docker-published ports when Docker is present
+
+Exit codes:
+
+- SSH, upload, remote execution, or collection failed: non-zero
+- Audit completed and found server problems: zero
+- Audit completed and found server problems with `--fail-on-issue`: non-zero
+
+## Snell Rules
+
+Judge Snell v5 and v6 separately.
+
+- v5 can use TCP and UDP on existing UDP/QUIC nodes.
+- v6 is normally TCP-only unless the user gives a concrete UDP need.
+- v6 configs should not carry old `ipv6`, `obfs`, `reuse`, or `version`
+  fields.
+- `Decryption failed` by itself usually means scanner traffic, a stale client,
+  or a wrong PSK. Do not call it a server crash unless logs or load say so.
+
+Do not treat `udp_listen=yes` as always good. Do not treat `udp_listen=no` as
+always bad.

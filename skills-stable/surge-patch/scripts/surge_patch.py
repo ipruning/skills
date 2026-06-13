@@ -4,7 +4,7 @@
 # dependencies = []
 # ///
 
-"""Small run-dir based CLI for Surge/Snell VPS operations."""
+"""Read Snell VPS state and run local Surge checks without repairing servers."""
 
 from __future__ import annotations
 
@@ -21,38 +21,14 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = "surge-patch.run.v1"
+EVIDENCE_SCHEMA_VERSION = 2
+RUN_SCHEMA_VERSION = "surge-patch.audit-run.v2"
 DEFAULT_LOCAL_ROOT = Path("/tmp/surge-patch-runs")
 DEFAULT_REMOTE_BASE = "/var/tmp/surge-patch-runs"
 DEFAULT_PORT = 14180
 DEFAULT_JOURNAL_SINCE = "10 min ago"
 RUN_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{7,79}$")
 SAFE_REMOTE_PATH_RE = re.compile(r"^/[A-Za-z0-9._/@+-][A-Za-z0-9._/@+-]*(?:/[A-Za-z0-9._@+-]+)*$")
-SNELL_VERSION_RE = re.compile(r"^[A-Za-z0-9._-]+$")
-
-OPERATION_DEFS: dict[str, dict[str, Any]] = {
-    "install-snell": {
-        "target": "remote",
-        "persistent": True,
-        "persistent_effects": [
-            "install_or_replace_/usr/local/bin/snell-server",
-            "backup_and_replace_/etc/snell/snell-server.conf",
-            "backup_and_replace_/etc/systemd/system/snell-server.service",
-            "remove_incompatible_snell_systemd_hardening_dropins",
-            "enable_and_restart_snell-server",
-        ],
-    },
-    "audit-snell": {
-        "target": "remote",
-        "persistent": False,
-        "persistent_effects": [],
-    },
-    "surge-smoke": {
-        "target": "local",
-        "persistent": False,
-        "persistent_effects": [],
-    },
-}
 
 SURGE_TEST_COMMANDS = {
     "tcp": ("test-policy",),
@@ -60,6 +36,16 @@ SURGE_TEST_COMMANDS = {
     "external-ip": ("test-policy-external-ip",),
     "nat": ("test-policy-nat-type",),
 }
+
+HARDENING_DIRECTIVES = (
+    "PrivateDevices",
+    "ProtectSystem",
+    "RestrictAddressFamilies",
+    "CapabilityBoundingSet",
+    "NoNewPrivileges",
+    "PrivateTmp",
+)
+V6_LEGACY_CONFIG_KEYS = ("ipv6", "obfs", "reuse", "version")
 
 
 class CliError(Exception):
@@ -72,9 +58,14 @@ def utc_now() -> str:
     return dt.datetime.now(dt.UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def new_run_id() -> str:
+def new_run_id(prefix: str = "sp-audit") -> str:
     stamp = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
-    return f"sp-{stamp}-{uuid.uuid4().hex[:8]}"
+    return f"{prefix}-{stamp}-{uuid.uuid4().hex[:8]}"
+
+
+def safe_slug(value: str) -> str:
+    slug = re.sub(r"[^A-Za-z0-9._-]+", "-", value).strip("-")
+    return slug[:48] or "host"
 
 
 def eprint(message: str) -> None:
@@ -82,7 +73,7 @@ def eprint(message: str) -> None:
 
 
 def print_json(data: dict[str, Any]) -> None:
-    print(json.dumps(data, sort_keys=True, separators=(",", ":")))
+    print(json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(",", ":")))
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -95,7 +86,7 @@ def read_json(path: Path) -> dict[str, Any]:
 
 
 def write_json(path: Path, data: dict[str, Any]) -> None:
-    path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     path.chmod(0o600)
 
 
@@ -104,14 +95,16 @@ def write_text(path: Path, text: str, mode: int = 0o600) -> None:
     path.chmod(mode)
 
 
-def validate_run_id(run_id: str) -> None:
-    if not RUN_ID_RE.match(run_id):
-        raise CliError("run_id must be 8-80 safe characters: letters, digits, dot, underscore, hyphen")
+def read_optional_text(path: Path) -> str:
+    try:
+        return path.read_text()
+    except FileNotFoundError:
+        return ""
 
 
 def validate_host(host: str | None) -> str:
     if not host:
-        raise CliError("--host is required for this operation")
+        raise CliError("--host is required")
     if any(char.isspace() for char in host):
         raise CliError("--host must not contain whitespace")
     return host
@@ -123,14 +116,9 @@ def validate_port(port: int) -> int:
     return port
 
 
-def validate_snell_version(value: str | None, *, required: bool) -> str:
-    if not value:
-        if required:
-            raise CliError("--snell-version is required for install-snell")
-        return ""
-    if not SNELL_VERSION_RE.match(value):
-        raise CliError("--snell-version contains unsupported characters")
-    return value
+def validate_run_id(run_id: str) -> None:
+    if not RUN_ID_RE.match(run_id):
+        raise CliError("run id must be 8-80 safe characters: letters, digits, dot, underscore, hyphen")
 
 
 def validate_remote_path(path: str) -> str:
@@ -145,11 +133,21 @@ def validate_remote_path(path: str) -> str:
     return path
 
 
+def ensure_new_dir(path: Path, overwrite: bool) -> None:
+    if path.exists():
+        if not overwrite:
+            raise CliError(f"output dir already exists: {path}")
+        shutil.rmtree(path)
+    path.mkdir(parents=True, mode=0o700)
+
+
 def shell_assign(name: str, value: str | int | bool | None) -> str:
     if value is True:
         text = "true"
-    elif value is False or value is None:
-        text = "false" if isinstance(value, bool) else ""
+    elif value is False:
+        text = "false"
+    elif value is None:
+        text = ""
     else:
         text = str(value)
     return f"{name}={shlex.quote(text)}\n"
@@ -160,153 +158,6 @@ def payload_source() -> Path:
     if not path.exists():
         raise CliError(f"missing private payload template: {path}")
     return path
-
-
-def ensure_new_dir(path: Path, overwrite: bool) -> None:
-    if path.exists():
-        if not overwrite:
-            raise CliError(f"run dir already exists: {path}")
-        shutil.rmtree(path)
-    path.mkdir(parents=True, mode=0o700)
-
-
-def build_manifest(args: argparse.Namespace, run_id: str, operation_def: dict[str, Any]) -> dict[str, Any]:
-    remote_dir = ""
-    if operation_def["target"] == "remote":
-        remote_base = args.remote_base.rstrip("/")
-        remote_dir = validate_remote_path(f"{remote_base}/{run_id}")
-    return {
-        "schema_version": SCHEMA_VERSION,
-        "run_id": run_id,
-        "operation": args.operation,
-        "target": operation_def["target"],
-        "persistent": operation_def["persistent"],
-        "persistent_effects": operation_def["persistent_effects"],
-        "created_at": utc_now(),
-        "host": args.host or "",
-        "remote_dir": remote_dir,
-        "local_contract": {
-            "stdout": "public CLI commands print one JSON object to stdout",
-            "stderr": "progress and diagnostics only",
-        },
-    }
-
-
-def build_input(args: argparse.Namespace, operation_def: dict[str, Any]) -> dict[str, Any]:
-    params: dict[str, Any] = {
-        "port": args.port,
-        "snell_version": args.snell_version or "",
-        "journal_since": args.journal_since,
-    }
-    if args.operation == "install-snell":
-        params.update(
-            {
-                "name": args.name or "",
-                "psk": args.psk or "",
-                "replace_psk": args.replace_psk,
-                "sha256": args.sha256 or "",
-                "open_ufw": args.open_ufw,
-                "ensure_swap": args.ensure_swap,
-                "swap_size_gib": args.swap_size_gib,
-            }
-        )
-    if args.operation == "surge-smoke":
-        params.update(
-            {
-                "policy": args.policy or "",
-                "host_ip": args.host_ip or "",
-                "surge_cli": args.surge_cli or "",
-                "tests": args.test,
-                "probe_timeout_seconds": args.probe_timeout,
-            }
-        )
-    return {
-        "schema_version": SCHEMA_VERSION,
-        "operation": args.operation,
-        "target": operation_def["target"],
-        "parameters": params,
-    }
-
-
-def build_input_env(input_doc: dict[str, Any]) -> str:
-    params = input_doc["parameters"]
-    lines = [
-        "# Generated by surge_patch.py. Private payload input for this run directory.\n",
-        shell_assign("SURGE_PATCH_OPERATION", input_doc["operation"]),
-        shell_assign("SNELL_PORT", params.get("port", DEFAULT_PORT)),
-        shell_assign("SNELL_VERSION", params.get("snell_version", "")),
-        shell_assign("SNELL_JOURNAL_SINCE", params.get("journal_since", DEFAULT_JOURNAL_SINCE)),
-        shell_assign("SNELL_NAME", params.get("name", "")),
-        shell_assign("SNELL_PSK", params.get("psk", "")),
-        shell_assign("SNELL_REPLACE_PSK", params.get("replace_psk", False)),
-        shell_assign("SNELL_SHA256", params.get("sha256", "")),
-        shell_assign("SNELL_OPEN_UFW", params.get("open_ufw", False)),
-        shell_assign("SNELL_ENSURE_SWAP", params.get("ensure_swap", False)),
-        shell_assign("SNELL_SWAP_SIZE_GIB", params.get("swap_size_gib", 4)),
-    ]
-    return "".join(lines)
-
-
-def command_prepare(args: argparse.Namespace) -> int:
-    operation_def = OPERATION_DEFS[args.operation]
-    validate_port(args.port)
-    validate_snell_version(args.snell_version, required=args.operation == "install-snell")
-    if operation_def["target"] == "remote":
-        args.host = validate_host(args.host)
-    if operation_def["persistent"] and not args.confirm_persistent:
-        effects = ", ".join(operation_def["persistent_effects"])
-        raise CliError(f"{args.operation} is persistent; re-run with --confirm-persistent. Effects: {effects}")
-    if args.operation == "surge-smoke" and not args.policy:
-        raise CliError("--policy is required for surge-smoke")
-
-    run_id = args.run_id or new_run_id()
-    validate_run_id(run_id)
-    local_dir = args.run_root.expanduser() / run_id
-    ensure_new_dir(local_dir, args.overwrite)
-
-    manifest = build_manifest(args, run_id, operation_def)
-    input_doc = build_input(args, operation_def)
-    write_json(local_dir / "manifest.json", manifest)
-    write_json(local_dir / "input.json", input_doc)
-
-    if operation_def["target"] == "remote":
-        write_text(local_dir / "input.env", build_input_env(input_doc))
-        payload_dir = local_dir / "payloads"
-        payload_dir.mkdir(mode=0o700)
-        shutil.copy2(payload_source(), payload_dir / "snell_debian_payload.sh")
-        (payload_dir / "snell_debian_payload.sh").chmod(0o700)
-
-    print_json(
-        {
-            "status": "prepared",
-            "run_id": run_id,
-            "operation": args.operation,
-            "target": operation_def["target"],
-            "persistent": operation_def["persistent"],
-            "persistent_effects": operation_def["persistent_effects"],
-            "local_dir": str(local_dir),
-            "remote_dir": manifest["remote_dir"],
-            "next": next_steps(manifest, local_dir),
-        }
-    )
-    return 0
-
-
-def next_steps(manifest: dict[str, Any], local_dir: Path) -> list[str]:
-    if manifest["target"] == "local":
-        return [
-            f"uv run --script scripts/surge_patch.py run --run-dir {shlex.quote(str(local_dir))}",
-            f"uv run --script scripts/surge_patch.py collect --run-dir {shlex.quote(str(local_dir))} --local-only",
-        ]
-    return [
-        f"uv run --script scripts/surge_patch.py upload --run-dir {shlex.quote(str(local_dir))}",
-        f"uv run --script scripts/surge_patch.py run --run-dir {shlex.quote(str(local_dir))}",
-        f"uv run --script scripts/surge_patch.py collect --run-dir {shlex.quote(str(local_dir))}",
-    ]
-
-
-def load_manifest_from_run_dir(run_dir: Path) -> dict[str, Any]:
-    return read_json(run_dir / "manifest.json")
 
 
 def ssh_options(extra: list[str] | None) -> list[str]:
@@ -321,79 +172,80 @@ def run_subprocess(command: list[str], *, timeout: int | None = None) -> subproc
     return subprocess.run(command, text=True, capture_output=True, timeout=timeout, check=False)
 
 
-def command_upload(args: argparse.Namespace) -> int:
-    run_dir = args.run_dir.expanduser()
-    manifest = load_manifest_from_run_dir(run_dir)
-    if manifest["target"] != "remote":
-        raise CliError("upload only applies to remote run dirs")
-    host = args.host or manifest["host"]
-    remote_dir = validate_remote_path(args.remote_dir or manifest["remote_dir"])
-    validate_host(host)
+def build_audit_input_env(port: int, journal_since: str) -> str:
+    return "".join(
+        [
+            "# Generated by surge_patch.py. Read-only remote audit input.\n",
+            shell_assign("SURGE_PATCH_OPERATION", "audit-snell"),
+            shell_assign("SNELL_PORT", port),
+            shell_assign("SNELL_JOURNAL_SINCE", journal_since),
+        ]
+    )
 
-    parent = str(Path(remote_dir).parent)
-    if args.overwrite:
-        remote_prepare = (
-            "set -eu; "
-            f"mkdir -p {shlex.quote(parent)}; "
-            f"rm -rf -- {shlex.quote(remote_dir)}; "
-            f"mkdir -m 700 -p {shlex.quote(remote_dir)}"
-        )
+
+def prepare_audit_run(args: argparse.Namespace, host: str) -> tuple[Path, dict[str, Any]]:
+    if args.run_id and getattr(args, "command", "") == "audit-fleet":
+        run_id = f"{args.run_id}-{safe_slug(host)}"[:80]
     else:
-        remote_prepare = (
-            "set -eu; "
-            f"mkdir -p {shlex.quote(parent)}; "
-            f"if [ -e {shlex.quote(remote_dir)} ]; then echo 'remote run dir exists' >&2; exit 17; fi; "
-            f"mkdir -m 700 -p {shlex.quote(remote_dir)}"
-        )
+        run_id = args.run_id or new_run_id()
+    validate_run_id(run_id)
+    local_dir = args.out.expanduser() / run_id
+    remote_dir = validate_remote_path(f"{args.remote_base.rstrip('/')}/{run_id}")
+    ensure_new_dir(local_dir, args.overwrite)
 
-    ssh_cmd = ["ssh", *ssh_options(args.ssh_option), host, remote_prepare]
-    ssh_result = run_subprocess(ssh_cmd)
+    manifest = {
+        "schema_version": RUN_SCHEMA_VERSION,
+        "run_id": run_id,
+        "operation": "audit-snell",
+        "target": host,
+        "remote_dir": remote_dir,
+        "created_at": utc_now(),
+        "persistent": False,
+        "persistent_effects": [],
+    }
+    input_doc = {
+        "schema_version": RUN_SCHEMA_VERSION,
+        "operation": "audit-snell",
+        "target": host,
+        "parameters": {
+            "port": args.port,
+            "journal_since": args.journal_since,
+        },
+    }
+    write_json(local_dir / "manifest.json", manifest)
+    write_json(local_dir / "input.json", input_doc)
+    write_text(local_dir / "input.env", build_audit_input_env(args.port, args.journal_since))
+    payload_dir = local_dir / "payloads"
+    payload_dir.mkdir(mode=0o700)
+    shutil.copy2(payload_source(), payload_dir / "snell_debian_payload.sh")
+    (payload_dir / "snell_debian_payload.sh").chmod(0o700)
+    return local_dir, manifest
+
+
+def upload_audit_run(
+    local_dir: Path, manifest: dict[str, Any], args: argparse.Namespace
+) -> subprocess.CompletedProcess[str]:
+    host = validate_host(manifest["target"])
+    remote_dir = validate_remote_path(manifest["remote_dir"])
+    parent = str(Path(remote_dir).parent)
+    remote_prepare = (
+        "set -eu; "
+        f"mkdir -p {shlex.quote(parent)}; "
+        f"rm -rf -- {shlex.quote(remote_dir)}; "
+        f"mkdir -m 700 -p {shlex.quote(remote_dir)}"
+    )
+    ssh_result = run_subprocess(["ssh", *ssh_options(args.ssh_option), host, remote_prepare], timeout=args.timeout)
     if ssh_result.returncode != 0:
-        emit_process_failure("upload_prepare_failed", ssh_result)
-        return ssh_result.returncode
-
-    scp_cmd = ["scp", "-r", *ssh_options(args.ssh_option), f"{run_dir}/.", f"{host}:{remote_dir}/"]
-    scp_result = run_subprocess(scp_cmd)
-    status = "uploaded" if scp_result.returncode == 0 else "upload_failed"
-    print_json(
-        {
-            "status": status,
-            "run_id": manifest["run_id"],
-            "host": host,
-            "remote_dir": remote_dir,
-            "ssh_return_code": scp_result.returncode,
-            "stderr": scp_result.stderr,
-        }
-    )
-    return 0 if scp_result.returncode == 0 else scp_result.returncode
-
-
-def emit_process_failure(status: str, process: subprocess.CompletedProcess[str]) -> None:
-    print_json(
-        {
-            "status": status,
-            "return_code": process.returncode,
-            "stdout": process.stdout,
-            "stderr": process.stderr,
-        }
+        return ssh_result
+    return run_subprocess(
+        ["scp", "-r", *ssh_options(args.ssh_option), f"{local_dir}/.", f"{host}:{remote_dir}/"],
+        timeout=args.timeout,
     )
 
 
-def command_run(args: argparse.Namespace) -> int:
-    run_dir = args.run_dir.expanduser()
-    manifest = load_manifest_from_run_dir(run_dir)
-    if manifest["target"] == "local":
-        return run_local_operation(run_dir, manifest, args)
-    return run_remote_operation(run_dir, manifest, args)
-
-
-def run_remote_operation(
-    _run_dir: Path,
-    manifest: dict[str, Any],
-    args: argparse.Namespace,
-) -> int:
-    host = validate_host(args.host or manifest["host"])
-    remote_dir = validate_remote_path(args.remote_dir or manifest["remote_dir"])
+def run_remote_audit(manifest: dict[str, Any], args: argparse.Namespace) -> subprocess.CompletedProcess[str]:
+    host = validate_host(manifest["target"])
+    remote_dir = validate_remote_path(manifest["remote_dir"])
     remote_command = "\n".join(
         [
             "set -u",
@@ -401,89 +253,663 @@ def run_remote_operation(
             "umask 077",
             "mkdir -p logs",
             "date -u '+%Y-%m-%dT%H:%M:%SZ' > started_at",
-            "{",
-            '  echo "run_id=$(sed -n \'s/.*"run_id": *"\\([^"]*\\)".*/\\1/p\' manifest.json | head -1)"',
-            '  echo "started_at=$(cat started_at)"',
-            "} > logs/runner.log",
             "set +e",
             "RUN_DIR=$PWD bash payloads/snell_debian_payload.sh > stdout 2> stderr",
             "rc=$?",
-            "set -e",
             "printf '%s\\n' \"$rc\" > exit_code",
             "date -u '+%Y-%m-%dT%H:%M:%SZ' > finished_at",
-            'echo "exit_code=$rc" >> logs/runner.log',
-            'echo "finished_at=$(cat finished_at)" >> logs/runner.log',
             'exit "$rc"',
         ]
     )
-    ssh_cmd = ["ssh", *ssh_options(args.ssh_option), host, remote_command]
-    result = run_subprocess(ssh_cmd, timeout=args.timeout)
-    status = "ran" if result.returncode != 255 else "ssh_failed"
-    print_json(
-        {
-            "status": status,
-            "run_id": manifest["run_id"],
-            "operation": manifest["operation"],
-            "host": host,
-            "remote_dir": remote_dir,
-            "ssh_return_code": result.returncode,
-            "remote_exit_code": None if result.returncode == 255 else result.returncode,
-            "stdout": result.stdout,
-            "stderr": result.stderr,
-            "collect_hint": f"collect --run-dir {shlex.quote(str(args.run_dir))}",
-        }
+    return run_subprocess(["ssh", *ssh_options(args.ssh_option), host, remote_command], timeout=args.timeout)
+
+
+def collect_audit_run(
+    local_dir: Path, manifest: dict[str, Any], args: argparse.Namespace
+) -> subprocess.CompletedProcess[str]:
+    host = validate_host(manifest["target"])
+    remote_dir = validate_remote_path(manifest["remote_dir"])
+    return run_subprocess(
+        ["scp", "-r", *ssh_options(args.ssh_option), f"{host}:{remote_dir}/.", f"{local_dir}/"],
+        timeout=args.timeout,
     )
-    return result.returncode
 
 
-def run_local_operation(run_dir: Path, manifest: dict[str, Any], args: argparse.Namespace) -> int:
-    if manifest["operation"] != "surge-smoke":
-        raise CliError(f"unsupported local operation: {manifest['operation']}")
-    input_doc = read_json(run_dir / "input.json")
-    params = input_doc["parameters"]
-    logs_dir = run_dir / "logs"
-    logs_dir.mkdir(exist_ok=True, mode=0o700)
-    write_text(run_dir / "started_at", utc_now() + "\n")
+def read_kv(path: Path) -> dict[str, str]:
+    values: dict[str, str] = {}
+    for line in read_optional_text(path).splitlines():
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        values[key.strip()] = value.strip()
+    return values
 
-    results = []
-    exit_code = 0
-    surge_cli = resolve_surge_cli(params.get("surge_cli", ""))
-    for test_name in params["tests"]:
-        result = run_surge_probe(
-            surge_cli=surge_cli,
-            policy=params["policy"],
-            test_name=test_name,
-            logs_dir=logs_dir,
-            timeout=int(params["probe_timeout_seconds"]),
-        )
-        results.append(result)
-        if result["status"] == "failed":
-            exit_code = 1
 
-    summary = {
-        "status": "passed" if exit_code == 0 else "failed",
-        "operation": "surge-smoke",
-        "run_id": manifest["run_id"],
-        "policy": params["policy"],
-        "host_ip": params.get("host_ip", ""),
-        "surge_cli": surge_cli,
-        "results": results,
+def int_value(value: Any, default: int = 0) -> int:
+    try:
+        return int(str(value).strip())
+    except TypeError, ValueError:
+        return default
+
+
+def bool_yes(value: Any) -> bool:
+    return str(value).strip().lower() in {"yes", "true", "1", "active", "enabled"}
+
+
+def csv_values(value: str) -> list[str]:
+    return [item for item in (part.strip() for part in value.split(",")) if item]
+
+
+def snell_major_from_text(version_text: str) -> str:
+    match = re.search(r"(?:snell-server\s+)?v?(\d+)(?:[.\s]|$)", version_text, re.IGNORECASE)
+    return match.group(1) if match else ""
+
+
+def parse_ip_local_port_range(value: str) -> tuple[int, int] | None:
+    parts = value.split()
+    if len(parts) != 2:
+        return None
+    start = int_value(parts[0], -1)
+    end = int_value(parts[1], -1)
+    if start < 0 or end < 0:
+        return None
+    return start, end
+
+
+def port_is_reserved(port: int, reserved: str) -> bool:
+    for item in csv_values(reserved):
+        if "-" in item:
+            start_text, end_text = item.split("-", 1)
+            start = int_value(start_text, -1)
+            end = int_value(end_text, -1)
+            if start <= port <= end:
+                return True
+        elif int_value(item, -1) == port:
+            return True
+    return False
+
+
+def parse_journal_counts(journal_text: str, current_main_pid: str) -> dict[str, Any]:
+    counts = {
+        "udp_invalid_argument_count": 0,
+        "uv_close_assert_count": 0,
+        "signal6_count": 0,
+        "systemd_main_exited_count": 0,
+        "systemd_failed_result_count": 0,
+        "decryption_failed_count": 0,
+        "markers_since_current_mainpid": 0,
+        "last_udp_crash_at": "",
     }
-    write_json(run_dir / "result.json", summary)
-    write_text(run_dir / "stdout", json.dumps(summary, sort_keys=True, separators=(",", ":")) + "\n")
-    write_text(run_dir / "stderr", "")
-    write_text(run_dir / "exit_code", f"{exit_code}\n")
-    write_text(run_dir / "finished_at", utc_now() + "\n")
-    print_json(
-        {
-            "status": "ran",
-            "run_id": manifest["run_id"],
-            "operation": manifest["operation"],
-            "exit_code": exit_code,
-            "result_file": str(run_dir / "result.json"),
-        }
+    top_decryption: dict[str, int] = {}
+    crash_needles = ("UDP socket send error", "uv_close", "signal 6", "Main process exited", "Failed with result")
+    for line in journal_text.splitlines():
+        if "UDP socket send error" in line and "invalid argument" in line.lower():
+            counts["udp_invalid_argument_count"] += 1
+            counts["last_udp_crash_at"] = line[:80]
+        if "uv_close" in line:
+            counts["uv_close_assert_count"] += 1
+            counts["last_udp_crash_at"] = line[:80]
+        if "signal 6" in line:
+            counts["signal6_count"] += 1
+            counts["last_udp_crash_at"] = line[:80]
+        if "Main process exited" in line:
+            counts["systemd_main_exited_count"] += 1
+            counts["last_udp_crash_at"] = line[:80]
+        if "Failed with result" in line:
+            counts["systemd_failed_result_count"] += 1
+            counts["last_udp_crash_at"] = line[:80]
+        if "Decryption failed" in line:
+            counts["decryption_failed_count"] += 1
+            token = line.rsplit(maxsplit=1)[-1] if line.split() else "-"
+            top_decryption[token] = top_decryption.get(token, 0) + 1
+        if (
+            current_main_pid
+            and current_main_pid != "0"
+            and f"[{current_main_pid}]" in line
+            and any(needle in line for needle in crash_needles)
+        ):
+            counts["markers_since_current_mainpid"] += 1
+    if top_decryption:
+        top_ip, top_count = max(top_decryption.items(), key=lambda item: item[1])
+        counts["top_decryption"] = f"{top_count}:{top_ip}"
+    else:
+        counts["top_decryption"] = "0:-"
+    return counts
+
+
+def build_facts(summary: dict[str, str], journal_text: str) -> dict[str, Any]:
+    version_text = summary.get("snell_version_text", "")
+    major = snell_major_from_text(version_text)
+    port = int_value(summary.get("snell_port"), DEFAULT_PORT)
+    log_counts = parse_journal_counts(journal_text, summary.get("systemd_main_pid", ""))
+    facts = {
+        "snell": {
+            "port": port,
+            "version_text": version_text,
+            "major": major,
+            "binary_path": summary.get("snell_binary_path", ""),
+            "config_path": summary.get("snell_config_path", ""),
+            "tcp_listen": bool_yes(summary.get("tcp_listen")),
+            "udp_listen": bool_yes(summary.get("udp_listen")),
+            "config": {
+                "present": bool_yes(summary.get("config_present")),
+                "psk_present": bool_yes(summary.get("config_psk_present")),
+                "listen": summary.get("config_listen", ""),
+                "legacy_keys": csv_values(summary.get("config_legacy_keys", "")),
+                "dns_ip_preference_present": bool_yes(summary.get("config_dns_ip_preference_present")),
+            },
+        },
+        "systemd": {
+            "active": summary.get("systemd_active", ""),
+            "sub": summary.get("systemd_sub", ""),
+            "result": summary.get("systemd_result", ""),
+            "restart": summary.get("systemd_restart", ""),
+            "user": summary.get("systemd_user", ""),
+            "group": summary.get("systemd_group", ""),
+            "main_pid": summary.get("systemd_main_pid", ""),
+            "n_restarts": int_value(summary.get("systemd_nrestarts")),
+            "limit_nofile": int_value(summary.get("systemd_limit_nofile")),
+            "hardening_mentions": int_value(summary.get("systemd_hardening_mentions")),
+            "hardening_directives": csv_values(summary.get("systemd_hardening_directives", "")),
+        },
+        "ssh": {
+            "permit_root_login": summary.get("ssh_permitrootlogin", ""),
+            "password_authentication": summary.get("ssh_passwordauthentication", ""),
+            "kbd_interactive_authentication": summary.get("ssh_kbdinteractiveauthentication", ""),
+            "pubkey_authentication": summary.get("ssh_pubkeyauthentication", ""),
+            "max_auth_tries": int_value(summary.get("ssh_maxauthtries")),
+            "authentication_methods": summary.get("ssh_authenticationmethods", ""),
+            "root_authorized_keys_count": int_value(summary.get("ssh_root_authorized_keys_count")),
+        },
+        "firewall": {
+            "ufw_status": summary.get("ufw_status", ""),
+            "ufw_snell_tcp": bool_yes(summary.get("ufw_snell_tcp")),
+            "ufw_snell_udp": bool_yes(summary.get("ufw_snell_udp")),
+            "nft_ruleset_lines": int_value(summary.get("nft_ruleset_lines")),
+            "iptables_rules_lines": int_value(summary.get("iptables_rules_lines")),
+            "ip6tables_rules_lines": int_value(summary.get("ip6tables_rules_lines")),
+            "docker_present": bool_yes(summary.get("docker_present")),
+            "docker_published_ports_lines": int_value(summary.get("docker_published_ports_lines")),
+        },
+        "sysctl": {
+            "default_qdisc": summary.get("sysctl_net_core_default_qdisc", ""),
+            "tcp_congestion_control": summary.get("sysctl_net_ipv4_tcp_congestion_control", ""),
+            "somaxconn": int_value(summary.get("sysctl_net_core_somaxconn")),
+            "tcp_max_syn_backlog": int_value(summary.get("sysctl_net_ipv4_tcp_max_syn_backlog")),
+            "tcp_syncookies": int_value(summary.get("sysctl_net_ipv4_tcp_syncookies")),
+            "ip_local_port_range": summary.get("sysctl_net_ipv4_ip_local_port_range", ""),
+            "ip_local_reserved_ports": summary.get("sysctl_net_ipv4_ip_local_reserved_ports", ""),
+            "tcp_mtu_probing": int_value(summary.get("sysctl_net_ipv4_tcp_mtu_probing"), -1),
+            "nf_conntrack_count": int_value(summary.get("sysctl_net_netfilter_nf_conntrack_count"), -1),
+            "nf_conntrack_max": int_value(summary.get("sysctl_net_netfilter_nf_conntrack_max"), -1),
+        },
+        "swap": {
+            "mem_total_kib": int_value(summary.get("mem_total_kib")),
+            "swap_total_kib": int_value(summary.get("swap_total_kib")),
+            "swap_free_kib": int_value(summary.get("swap_free_kib")),
+            "fstab_swap_entries": int_value(summary.get("fstab_swap_entries")),
+            "root_available_kib": int_value(summary.get("root_available_kib")),
+        },
+        "journald": {
+            "disk_usage": summary.get("journald_disk_usage", ""),
+        },
+        "logs": log_counts,
+    }
+    return facts
+
+
+def finding(
+    finding_id: str,
+    severity: str,
+    evidence: list[str],
+    suggested_action: str,
+    *,
+    state: str = "present",
+    persistent_change: bool = False,
+) -> dict[str, Any]:
+    return {
+        "id": finding_id,
+        "severity": severity,
+        "state": state,
+        "evidence": evidence,
+        "suggested_action": suggested_action,
+        "persistent_change": persistent_change,
+    }
+
+
+def build_findings(facts: dict[str, Any]) -> list[dict[str, Any]]:
+    findings: list[dict[str, Any]] = []
+    snell = facts["snell"]
+    systemd = facts["systemd"]
+    ssh = facts["ssh"]
+    firewall = facts["firewall"]
+    sysctl = facts["sysctl"]
+    swap = facts["swap"]
+    logs = facts["logs"]
+    port = int(snell["port"])
+    major = str(snell["major"])
+
+    if systemd["active"] != "active":
+        findings.append(
+            finding(
+                "snell.service_inactive",
+                "high",
+                [f"ActiveState={systemd['active']}", f"SubState={systemd['sub']}"],
+                "inspect journal and unit state; start/restart only after reading the evidence",
+            )
+        )
+    if systemd["sub"] and systemd["sub"] != "running":
+        findings.append(
+            finding(
+                "snell.service_not_running",
+                "high",
+                [f"SubState={systemd['sub']}", f"Result={systemd['result']}"],
+                "inspect systemctl status and journal before changing the unit",
+            )
+        )
+    if not snell["tcp_listen"]:
+        findings.append(
+            finding(
+                "snell.tcp_not_listening",
+                "high",
+                [f"port={port}", "tcp_listen=false"],
+                "verify ExecStart, config listen address, and service logs",
+            )
+        )
+
+    true_udp_crash = (
+        major == "5"
+        and snell["udp_listen"]
+        and logs["udp_invalid_argument_count"] > 0
+        and (logs["uv_close_assert_count"] > 0 or logs["signal6_count"] > 0 or logs["systemd_main_exited_count"] > 0)
     )
+    if true_udp_crash:
+        findings.append(
+            finding(
+                "snell.v5.udp_crash",
+                "high",
+                [
+                    f"udp_invalid_argument_count={logs['udp_invalid_argument_count']}",
+                    f"uv_close_assert_count={logs['uv_close_assert_count']}",
+                    f"signal6_count={logs['signal6_count']}",
+                    f"systemd_main_exited_count={logs['systemd_main_exited_count']}",
+                ],
+                "inspect Snell v5 UDP listener and active systemd drop-ins; do not auto-delete hardening",
+            )
+        )
+    elif (
+        major == "5"
+        and snell["udp_listen"]
+        and (logs["uv_close_assert_count"] > 0 or logs["signal6_count"] > 0 or logs["systemd_main_exited_count"] > 0)
+    ):
+        findings.append(
+            finding(
+                "snell.v5.historical_crash_markers",
+                "medium",
+                [
+                    f"uv_close_assert_count={logs['uv_close_assert_count']}",
+                    f"signal6_count={logs['signal6_count']}",
+                    f"systemd_main_exited_count={logs['systemd_main_exited_count']}",
+                    f"markers_since_current_mainpid={logs['markers_since_current_mainpid']}",
+                ],
+                "compare marker timestamps with current MainPID before changing the service",
+            )
+        )
+
+    if major == "6" and snell["udp_listen"]:
+        findings.append(
+            finding(
+                "snell.v6.udp_listener_present",
+                "medium",
+                [f"port={port}", "udp_listen=true"],
+                "confirm UDP is intentionally required; ordinary Snell v6 deployments should stay TCP-only",
+            )
+        )
+    if major == "6" and firewall["ufw_snell_udp"]:
+        findings.append(
+            finding(
+                "snell.v6.udp_firewall_exposed",
+                "medium",
+                [f"port={port}", "ufw_snell_udp=true"],
+                "close UDP only after confirming no v5/QUIC workload depends on it",
+            )
+        )
+    legacy_keys = snell["config"]["legacy_keys"]
+    if major == "6" and legacy_keys:
+        findings.append(
+            finding(
+                "snell.v6.legacy_config_keys",
+                "medium",
+                [f"legacy_keys={','.join(legacy_keys)}"],
+                "rewrite the config manually for Snell v6 semantics; do not reuse old v5 templates",
+            )
+        )
+
+    if systemd["hardening_mentions"]:
+        severity = "high" if major == "5" and snell["udp_listen"] else "medium"
+        findings.append(
+            finding(
+                "systemd.hardening_present",
+                severity,
+                [f"directives={','.join(systemd['hardening_directives']) or systemd['hardening_mentions']}"],
+                "read systemctl cat output and decide manually; the tool must not remove drop-ins automatically",
+            )
+        )
+    if systemd["limit_nofile"] and systemd["limit_nofile"] < 131072:
+        findings.append(
+            finding(
+                "systemd.limit_nofile_low",
+                "medium",
+                [f"LimitNOFILE={systemd['limit_nofile']}"],
+                "consider a manual systemd override with LimitNOFILE=131072 or higher",
+            )
+        )
+
+    if ssh["max_auth_tries"] and ssh["max_auth_tries"] < 20:
+        findings.append(
+            finding(
+                "ssh.max_auth_tries_low_for_1password",
+                "low",
+                [f"MaxAuthTries={ssh['max_auth_tries']}"],
+                "if 1Password SSH agent retries are painful, set MaxAuthTries 20 after keeping a live session open",
+            )
+        )
+
+    if sysctl["tcp_congestion_control"] and sysctl["tcp_congestion_control"] != "bbr":
+        findings.append(
+            finding(
+                "sysctl.bbr_not_enabled",
+                "low",
+                [f"tcp_congestion_control={sysctl['tcp_congestion_control']}"],
+                "for proxy/VPN performance work, consider BBR only after confirming kernel support",
+            )
+        )
+    if sysctl["default_qdisc"] and sysctl["default_qdisc"] != "fq":
+        findings.append(
+            finding(
+                "sysctl.fq_not_default_qdisc",
+                "low",
+                [f"default_qdisc={sysctl['default_qdisc']}"],
+                "for BBR pacing workloads, consider fq as a conditional proxy/VPN tuning",
+            )
+        )
+    if 0 < sysctl["somaxconn"] < 8192:
+        findings.append(
+            finding(
+                "sysctl.somaxconn_below_proxy_baseline",
+                "low",
+                [f"somaxconn={sysctl['somaxconn']}"],
+                "if bursty inbound connections are expected, consider somaxconn=8192",
+            )
+        )
+    if 0 < sysctl["tcp_max_syn_backlog"] < 8192:
+        findings.append(
+            finding(
+                "sysctl.tcp_max_syn_backlog_below_proxy_baseline",
+                "medium",
+                [f"tcp_max_syn_backlog={sysctl['tcp_max_syn_backlog']}"],
+                "if scans or burst connects are visible, consider tcp_max_syn_backlog=8192",
+            )
+        )
+    port_range = parse_ip_local_port_range(sysctl["ip_local_port_range"])
+    if port_range:
+        start, end = port_range
+        if end - start + 1 < 50000:
+            findings.append(
+                finding(
+                    "sysctl.ephemeral_port_range_narrow",
+                    "low",
+                    [f"ip_local_port_range={start} {end}"],
+                    "for many short outbound connections, consider a wider range such as 10000 65001 or the fleet baseline",
+                )
+            )
+        if start <= port <= end and not port_is_reserved(port, sysctl["ip_local_reserved_ports"]):
+            findings.append(
+                finding(
+                    "sysctl.snell_port_not_reserved",
+                    "low",
+                    [f"port={port}", f"ip_local_reserved_ports={sysctl['ip_local_reserved_ports'] or '<empty>'}"],
+                    "if widening ephemeral ports, reserve the Snell listen port in ip_local_reserved_ports",
+                )
+            )
+    conntrack_count = sysctl["nf_conntrack_count"]
+    conntrack_max = sysctl["nf_conntrack_max"]
+    if conntrack_count >= 0 and conntrack_max > 0 and conntrack_count / conntrack_max >= 0.8:
+        findings.append(
+            finding(
+                "conntrack.high_utilization",
+                "medium",
+                [f"nf_conntrack_count={conntrack_count}", f"nf_conntrack_max={conntrack_max}"],
+                "inspect Docker/NAT/stateful firewall use before changing conntrack limits",
+            )
+        )
+
+    if swap["mem_total_kib"] and swap["mem_total_kib"] <= 1572864 and swap["swap_total_kib"] == 0:
+        findings.append(
+            finding(
+                "swap.missing_on_small_vps",
+                "low",
+                [f"mem_total_kib={swap['mem_total_kib']}", "swap_total_kib=0"],
+                "consider swap or zram as an OOM cushion; this is stability insurance, not a throughput tuning",
+            )
+        )
+    if logs["decryption_failed_count"] > 0:
+        findings.append(
+            finding(
+                "logs.decryption_failed_seen",
+                "low",
+                [
+                    f"decryption_failed_count={logs['decryption_failed_count']}",
+                    f"top_decryption={logs['top_decryption']}",
+                ],
+                "treat as scanner, stale client, or wrong PSK noise unless paired with load or crashes",
+            )
+        )
+    return findings
+
+
+def status_from_findings(findings: list[dict[str, Any]]) -> str:
+    if any(item["severity"] == "high" for item in findings):
+        return "issue"
+    if findings:
+        return "warn"
+    return "ok"
+
+
+def build_evidence_pack(
+    *,
+    local_dir: Path,
+    target: str,
+    transport_status: str,
+    transport_error: str = "",
+) -> dict[str, Any]:
+    summary_path = local_dir / "logs" / "audit_summary.kv"
+    journal_path = local_dir / "logs" / "journal_recent.log"
+    summary = read_kv(summary_path)
+    facts = build_facts(summary, read_optional_text(journal_path)) if summary else {}
+    findings = build_findings(facts) if facts else []
+    status = status_from_findings(findings) if transport_status == "ok" else "issue"
+    if transport_status != "ok":
+        findings.append(
+            finding(
+                "transport.audit_failed",
+                "high",
+                [transport_error or "remote audit did not complete"],
+                "fix SSH, sudo/root access, or payload execution before interpreting server health",
+            )
+        )
+    evidence_paths = {
+        "audit_json": str(local_dir / "audit.json"),
+        "remote_stdout": str(local_dir / "stdout"),
+        "remote_stderr": str(local_dir / "stderr"),
+        "remote_exit_code": str(local_dir / "exit_code"),
+        "raw_log": str(local_dir / "logs" / "audit_raw.log"),
+        "summary_kv": str(summary_path),
+        "journal_recent": str(journal_path),
+        "service_cat": str(local_dir / "logs" / "service_cat.log"),
+        "listeners": str(local_dir / "logs" / "listeners.log"),
+        "sshd_effective": str(local_dir / "logs" / "sshd_effective.log"),
+        "ufw_status": str(local_dir / "logs" / "ufw_status.log"),
+        "nft_ruleset": str(local_dir / "logs" / "nft_ruleset.log"),
+        "iptables_rules": str(local_dir / "logs" / "iptables_rules.log"),
+        "docker_ports": str(local_dir / "logs" / "docker_ports.log"),
+    }
+    recommended_manual_actions = [item["suggested_action"] for item in findings if item["state"] == "present"]
+    pack = {
+        "schema_version": EVIDENCE_SCHEMA_VERSION,
+        "operation": "audit-snell",
+        "target": target,
+        "transport_status": transport_status,
+        "status": status,
+        "facts": facts,
+        "findings": findings,
+        "evidence_paths": evidence_paths,
+        "recommended_manual_actions": recommended_manual_actions,
+        "persistent_effects": [],
+        "created_at": utc_now(),
+    }
+    write_json(local_dir / "audit.json", pack)
+    write_json(local_dir / "result.json", pack)
+    return pack
+
+
+def run_audit_for_host(args: argparse.Namespace, host: str) -> tuple[dict[str, Any], int]:
+    validate_port(args.port)
+    host = validate_host(host)
+    local_dir, manifest = prepare_audit_run(args, host)
+
+    upload_result = upload_audit_run(local_dir, manifest, args)
+    if upload_result.returncode != 0:
+        pack = build_evidence_pack(
+            local_dir=local_dir,
+            target=host,
+            transport_status="failed",
+            transport_error=upload_result.stderr or upload_result.stdout,
+        )
+        return pack, upload_result.returncode or 1
+
+    run_result = run_remote_audit(manifest, args)
+    collect_result = collect_audit_run(local_dir, manifest, args)
+    if collect_result.returncode != 0:
+        pack = build_evidence_pack(
+            local_dir=local_dir,
+            target=host,
+            transport_status="failed",
+            transport_error=collect_result.stderr or collect_result.stdout,
+        )
+        return pack, collect_result.returncode or 1
+    if run_result.returncode != 0:
+        stderr = read_optional_text(local_dir / "stderr") or run_result.stderr or run_result.stdout
+        pack = build_evidence_pack(
+            local_dir=local_dir,
+            target=host,
+            transport_status="failed",
+            transport_error=stderr,
+        )
+        return pack, run_result.returncode or 1
+
+    pack = build_evidence_pack(local_dir=local_dir, target=host, transport_status="ok")
+    if args.fail_on_issue and pack["status"] == "issue":
+        return pack, 1
+    return pack, 0
+
+
+def command_audit_snell(args: argparse.Namespace) -> int:
+    pack, exit_code = run_audit_for_host(args, args.host)
+    print_json(pack)
     return exit_code
+
+
+def read_hosts_file(path: Path) -> list[str]:
+    hosts: list[str] = []
+    for line in path.read_text().splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        hosts.append(stripped)
+    if not hosts:
+        raise CliError(f"no hosts found in {path}")
+    return hosts
+
+
+def command_audit_fleet(args: argparse.Namespace) -> int:
+    hosts = read_hosts_file(args.hosts.expanduser())
+    results: list[dict[str, Any]] = []
+    exit_code = 0
+    for host in hosts:
+        try:
+            pack, host_exit = run_audit_for_host(args, host)
+        except CliError as exc:
+            host_exit = exc.exit_code
+            pack = {
+                "schema_version": EVIDENCE_SCHEMA_VERSION,
+                "operation": "audit-snell",
+                "target": host,
+                "transport_status": "failed",
+                "status": "issue",
+                "facts": {},
+                "findings": [
+                    finding(
+                        "transport.audit_failed",
+                        "high",
+                        [str(exc)],
+                        "fix the host entry or SSH path before interpreting server health",
+                    )
+                ],
+                "evidence_paths": {},
+                "recommended_manual_actions": ["fix the host entry or SSH path before interpreting server health"],
+                "persistent_effects": [],
+                "created_at": utc_now(),
+            }
+        results.append(pack)
+        if host_exit != 0:
+            exit_code = 1
+    if args.fail_on_issue and any(item["status"] == "issue" for item in results):
+        exit_code = 1
+    summary = {
+        "schema_version": EVIDENCE_SCHEMA_VERSION,
+        "operation": "audit-fleet",
+        "transport_status": "ok" if all(item["transport_status"] == "ok" for item in results) else "failed",
+        "status": "issue"
+        if any(item["status"] == "issue" for item in results)
+        else "warn"
+        if any(item["status"] == "warn" for item in results)
+        else "ok",
+        "host_count": len(results),
+        "results": results,
+        "persistent_effects": [],
+        "created_at": utc_now(),
+    }
+    print_json(summary)
+    return exit_code
+
+
+def command_render_repair_plan(args: argparse.Namespace) -> int:
+    audit = read_json(args.audit.expanduser())
+    manual_actions = []
+    for item in audit.get("findings", []):
+        manual_actions.append(
+            {
+                "finding_id": item.get("id", ""),
+                "severity": item.get("severity", ""),
+                "evidence": item.get("evidence", []),
+                "action": item.get("suggested_action", ""),
+                "executes": False,
+                "verification": "re-run audit-snell and compare the finding state after any manual change",
+            }
+        )
+    plan = {
+        "schema_version": EVIDENCE_SCHEMA_VERSION,
+        "operation": "render-repair-plan",
+        "target": audit.get("target", ""),
+        "source_audit": str(args.audit.expanduser()),
+        "status": "ok",
+        "executes_remote_changes": False,
+        "manual_actions": manual_actions,
+        "persistent_effects": [],
+    }
+    print_json(plan)
+    return 0
 
 
 def resolve_surge_cli(configured: str) -> str:
@@ -554,188 +980,100 @@ def run_surge_probe(
     return probe_result
 
 
-def command_collect(args: argparse.Namespace) -> int:
-    run_dir = args.run_dir.expanduser() if args.run_dir else None
-    manifest = load_manifest_from_run_dir(run_dir) if run_dir else None
+def command_smoke_surge(args: argparse.Namespace) -> int:
+    tests = args.test or ["tcp", "udp", "external-ip", "nat"]
+    run_id = args.run_id or new_run_id("sp-smoke")
+    validate_run_id(run_id)
+    local_dir = args.out.expanduser() / run_id
+    ensure_new_dir(local_dir, args.overwrite)
+    logs_dir = local_dir / "logs"
+    logs_dir.mkdir(mode=0o700)
+    surge_cli = resolve_surge_cli(args.surge_cli or "")
 
-    if args.local_only:
-        if not run_dir:
-            raise CliError("--local-only requires --run-dir")
-        collected_dir = run_dir
-    else:
-        if not manifest:
-            if not args.run_id:
-                raise CliError("--run-id is required when collecting without --run-dir")
-            validate_run_id(args.run_id)
-            manifest = {
-                "run_id": args.run_id,
-                "operation": args.operation or "",
-                "target": "remote",
-                "host": args.host or "",
-                "remote_dir": args.remote_dir or f"{DEFAULT_REMOTE_BASE}/{args.run_id}",
-            }
-        if manifest["target"] == "local":
-            if not run_dir:
-                raise CliError("local collect requires --run-dir")
-            collected_dir = run_dir
-        else:
-            host = validate_host(args.host or manifest["host"])
-            remote_dir = validate_remote_path(args.remote_dir or manifest["remote_dir"])
-            out_root = args.out_dir.expanduser()
-            collected_dir = out_root / manifest["run_id"]
-            ensure_new_dir(collected_dir, args.overwrite)
-            scp_cmd = ["scp", "-r", *ssh_options(args.ssh_option), f"{host}:{remote_dir}/.", f"{collected_dir}/"]
-            scp_result = run_subprocess(scp_cmd)
-            if scp_result.returncode != 0:
-                emit_process_failure("collect_failed", scp_result)
-                return scp_result.returncode
-
-    summary = summarize_collected_dir(collected_dir)
+    results = [
+        run_surge_probe(
+            surge_cli=surge_cli,
+            policy=args.policy,
+            test_name=test_name,
+            logs_dir=logs_dir,
+            timeout=args.probe_timeout,
+        )
+        for test_name in tests
+    ]
+    status = "ok" if all(item["status"] in {"passed", "unsupported"} for item in results) else "issue"
+    summary = {
+        "schema_version": EVIDENCE_SCHEMA_VERSION,
+        "operation": "smoke-surge",
+        "status": status,
+        "policy": args.policy,
+        "host_ip": args.host_ip or "",
+        "surge_cli": surge_cli,
+        "results": results,
+        "evidence_paths": {"run_dir": str(local_dir), "logs": str(logs_dir)},
+        "persistent_effects": [],
+        "created_at": utc_now(),
+    }
+    write_json(local_dir / "result.json", summary)
     print_json(summary)
-    return collect_exit_status(summary["exit_code"])
+    return 0 if status == "ok" else 1
 
 
-def collect_exit_status(value: int | str | None) -> int:
-    if value in ("", None, 0):
-        return 0
-    if isinstance(value, int):
-        return value
-    if value.isdigit():
-        return int(value)
-    return 1
-
-
-def summarize_collected_dir(collected_dir: Path) -> dict[str, Any]:
-    manifest = read_json(collected_dir / "manifest.json")
-    result_path = collected_dir / "result.json"
-    result = read_json(result_path) if result_path.exists() else {}
-    exit_code_text = read_optional_text(collected_dir / "exit_code").strip()
-    exit_code: int | str = int(exit_code_text) if exit_code_text.isdigit() else exit_code_text
-    files = {
-        "manifest": str(collected_dir / "manifest.json"),
-        "input": str(collected_dir / "input.json"),
-        "stdout": str(collected_dir / "stdout"),
-        "stderr": str(collected_dir / "stderr"),
-        "exit_code": str(collected_dir / "exit_code"),
-        "result": str(result_path),
-        "logs": sorted(str(path) for path in (collected_dir / "logs").glob("*"))
-        if (collected_dir / "logs").exists()
-        else [],
-    }
-    return {
-        "status": "collected",
-        "run_id": manifest["run_id"],
-        "operation": manifest["operation"],
-        "target": manifest["target"],
-        "persistent": manifest["persistent"],
-        "persistent_effects": manifest["persistent_effects"],
-        "collected_dir": str(collected_dir),
-        "exit_code": exit_code,
-        "files": files,
-        "result": result,
-    }
-
-
-def read_optional_text(path: Path) -> str:
-    try:
-        return path.read_text()
-    except FileNotFoundError:
-        return ""
-
-
-def add_common_prepare_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--operation", choices=sorted(OPERATION_DEFS), required=True)
-    parser.add_argument("--run-root", type=Path, default=DEFAULT_LOCAL_ROOT)
-    parser.add_argument("--run-id")
-    parser.add_argument("--overwrite", action="store_true")
-    parser.add_argument("--host", help="SSH target such as root@203.0.113.10 for remote operations")
-    parser.add_argument("--remote-base", default=DEFAULT_REMOTE_BASE)
+def add_audit_common_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--port", type=int, default=DEFAULT_PORT)
-    parser.add_argument("--snell-version")
     parser.add_argument("--journal-since", default=DEFAULT_JOURNAL_SINCE)
-    parser.add_argument("--confirm-persistent", action="store_true", help="Required for persistent operations")
-    parser.add_argument("--name", help="Snell instance name used in install output")
-    parser.add_argument("--psk", help="Snell PSK; omit to reuse or generate on the VPS")
-    parser.add_argument("--replace-psk", action="store_true", help="Persistent: generate a new PSK instead of reusing")
-    parser.add_argument("--sha256", help="Expected sha256 of the Snell zip archive")
-    parser.add_argument("--open-ufw", action="store_true", help="Persistent: allow Snell TCP/UDP in ufw")
-    parser.add_argument("--ensure-swap", action="store_true", help="Persistent: create/activate a swap file if needed")
-    parser.add_argument("--swap-size-gib", type=int, default=4)
-    parser.add_argument("--policy", help="Surge policy name for surge-smoke")
-    parser.add_argument("--host-ip", help="IP under test, recorded in surge-smoke output")
-    parser.add_argument("--surge-cli", help="Path to surge-cli for surge-smoke")
-    parser.add_argument("--probe-timeout", type=int, default=60)
-    parser.add_argument(
+    parser.add_argument("--out", type=Path, default=DEFAULT_LOCAL_ROOT)
+    parser.add_argument("--run-id")
+    parser.add_argument("--remote-base", default=DEFAULT_REMOTE_BASE)
+    parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument("--timeout", type=int, default=900)
+    parser.add_argument("--ssh-option", action="append", default=[])
+    parser.add_argument("--fail-on-issue", action="store_true")
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="surge_patch.py",
+        description="Read Snell VPS state and run local Surge checks. It does not repair VPSes.",
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    audit = subparsers.add_parser("audit-snell", help="read-only SSH audit of one Snell VPS")
+    audit.add_argument("--host", required=True, help="SSH target such as root@203.0.113.10")
+    add_audit_common_args(audit)
+    audit.set_defaults(func=command_audit_snell)
+
+    fleet = subparsers.add_parser("audit-fleet", help="read-only SSH audit of hosts listed in a file")
+    fleet.add_argument("--hosts", type=Path, required=True, help="file with one SSH target per line")
+    add_audit_common_args(fleet)
+    fleet.set_defaults(func=command_audit_fleet)
+
+    repair = subparsers.add_parser("render-repair-plan", help="render manual actions from an audit JSON")
+    repair.add_argument("--audit", type=Path, required=True)
+    repair.set_defaults(func=command_render_repair_plan)
+
+    smoke = subparsers.add_parser("smoke-surge", help="local Surge policy smoke checks; does not touch VPSes")
+    smoke.add_argument("--policy", required=True)
+    smoke.add_argument("--host-ip", help="IP under test, recorded in output")
+    smoke.add_argument("--surge-cli", help="Path to surge-cli")
+    smoke.add_argument("--probe-timeout", type=int, default=60)
+    smoke.add_argument("--out", type=Path, default=DEFAULT_LOCAL_ROOT)
+    smoke.add_argument("--run-id")
+    smoke.add_argument("--overwrite", action="store_true")
+    smoke.add_argument(
         "--test",
         choices=sorted(SURGE_TEST_COMMANDS),
         action="append",
         default=[],
         help="Surge smoke test to run; defaults to tcp, udp, external-ip, nat",
     )
+    smoke.set_defaults(func=command_smoke_surge)
 
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="surge_patch.py",
-        description="Prepare, upload, run, and collect recoverable Surge/Snell operation run dirs.",
-        epilog=(
-            "Persistent operation: install-snell installs or replaces the Snell binary, config, "
-            "systemd service, removes incompatible hardening drop-ins, and restarts snell-server. "
-            "Use --confirm-persistent when preparing it."
-        ),
-    )
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
-    prepare = subparsers.add_parser(
-        "prepare",
-        help="create a local run dir and input files; prints JSON",
-        description=(
-            "Create a recoverable run dir. install-snell is persistent and requires "
-            "--confirm-persistent; audit-snell and surge-smoke are read-only."
-        ),
-    )
-    add_common_prepare_args(prepare)
-    prepare.set_defaults(func=command_prepare)
-
-    upload = subparsers.add_parser("upload", help="upload a prepared remote run dir; prints JSON")
-    upload.add_argument("--run-dir", type=Path, required=True)
-    upload.add_argument("--host")
-    upload.add_argument("--remote-dir")
-    upload.add_argument("--overwrite", action="store_true")
-    upload.add_argument("--ssh-option", action="append", default=[])
-    upload.set_defaults(func=command_upload)
-
-    run = subparsers.add_parser("run", help="execute a prepared run dir locally or remotely; prints JSON")
-    run.add_argument("--run-dir", type=Path, required=True)
-    run.add_argument("--host")
-    run.add_argument("--remote-dir")
-    run.add_argument("--timeout", type=int, default=900)
-    run.add_argument("--ssh-option", action="append", default=[])
-    run.set_defaults(func=command_run)
-
-    collect = subparsers.add_parser("collect", help="collect run-dir outputs and summarize them as JSON")
-    collect.add_argument("--run-dir", type=Path)
-    collect.add_argument("--run-id")
-    collect.add_argument("--operation")
-    collect.add_argument("--host")
-    collect.add_argument("--remote-dir")
-    collect.add_argument("--out-dir", type=Path, default=Path("/tmp/surge-patch-collected"))
-    collect.add_argument("--local-only", action="store_true")
-    collect.add_argument("--overwrite", action="store_true")
-    collect.add_argument("--ssh-option", action="append", default=[])
-    collect.set_defaults(func=command_collect)
     return parser
-
-
-def normalize_args(args: argparse.Namespace) -> None:
-    if getattr(args, "command", "") == "prepare" and not args.test:
-        args.test = ["tcp", "udp", "external-ip", "nat"]
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    normalize_args(args)
     try:
         return args.func(args)
     except CliError as exc:
