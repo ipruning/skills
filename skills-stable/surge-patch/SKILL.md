@@ -1,46 +1,78 @@
 ---
 name: surge-patch
 description: |
-  Troubleshoot Surge failures caused by Snell VPS endpoints, endpoint routing,
-  Snell server versions, systemd units, and UDP/QUIC behavior: enhanced mode
-  routing SSH, nc, or curl through the proxy under test; Snell fatal errors;
-  PSK-preserving Snell upgrades; systemd unit or drop-in repairs; and failed
-  Snell TCP/UDP tests.
+  Operate Surge/Snell VPS audits, repairs, and smoke checks with a uv-based
+  Python CLI. Use for Snell install or repair, read-only VPS audits, systemd
+  UDP/QUIC checks, and local Surge TCP/UDP/external-IP/NAT probes.
 ---
 
 # Surge Snell Operations
 
-First collect the normal Surge baseline with `surge-cli --raw environment`, `surge-cli --raw dump policy`, and `surge-cli --raw dump profile`. Continue here when the evidence points at a Snell endpoint, its VPS, its systemd service, or its UDP path.
+`scripts/surge_patch.py` prepares a run directory, uploads it when the work is
+remote, runs the operation, and collects the result. Run it with
+`uv run --script`.
 
 ## Workflow
 
-1. Read [Snell VPS Triage](references/snell-vps-triage.md) before changing Snell servers, systemd units, UDP behavior, or Surge `DIRECT` rules.
-2. Build the server inventory from the active Surge profile or user-provided input. Keep real IPs, PSKs, hostnames, and profile names in the user's private config or current task notes.
-3. Under Surge enhanced mode or rule mode, route the proxy server endpoint itself as `DIRECT` before SSH, `nc`, or curl tests touch that endpoint.
-4. When Snell logs contain `UDP socket send error`, `uv_close`, or `signal 6`, and `systemctl cat snell-server` contains `PrivateDevices`, `ProtectSystem`, `RestrictAddressFamilies`, or empty capability sets, replace the incompatible unit/drop-in before changing Surge UDP settings.
-5. Disable or downgrade UDP only when SSH access or service changes are unavailable and the user needs immediate mitigation. Mark the change as mitigation in the final report and include the rollback condition.
+1. Read [Snell VPS Triage](references/snell-vps-triage.md) when changing a VPS,
+   systemd service, UDP behavior, or Surge routing.
+2. Prepare one run directory for `install-snell`, `audit-snell`, or
+   `surge-smoke`.
+3. For remote Snell work, upload the run directory, run it over SSH, then
+   collect it. The remote directory remains on the VPS for later audit.
+4. For local Surge smoke checks, prepare the run locally, run it, then collect
+   with
+   `--local-only`.
+5. Keep endpoint IPs, PSKs, profile names, and inventories in the user's current
+   task input or private config.
 
 ## Output
 
-Snell audit commands print facts and warning signals to stdout. They do not mutate remote hosts. They do not choose repairs. Persistent repair commands say what they will change and print one JSON object on stdout. Progress, package-manager output, and raw command diagnostics go to stderr or `log_dir`.
+Every structured command prints one JSON object to stdout. Progress,
+diagnostics, package-manager output, SSH output, and probe details go to stderr
+or files inside the run directory.
 
-Run local scripts as `bash scripts/<name>.sh` on macOS. Run remote installs with `ssh root@<server> 'bash -s -- ...' < scripts/install_snell_server.sh`. Direct shebang execution can be slower under macOS security and provenance checks.
+Remote run directories include:
 
-## Commands
+- `manifest.json`: run id, operation, target, persistent effects, and paths
+- `input.json`: structured input
+- `input.env`: private shell input for the remote payload
+- `stdout`, `stderr`, `exit_code`: captured payload result
+- `result.json`: parsed operation result
+- `logs/`: raw audit, runner, and probe logs
 
-- `scripts/audit_snell_servers.sh`: read-only local SSH audit for one or more Snell VPS hosts. It requires `--server name=ip` or `--server-file path`; no private fleet list is embedded. It prints one JSON object per host to stdout, writes raw per-host logs under `--log-dir`, and exits nonzero when any host has failed checks or SSH/audit failure.
-- `scripts/install_snell_server.sh`: **persistent** Debian VPS installer/upgrader. It backs up and replaces `/etc/snell/snell-server.conf` and `/etc/systemd/system/snell-server.service`, may remove incompatible systemd hardening drop-ins, installs `/usr/local/bin/snell-server`, then enables and restarts `snell-server`. It reuses the existing `psk` unless `--psk` supplies a replacement or `--replace-psk` asks the script to generate one. `--dry-run` and successful installs print one JSON object to stdout; progress and errors go to stderr.
-- `scripts/stress_surge_policy.sh`: local read-only Surge policy stress probe. It repeats TCP/UDP/NAT/external-IP tests for one policy, optionally runs one download bandwidth diagnostic, prints one summary JSON object to stdout, writes the same object to `log_dir/summary.json`, and stores each raw command stdout/stderr/result under `--log-dir`.
+## Operations
 
-Examples:
+`install-snell` is persistent. It may install or replace
+`/usr/local/bin/snell-server`, back up and replace the Snell config and systemd
+service files, remove incompatible Snell hardening drop-ins, and restart
+`snell-server`. Prepare it with `--confirm-persistent`.
+
+`audit-snell` is read-only on the VPS. It records systemd state, listeners,
+recent Snell logs, hardening signals, and derived checks.
+
+`surge-smoke` is local and read-only for Surge configuration. It runs supported
+`surge-cli --raw` TCP, UDP, external IP, and NAT policy probes and stores raw
+probe files in the local run directory.
+
+## Examples
 
 ```bash
-bash scripts/audit_snell_servers.sh --server-file /path/to/snell-servers.txt --journal-since '10 min ago' --snell-version <version>
+uv run --script scripts/surge_patch.py prepare \
+  --operation audit-snell \
+  --host root@203.0.113.10 \
+  --port 14180
 
-ssh root@<server-ip> 'bash -s -- --snell-version <version> --name <proxy-name> --port <port>' \
-  < scripts/install_snell_server.sh
-
-bash scripts/stress_surge_policy.sh --policy <policy-name> --rounds 40 --parallel 8
+uv run --script scripts/surge_patch.py upload --run-dir /tmp/surge-patch-runs/<run_id>
+uv run --script scripts/surge_patch.py run --run-dir /tmp/surge-patch-runs/<run_id>
+uv run --script scripts/surge_patch.py collect --run-dir /tmp/surge-patch-runs/<run_id>
 ```
 
-Check the official Snell release notes before upgrades and pass the chosen version with `--snell-version`. Keep private server lists in a private path supplied by the user. If the user asks to persist a local inventory, store it in the requested private config location.
+```bash
+uv run --script scripts/surge_patch.py prepare \
+  --operation install-snell \
+  --host root@203.0.113.10 \
+  --snell-version 5.0.1 \
+  --port 14180 \
+  --confirm-persistent
+```
