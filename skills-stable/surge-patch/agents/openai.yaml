@@ -1,0 +1,4 @@
+interface:
+  display_name: "Surge Snell VPS"
+  short_description: "排查并修复 Surge 的 Snell VPS、endpoint 路由、UDP/QUIC 和 systemd 故障"
+  default_prompt: "排查 Surge/Snell 故障：读取当前 profile 和服务器清单，确认 proxy endpoint 是否 DIRECT，再检查 Snell VPS 的 systemd、UDP/QUIC 和日志。"
