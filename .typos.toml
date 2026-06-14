@@ -17,4 +17,5 @@ extend-exclude = [
 ]
 
 [default.extend-words]
+iif = "iif"  # nftables input interface expression
 UDID = "UDID"  # Apple Unique Device Identifier

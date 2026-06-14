@@ -30,6 +30,7 @@ Name the machine type when that choice changes what gets opened, closed, or rewr
 Personal VPS, proxy nodes, Snell/Xray boxes, and single-user web hosts are machines where the user manages root directly.
 
 Keep:
+
 - Allow root login by key: `PermitRootLogin prohibit-password`
 - Disable SSH passwords: `PasswordAuthentication no`, `KbdInteractiveAuthentication no`
 - Ensure key auth works: `PubkeyAuthentication yes`
@@ -44,6 +45,7 @@ For Snell VPS setup or repair, use [references/snell-vps.md](references/snell-vp
 A team admin server has more than one human administrator, and access must be revoked per person.
 
 Keep:
+
 - Create one user per human
 - Use `sudo` rather than shared root after admin access is verified
 - Disable root SSH only after a replacement admin path works from a fresh session
@@ -56,6 +58,7 @@ Use [references/ssh.md](references/ssh.md).
 Here, ownership, purpose, access paths, or compromise state is unclear.
 
 First:
+
 - Collect evidence before repair
 - Do not upgrade, clean, rotate, delete, restart, or rewrite persistence until evidence is collected
 - Identify access, listeners, firewall, persistence, logs, patch state, and services without a user-confirmed purpose before remediation
@@ -67,6 +70,7 @@ Use [references/unknown-server-audit.md](references/unknown-server-audit.md).
 Docker, containerd, Kubernetes, x-ui, nginx-proxy-manager, and similar tools can publish ports outside the ordinary service list.
 
 Before changing rules:
+
 - Map every public port to its process, container, and firewall path
 - Remember Docker-published ports can bypass UFW input rules
 - Do not add broad route rules unless a real container forwarding problem is confirmed
@@ -78,6 +82,7 @@ Use [references/containers.md](references/containers.md) and [references/firewal
 HTTP(S), app ports, reverse proxies, and dashboards may be intentionally public.
 
 Keep:
+
 - Keep `80/tcp` and `443/tcp` only when a listener or planned service needs them
 - Treat dashboards and admin panels as management ports; bind to localhost or restrict source only when the service has no public clients or the user confirms the allowed source range
 - Preserve Docker or reverse-proxy ports that are actively serving traffic unless the user asks to remove them
@@ -89,6 +94,7 @@ Use [references/firewall.md](references/firewall.md) and [references/containers.
 Package maintenance changes installed software or the schedule that updates it.
 
 First:
+
 - Use `apt-get`, not `apt`, in noninteractive commands
 - Stay within the current distro release
 - Check disk, failed units, listeners, apt simulation, and reboot need
@@ -100,6 +106,7 @@ Use [references/maintenance.md](references/maintenance.md).
 Performance tuning belongs to proxy/VPN performance, BBR, sysctl, latency, throughput, or kernel/network parameter work.
 
 First:
+
 - Measure or identify the performance goal before writing sysctls
 - Do not add copied tuning lists to an ordinary SSH or firewall change
 - Leave SSH algorithms unchanged unless the user asked for crypto policy work
