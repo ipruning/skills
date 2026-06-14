@@ -2,8 +2,8 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#   "jinja2==3.1.6",
-#   "tiktoken==0.12.0",
+#   "jinja2>=3.1.6",
+#   "tiktoken>=0.13.0",
 # ]
 # ///
 from __future__ import annotations

@@ -2,10 +2,10 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#   "openai>=2.41.0",
+#   "openai>=2.41.1",
 #   "pillow>=12.2.0",
-#   "pydantic>=2.13.4",
 #   "pydantic-settings>=2.14.1",
+#   "pydantic>=2.13.4",
 #   "typer>=0.26.7",
 # ]
 # ///

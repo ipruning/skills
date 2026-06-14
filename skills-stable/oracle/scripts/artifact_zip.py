@@ -1,7 +1,7 @@
 #!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.12"
-# dependencies = ["typer>=0.25.0"]
+# dependencies = ["typer>=0.26.7"]
 # ///
 """Build a local artifact package zip for Oracle/ChatGPT consultation."""
 
