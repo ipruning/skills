@@ -4,9 +4,9 @@
 
 This repo is the source of truth for AI-tool skills and Skillshare extras. A skill is any directory that contains a `SKILL.md`, plus optional supporting files such as scripts, references, or assets. Skills may live at the repo root or inside grouping directories such as `skills-stable/` and `skills-beta/`.
 
-`skillshare` syncs non-ignored skills to configured AI tool targets, usually by symlink. It also syncs non-skill resources from `extras/` to configured target directories. Run `skillshare sync --all` after mutating synced skills or extras so configured tools see the latest content. `.skillignore` controls which source skills are skipped.
+`skillshare` syncs non-ignored skills to configured AI tool targets. Target configuration decides whether sync uses symlinks or copies. `skillshare` also syncs non-skill resources from `extras/` to configured target directories. Run `skillshare sync --all` after mutating synced skills or extras so configured tools see the latest content. `.skillignore` controls which source skills are skipped.
 
-Directories prefixed with `_` are externally synced, gitignored, and overwritten on update. Never edit `_`-prefixed directories directly.
+The current source checkout owns its first-party skills. A nested source checkout owns its own first-party skills. The leading underscore does not decide edit ownership. The source checkout's `.metadata.json` decides the boundary: entries in `.metadata.json` are upstream Track-managed; skill directories outside those entries are first-party.
 
 ```text
 skills/
@@ -18,18 +18,29 @@ skills/
 ├── skills-stable/           # Stable tracked skills and grouped external skills
 ├── skills-beta/             # Experimental tracked skills and grouped external skills
 ├── skillshare/              # Skillshare-related skill content
-├── _<source>-skills/        # External synced skills, gitignored, overwritten
+├── _<source>-skills/        # Nested source checkouts
 └── <skill-name>/            # Optional root-level skill directory
 ```
 
 ## Working on skills
 
-- Prefer editing the existing `SKILL.md` and nearby supporting files over creating new structure.
+- Edit the existing `SKILL.md` and nearby supporting files before creating new structure.
+- Edit first-party skills in the source checkout that owns them.
+- When the user names a nested source checkout, enter that checkout, read its `AGENTS.md`, and apply its `.metadata.json` boundary.
 - For global harness instructions, edit the full target-specific file under `extras/{amp,codex,claude}/`; do not generate these files from a shared template.
 - Keep trigger guidance explicit: a skill should say when to use it and when not to use it.
 - Keep `SKILL.md` concise. Put long scripts, templates, examples, or large references in supporting files and link to them.
-- Do not edit generated, vendored, or externally synced content. For external skills, prefer updating through `skillshare` or the upstream source.
+- Do not edit generated, vendored, or upstream Track-managed content.
 - After adding, deleting, moving, installing, uninstalling, updating, or collecting synced skills or extras, run `skillshare sync --all`. Changes under ignored paths, such as the current `skills-beta/` ignore, are not exposed to targets unless the ignore or target configuration changes.
+
+## Branch and sync policy
+
+Source checkouts can have different merge rules. Do not infer one checkout's policy from another checkout.
+
+- This source checkout is the user's personal skill source. Direct `main` updates are allowed unless the user asks for a branch, PR, or separate commit shape.
+- `_jihuanshe-skills/` is a separate nested source repo. Follow its own `AGENTS.md`: do not commit or push directly to `main`; use a branch and PR for mergeable work.
+- Before starting new work in a source checkout, if the worktree is clean or can be safely paused, switch to `main` and pull the upstream state first. If the worktree has uncommitted work, do not force a branch switch; inspect the state and preserve the work.
+- After a PR is squash-merged upstream, treat the local feature branch as stale. Switch to `main`, pull, and branch again before continuing related work. Do not stack new edits on an old branch whose commits no longer match upstream history.
 
 ## Working on Skillshare extras
 
@@ -42,7 +53,7 @@ skills/
 
 ## Code Style
 
-4-space indent by default, 2-space for Markdown. LF line endings. Final newline required. Follow the formatter/config for file-type exceptions.
+Use 4-space indentation by default and 2-space indentation in Markdown files. Use LF line endings and final newlines. Follow the formatter/config for file-type exceptions.
 
 - **Python** — Ruff selects E/W/F/UP/B/SIM/I/TID plus BLE001, ignores E501/TID252, line-length 120, target py314. Format: `uv run ruff format --check .`. Lint: `uv run ruff check .`. Type-check: `uv run ty check .`.
 - **JS / JSON / JSONC** — Biome-managed files use double quotes and 4-space indent. Generated or excluded files such as `.metadata.json` may differ; do not reformat them unless the owning tool expects it. Lint: `biome ci .`.
@@ -74,8 +85,8 @@ Add each path to these six config files (eight places total — `pyproject.toml`
 
 When deleting a checked-in external skill, remove its directory **and** remove its entries from all six config files listed above. Use `skillshare uninstall` when possible; if you `rm -rf` manually, you must clean the configs yourself.
 
-After a skillshare version upgrade or `skillshare update`, directory names may change or entries may disappear. Always verify that the external-skill exclude entries in all six config files match the non-`_` `.metadata.json` entries exactly. Other tool-specific excludes, such as `.metadata.json`, may also exist.
+After a skillshare version upgrade or `skillshare update`, directory names may change or entries may disappear. Always verify that the external-skill exclude entries in all six config files match the non-`_` `.metadata.json` entries exactly. Keep unrelated tool-specific excludes unchanged.
 
 ## Running skillshare
 
-AI agents cannot answer prompts. Use supported non-interactive flags such as `--force`, `--all`, `--yes`, `--no-tui`, explicit selectors, and `--json`; do not start prompt-only workflows. Always run `skillshare sync --all` after any mutation (`install`, `uninstall`, `update`, `collect`, `target`, or extras edits). Use `--json` when you need to parse output.
+Use supported non-interactive flags such as `--force`, `--yes`, `--no-tui`, explicit selectors, and `--json`; do not start prompt-only workflows. Always run `skillshare sync --all` after any mutation (`install`, `uninstall`, `update`, `collect`, `target`, or extras edits). Use `--json` when you need to parse output.
