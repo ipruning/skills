@@ -1,49 +1,53 @@
 ---
 name: image-generation-workbench
 description: |
-  Use when a task needs AI-generated or AI-edited bitmap assets, source-backed
-  screenshot/card/UI annotation, multi-turn visual repair, generated-image QA,
-  variant comparison, or green-screen components. Load for work that will call
-  the local image workbench CLI or needs its reference cases. Do not load for
+  Use when a task needs generated or edited bitmap assets, source-backed
+  screenshot, card, or UI annotation, multi-turn visual repair, visual QA,
+  variant comparison, or green-screen components. Use when the task calls or
+  maintains the local image workbench CLI. Use the reference cases only for
+  source-backed mobile UI overlays or long-screenshot guardrails. Do not load for
   exact text layout, vector-only diagrams, or document composition unless a
   generated raster image is part of the workflow.
 metadata:
   version: "1.0"
-  short-description: OpenAI image generation, repair, and visual QA workflow
+  short-description: gpt-image-2 generation, repair, and visual QA workflow
 ---
 
 # Image Generation Workbench
 
-## Default Stance
+## Core Rules
 
-Use Image 2 for visual integration and style. Use deterministic tools for exact
-text, layout, measurements, captions, and final document placement.
+Use `gpt-image-2` for visual integration and style. Use deterministic tools for
+exact text, layout, measurements, captions, and final document placement.
 
-- Use **Responses API + `image_generation`** when you need multi-turn repair,
-  multiple reference images, or an agent to interpret source images before
-  generating. This workbench supports only the latest image model,
-  `gpt-image-2`; callers do not choose a separate image model.
+- Use **Responses API + `image_generation`** when the task needs multi-turn
+  repair, multiple input images, or source-image interpretation before generating.
 - Use **Images API** for a simple one-shot generate/edit call where conversation
-  state is not needed; this workbench uses `gpt-image-2`.
+  state is not needed.
+- The CLI exposes `gpt-image-2` through its profiles. Inspect `profiles --json`
+  before assuming model-specific options. The CLI controls the image model; do
+  not pass a separate image model.
 - Keep long prose, legal/rules wording, Chinese text, bilingual labels, and page
   composition outside the raster image when exact edits matter.
-- Always inspect outputs visually. A successful API response is not QA.
+- Always inspect generated images visually. A successful API response is not QA.
 
 ## CLI Contract
 
-Main tool: `scripts/image_workbench.py`
+The CLI entrypoint is `scripts/image_workbench.py`, resolved relative to this
+Skill directory.
 
-- Before choosing parameters, run:
+- Run parameter discovery before choosing parameters:
 
   ```bash
-  uv run --script scripts/image_workbench.py profiles --json
-  uv run --script scripts/image_workbench.py <subcommand> --help
+  SKILL_DIR=/absolute/path/to/image-generation-workbench
+  uv run --script "$SKILL_DIR/scripts/image_workbench.py" profiles --json
+  uv run --script "$SKILL_DIR/scripts/image_workbench.py" <subcommand> --help
   ```
 
-- Use `--json` when another agent, script, or CI job consumes stdout. Structured
-  stdout is JSON metadata or profiles; stderr is for validation, auth, and API
-  errors.
-- Without `--json`, stdout is only the output path and optional response ID.
+- Use `--json` when another process, script, or CI job consumes stdout. Structured
+  stdout contains JSON metadata or profiles; stderr carries validation, auth, and
+  API errors.
+- Plain stdout contains only the output path and optional response ID.
 - Validation, auth, and API errors exit non-zero with stdout empty.
 - Do not invent flags. If a parameter is not in subcommand help or
   `profiles --json`, do not pass it.
@@ -57,14 +61,15 @@ Main tool: `scripts/image_workbench.py`
 ## Quick Start
 
 Run from the target project root so image inputs and outputs stay
-project-relative. Resolve `scripts/image_workbench.py` relative to this skill
-directory.
+project-relative. Set `SKILL_DIR` to the directory that contains this `SKILL.md`;
+run the workbench script through that absolute path.
 
 ```bash
+SKILL_DIR=/absolute/path/to/image-generation-workbench
 export OPENAI_API_KEY=...
 # Optional when using an OpenAI-compatible proxy:
 export OPENAI_BASE_URL=...
-uv run --script scripts/image_workbench.py annotate-image \
+uv run --script "$SKILL_DIR/scripts/image_workbench.py" annotate-image \
   --image path/to/source-screenshot.png \
   --aspect-policy match-input \
   --quality high \
@@ -75,53 +80,31 @@ uv run --script scripts/image_workbench.py annotate-image \
   --json
 ```
 
-OpenAI-compatible gateways are also supported:
+For OpenAI-compatible gateways, set the gateway credential pair instead:
 
 ```bash
 export PYDANTIC_AI_GATEWAY_API_KEY=...
 export PYDANTIC_AI_GATEWAY_BASE_URL=...
-uv run --script scripts/image_workbench.py annotate-image \
-  --image path/to/source-screenshot.png \
-  --aspect-policy match-input \
-  --quality high \
-  --output-format png \
-  --detail high \
-  --background auto \
-  --out outputs/visuals/tutorial-figure.png
 ```
 
-Repair the previous result:
+Follow-up commands add only the issue-specific arguments:
 
 ```bash
-uv run --script scripts/image_workbench.py repair-image \
+uv run --script "$SKILL_DIR/scripts/image_workbench.py" repair-image \
   --image path/to/source-screenshot.png \
   --previous-response-id resp_... \
   --issue "Move the label away from the card face and keep the arrow target unchanged." \
-  --aspect-policy match-input \
-  --quality high \
-  --output-format png \
-  --detail high \
-  --background auto \
   --out outputs/visuals/tutorial-figure-v2.png \
   --json
-```
 
-Diagnose before the next repair turn:
-
-```bash
-uv run --script scripts/image_workbench.py diagnose-image \
+uv run --script "$SKILL_DIR/scripts/image_workbench.py" diagnose-image \
   --source path/to/source-screenshot.png \
   --candidate outputs/visuals/tutorial-figure-v2.png \
   --criteria "The figure teaches the attack lane and preserves the card positions." \
-  --detail high \
   --out outputs/visuals/tutorial-figure-v2.diagnosis.json \
   --json
-```
 
-Compare variants:
-
-```bash
-uv run --script scripts/image_workbench.py contact-sheet \
+uv run --script "$SKILL_DIR/scripts/image_workbench.py" contact-sheet \
   --image outputs/visuals/tutorial-figure.png \
   --image outputs/visuals/tutorial-figure-v2.png \
   --out outputs/visuals/contact-sheet.png \
@@ -131,32 +114,31 @@ uv run --script scripts/image_workbench.py contact-sheet \
 ## Workflow
 
 1. Write the teaching point in one sentence before generating.
-2. Choose the visual pipe: `annotate-image` for source-backed first passes,
+2. Choose the method: `annotate-image` for source-backed first passes,
    `repair-image` for one-issue repair turns, `diagnose-image` for visual QA,
    `image-generate` for new artwork, and `image-edit` for direct one-shot edits.
 3. State the output geometry before generating. Use `--aspect-policy
-   match-input` for source-backed screenshots and cards, `portrait` or
-   `landscape` for known placements, `square` for icons, `auto` when you
-   intentionally delegate, or exact `--size WIDTHxHEIGHT`.
-4. State quality, format, detail, and background explicitly. Recommended source
-   tutorial parameters are `--aspect-policy match-input --quality high
-   --output-format png --detail high --background auto`.
-5. Attach original references on every repair turn. `previous_response_id`
-   preserves conversation state, but re-attaching the source prevents visual
-   drift.
+match-input` for source-backed screenshots and cards, `portrait` or
+   `landscape` for known placements, `square` for icons, `auto` when the model
+   should choose, or exact `--size WIDTHxHEIGHT`.
+4. State quality, format, detail, and background explicitly. Recommended
+   source-backed tutorial parameters are `--aspect-policy match-input --quality high
+--output-format png --detail high --background auto`.
+5. Attach the source images on every repair turn. `previous_response_id`
+   preserves conversation state, but source images prevent visual drift.
 6. Ask for short visible labels only. Put exact text in HTML, Typst, slides, or
    the host document.
 7. Generate a first pass, inspect the PNG yourself, then run `diagnose-image`
-   when the next Agent needs a structured visual read before repairing.
+   when a repair turn needs structured visual evidence.
 8. Repair one concrete issue per turn. Use the diagnosis
    `next_repair_issue` as the `repair-image --issue` only after checking that it
    matches what you see.
 9. Make a contact sheet for variants and reject outputs with cropping, warped
    source facts, unreadable marks, fake text, or style drift.
 10. Integrate the selected raster into the final document and inspect the
-   rendered page.
+    rendered page.
 
-## Choose The Visual Pipe
+## Choose The Method
 
 - Exact source state, object identity, UI state, card face, or screenshot
   content matters: use `annotate-image`, inspect the PNG, then use
@@ -167,7 +149,7 @@ uv run --script scripts/image_workbench.py contact-sheet \
 - The concept is abstract and does not need source-image fidelity: use
   deterministic vector drawing, Typst primitives, SVG/HTML, Mermaid-style
   diagrams, or another diagram tool.
-- The desired result is a reusable icon, token, sticker, product widget, marker,
+- The result is a reusable icon, token, sticker, product widget, marker,
   or green-screen component: use `image-generate` or `response-image`, then QA
   and post-process locally.
 - You already have a vector sketch or rough layout: attach it with `--image` and
@@ -181,49 +163,52 @@ uv run --script scripts/image_workbench.py contact-sheet \
 - Do not ask the model to render long paragraphs or exact UI copy.
 - Do not invent logos, watermarks, card names, screenshots, human hands, or
   domain facts not present in the source.
-- Do not let a default canvas choose the composition. Say the intended aspect
-  ratio or `--aspect-policy` in the command and in the prompt. Do not recompose
-  portrait/mobile UI into a landscape board unless the user asked for that.
+- Set the intended aspect ratio or `--aspect-policy` in the command and in the
+  prompt. Do not recompose portrait/mobile UI into a landscape board unless the
+  user asked for that.
 - On repair turns, fix only the stated issue.
 - For reusable components, generate on a simple opaque or green-screen
   background, then post-process transparency locally.
 
-## Tooling
+## Support Files
 
-The CLI is the parameter source of truth. Typer models command arguments,
-Pydantic models result metadata, and pydantic-settings reads credentials from
-environment variables. Do not add an internal agent loop unless the caller has no
-visual inspection capability.
+Use CLI help and `profiles --json` as the parameter contract. Keep each repair
+turn visible when the user can inspect the image and choose the next issue.
 
-Prompt templates:
+Read prompt templates only when changing prompt text or debugging generated
+prompt behavior:
 
 - `assets/prompts/tutorial-overlay.txt`
 - `assets/prompts/revise-image.txt`
 - `assets/prompts/diagnose-image.txt`
 - `assets/prompts/greenscreen-component.txt`
 
-Reference cases:
+Read reference cases only when the user task matches the case:
 
-- `references/source-backed-mobile-ui/`
-- `references/long-screenshot-guardrail/`
-
-Riftbound-style playbook figures are just one example of this workflow: source
-screenshot plus a short teaching point, Image 2 for the visual layer, Typst for
-precise prose and final layout.
+- Use `references/source-backed-mobile-ui/` for mobile UI tutorial overlays that
+  must preserve source UI state.
+- Use `references/long-screenshot-guardrail/` for long screenshots where cropping
+  or recomposition would lose source facts.
+- Do not read reference cases for ordinary generation, editing, repair, QA, or
+  variant comparison.
 
 ## Closeout Checks
 
-After editing the tool:
+After editing `scripts/image_workbench.py`:
 
 ```bash
-uv run python -m py_compile scripts/image_workbench.py
-uv run ruff check scripts/image_workbench.py
-uv run ty check scripts/image_workbench.py
-uv run --script scripts/image_workbench.py --help
+uv run python -m py_compile "$SKILL_DIR/scripts/image_workbench.py"
+uv run ruff check "$SKILL_DIR/scripts/image_workbench.py"
+uv run ty check "$SKILL_DIR/scripts/image_workbench.py"
+uv run --script "$SKILL_DIR/scripts/image_workbench.py" --help
 ```
 
 Before finishing work that used real API keys:
 
 ```bash
-rg -n "/[U]sers/|[g]ateway-us|[j]ihuanshe-openai|r[e]sponse_format|[s]k-proj|[p]ylf_v2|OPENAI_API_KEY=.*[s]k|PYDANTIC_AI_GATEWAY_API_KEY=.*[p]ylf" .
+# Run the repo's secret scanner first if one is configured.
+rg -n --pcre2 \
+  --glob '!**/image-generation-workbench/SKILL.md' \
+  "(API_KEY|TOKEN|SECRET|BASE_URL)\\s*=|sk-[A-Za-z0-9_-]{20,}|Bearer\\s+[A-Za-z0-9._-]{20,}" \
+  .
 ```
