@@ -1,49 +1,46 @@
 ---
 name: oracle
-description: "Use when the user explicitly asks for Oracle/神谕, ChatGPT Pro, a Pro second opinion, or one bounded external consultation through the user's logged-in Chrome session."
+description: "Use when the user asks the agent to get one bounded outside answer from Oracle/神谕 or ChatGPT Pro through the user's logged-in Chrome session."
 ---
 
-Choose the consultation route, package only needed evidence, submit it to the latest, smartest available Pro model in Chrome, save the answer, and verify it locally before reporting.
+The agent chooses a consultation route, packages only the needed local evidence, submits the prompt to the latest, smartest available Pro model in Chrome, saves the final answer, and verifies claims locally before reporting.
 
 ## Rules
 
-- Use the user's logged-in Chrome session.
-- Use the latest, smartest available Pro model by default. Use another Pro model only when the user approves it or the latest Pro model is unavailable.
-- Do not use API mode.
-- Do not click `Answer now` or any control that shortens Pro thinking.
-- Treat visible ChatGPT activity as status. Do not call it a chain of thought.
-- Build a package zip when local files affect the answer. Do not paste zip contents inline.
-- For PR, repo, dirty-worktree, and architecture reviews, build a repo package zip that contains `.git`.
-- For papers, archives, PDFs, source folders, datasets, and document packs, build an artifact package zip.
-- Use `references/cli.md` only when Chrome control is unavailable, the environment is shell-only, or the user asks for Oracle CLI.
-- Report `chrome_extension_unavailable`, `chrome_upload_permission_missing`, `chatgpt_login_required`, or `model_not_pro` when that blocker appears.
-- Before submission, collect the scope, build the package zip, and write the prompt text. After the ChatGPT answer is saved, inspect files and run focused checks.
+- The agent uses the user's logged-in Chrome session.
+- The agent uses the latest, smartest available Pro model by default. The agent uses another Pro model only when the user approves it or the latest Pro model is unavailable.
+- The agent does not use API mode.
+- The agent does not click `Answer now` or any control that shortens Pro thinking.
+- The agent treats visible ChatGPT activity as status. The agent does not call that activity a chain of thought.
+- The agent builds a package zip when local files affect the answer. The agent does not paste zip contents inline.
+- Diff-based repo reviews use a repo package zip that contains `.git`.
+- Repo consultations that do not depend on a base ref or diff use an artifact package zip from scoped repo files.
+- Papers, archives, PDFs, local files, local folders, datasets, and document packs use an artifact package zip.
+- The agent uses `references/cli.md` before submission when direct Chrome control is unavailable, the environment is shell-only, or the user asks for Oracle CLI. The agent does not start a duplicate CLI run after a Chrome run submits.
+- The agent reports `chrome_extension_unavailable`, `chrome_upload_permission_missing`, `chatgpt_login_required`, or `model_not_pro` when the blocker prevents the chosen route and any allowed fallback.
+- Before submission, the agent resolves the scope, builds the package zip when the route requires one, and writes the prompt text. After the agent saves the final answer, the agent inspects files and runs focused checks.
 
 ## Route
 
-Choose one route before opening ChatGPT.
+The agent chooses one route before opening ChatGPT.
 
-| Route              | Input                                                                            | Package                                             |
-| ------------------ | -------------------------------------------------------------------------------- | --------------------------------------------------- |
-| `repo-review`      | PR, repo, dirty worktree, architecture review, code review                       | repo package zip from `scripts/repo_zip.py`         |
-| `artifact-consult` | Paper source files, LaTeX, PDF, downloaded zip, folder, dataset, non-Git files   | artifact package zip from `scripts/artifact_zip.py` |
-| `web-consult`      | ChatGPT Pro should search, compare cited web sources, or challenge an assumption | optional artifact package zip                       |
-| `prompt-only`      | No local files or URLs improve the answer                                        | none                                                |
+| Route                  | Input                                                                                                            | Package                                             |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `repo-diff-review`     | PR, dirty worktree, code review, or review that depends on a base ref, branch, commit range, or diff             | repo package zip from `scripts/repo_zip.py`         |
+| `repo-context-consult` | Repo architecture, implementation, or design consultation that depends on scoped repo files but not Git history  | artifact package zip from `scripts/artifact_zip.py` |
+| `artifact-consult`     | Paper files, LaTeX, PDF, downloaded archive, folder, dataset, non-Git files                                      | artifact package zip from `scripts/artifact_zip.py` |
+| `web-consult`          | ChatGPT Pro should search or compare cited web sources, including assumption challenges that require web sources | optional artifact package zip                       |
+| `prompt-only`          | No local files or URLs improve the answer                                                                        | none                                                |
 
-If the user's request changes the files, refs, or URLs in scope, resolve the scope before building a package zip.
+If the user's request changes the files, refs, or URLs in scope, the agent resolves the scope before building a package zip.
 
 ## Work Directory
 
-```sh
-ORACLE_WORK_DIR="${TMPDIR:-/tmp}/oracle-work/<short-slug>"
-mkdir -p "$ORACLE_WORK_DIR"
-PROMPT_FILE="$ORACLE_WORK_DIR/PROMPT.md"
-ANSWER_FILE="$ORACLE_WORK_DIR/answer.md"
-```
+The agent creates `ORACLE_WORK_DIR` under `${TMPDIR:-/tmp}/oracle-work/<short-slug>`. The agent writes the prompt text to `PROMPT_FILE` and saves the final ChatGPT answer to `ANSWER_FILE` inside `ORACLE_WORK_DIR`.
 
-## Repo Review
+## Repo Diff Review
 
-Resolve the review base. Use the user's PR base when present. Otherwise use `ORACLE_BASE_REF`, then `origin/main`.
+The agent chooses `repo-diff-review` for PRs, dirty worktrees, code reviews, and reviews that depend on a base ref, branch, commit range, or diff. The agent resolves the review base. The agent uses the user's PR base when present. Otherwise the agent uses `ORACLE_BASE_REF`, then `origin/main`.
 
 ```sh
 BASE_REF="${ORACLE_BASE_REF:-origin/main}"
@@ -56,9 +53,9 @@ git diff --stat "$BASE_SHA..HEAD"
 git diff --name-only "$BASE_SHA..HEAD"
 ```
 
-If `git rev-parse` or `git merge-base` fails, ask for the base ref. For a dirty worktree, inspect `git diff` and untracked files before building the repo package zip. After the ChatGPT answer is saved, run `git status --short`; if the dirty scope changed, report the covered scope.
+If `git rev-parse` or `git merge-base` fails, the agent asks for the base ref. For a dirty worktree, the agent inspects `git diff` and untracked files before building the repo package zip. After the agent saves the final answer, the agent runs `git status --short`; if the dirty scope changed, the agent reports the covered scope.
 
-Write `PROMPT_FILE` with:
+The agent writes `PROMPT_FILE` with:
 
 - repository name and task;
 - base ref, base SHA, head branch, and head SHA;
@@ -68,7 +65,7 @@ Write `PROMPT_FILE` with:
 - finding-first output format;
 - `Do not invent findings without repository evidence.`
 
-Build the repo package zip:
+The agent builds the repo package zip:
 
 ```sh
 ORACLE_SKILL_DIR="<directory containing this SKILL.md>"
@@ -77,13 +74,38 @@ ZIP_FILE="$(uv run --script "$ORACLE_SKILL_DIR/scripts/repo_zip.py" \
   --output "$ORACLE_WORK_DIR")"
 ```
 
-`scripts/repo_zip.py` writes the package zip path to stdout. Inside the package zip, the package root contains `AGENTS.md`, and the repository checkout below it includes `.git`.
+`scripts/repo_zip.py` writes the package zip path to stdout. Inside the package zip, the package root contains `AGENTS.md`, and the repository checkout below the package root includes `.git`.
+
+## Repo Context Consult
+
+The agent chooses `repo-context-consult` for architecture, implementation, or design consultation when scoped repo files matter but Git history and diffs do not. The agent resolves the repo paths in scope before packaging. The agent does not include `.git` unless the user asks for history or the question depends on history.
+
+The agent writes `PROMPT_FILE` with:
+
+- repository name and question;
+- scoped repo paths and what they contain;
+- constraints and excluded assumptions;
+- requested output;
+- `Do not invent claims that are not supported by files inside the uploaded package zip.`
+
+The agent builds the artifact package zip with the scoped repo paths:
+
+```sh
+ORACLE_SKILL_DIR="<directory containing this SKILL.md>"
+ZIP_FILE="$(uv run --script "$ORACLE_SKILL_DIR/scripts/artifact_zip.py" \
+  --prompt "$PROMPT_FILE" \
+  --output "$ORACLE_WORK_DIR" \
+  --name "<short-slug>" \
+  --file /path/to/scoped-repo-file-or-directory)"
+```
+
+The agent repeats `--file` for multiple scoped paths.
 
 ## Artifact Consult
 
-Use local files or directories as evidence in the artifact package zip.
+The agent uses local files or directories as evidence in the artifact package zip.
 
-Write `PROMPT_FILE` with:
+The agent writes `PROMPT_FILE` with:
 
 - question;
 - local file names and what they contain;
@@ -91,7 +113,7 @@ Write `PROMPT_FILE` with:
 - whether web search is allowed or required;
 - `Do not invent claims that are not supported by files inside the uploaded package zip or cited web sources.`
 
-Build the artifact package zip:
+The agent builds the artifact package zip:
 
 ```sh
 ORACLE_SKILL_DIR="<directory containing this SKILL.md>"
@@ -102,15 +124,15 @@ ZIP_FILE="$(uv run --script "$ORACLE_SKILL_DIR/scripts/artifact_zip.py" \
   --file /path/to/artifact-or-directory)"
 ```
 
-Repeat `--file` for multiple inputs. Inside the package zip, the package root contains `AGENTS.md`, `sources.md`, and `artifacts/`.
+The agent repeats `--file` for multiple inputs. Inside the package zip, the package root contains `AGENTS.md`, the `sources.md` manifest, and `artifacts/`.
 
-For a remote paper, source zip, or dataset URL, download the file first, record the URL in `PROMPT_FILE`, then add the downloaded file to the artifact package zip.
+For a remote paper, code archive, or dataset URL, the agent downloads the file first, records the URL in `PROMPT_FILE`, and adds the downloaded file to the artifact package zip.
 
 ## Web Consult
 
-Use web search when ChatGPT Pro should search or compare external sources.
+The agent chooses `web-consult` when ChatGPT Pro should search or compare external sources.
 
-Write `PROMPT_FILE` with:
+The agent writes `PROMPT_FILE` with:
 
 - question;
 - constraints and excluded assumptions;
@@ -118,13 +140,13 @@ Write `PROMPT_FILE` with:
 - output format;
 - `Separate cited web claims from your own inferences.`
 
-If non-Git local notes, screenshots, exports, or source files anchor the question, use `artifact-consult`. Use `repo-review` for Git repositories, code review, and architecture review.
+If non-Git local notes, screenshots, exports, or local files anchor the question, the agent chooses `artifact-consult`. The agent chooses `repo-context-consult` for repo architecture or implementation consultation. The agent chooses `repo-diff-review` for PRs, code reviews, dirty worktrees, and diff-based reviews.
 
 ## Prompt Only
 
-Use this route when no local file, URL, or repository scope improves the answer.
+The agent chooses `prompt-only` when no local file, URL, or repository scope improves the answer.
 
-Write `PROMPT_FILE` with:
+The agent writes `PROMPT_FILE` with:
 
 - question;
 - assumptions ChatGPT Pro may use;
@@ -134,53 +156,53 @@ Write `PROMPT_FILE` with:
 
 ## Chrome Run
 
-1. Open a fresh `https://chatgpt.com/` tab.
-2. Confirm ChatGPT is logged in. If not, report `chatgpt_login_required`.
-3. Confirm the composer model is the latest, smartest available Pro model, or another Pro model approved by the user. If not, report `model_not_pro`.
-4. If the route built a package zip, open `Add files and more` -> `Upload photos & files`, upload `ZIP_FILE`, and confirm the attachment chip shows the zip filename.
-5. Paste the contents of `PROMPT_FILE`.
-6. Submit.
-7. Record the conversation URL.
-8. Wait.
+1. The agent opens a fresh `https://chatgpt.com/` tab.
+2. The agent confirms ChatGPT is logged in. If ChatGPT is not logged in, the agent reports `chatgpt_login_required`.
+3. The agent confirms the composer model is the latest, smartest available Pro model, or another Pro model approved by the user. If the model is not an approved Pro model, the agent reports `model_not_pro`.
+4. If the route built a package zip, the agent opens `Add files and more` -> `Upload photos & files`, uploads `ZIP_FILE`, and confirms the attachment chip shows the zip filename.
+5. The agent pastes the contents of `PROMPT_FILE`.
+6. The agent submits the prompt.
+7. The agent records the conversation URL.
+8. The agent waits.
 
-When uploading a package zip, use the visible upload menu first. Do not start with hidden file inputs such as `#upload-files`; that path can reset the browser control session. If the visible menu cannot open a file chooser, reconnect Chrome once and retry the visible menu.
+When the agent uploads a package zip, the agent uses the visible upload menu first. If the visible menu cannot open a file chooser, the agent reconnects Chrome once and retries the visible menu.
 
-If Chrome reports `Browser is not available: extension` or `native pipe is closed`, reconnect the extension once. If it still fails, report `chrome_extension_unavailable`.
+If Chrome reports `Browser is not available: extension` or `native pipe is closed` before submission, the agent reconnects the extension once. If Chrome still fails and CLI fallback is allowed, the agent uses `references/cli.md`; otherwise the agent reports `chrome_extension_unavailable`.
 
-If upload fails with `Not allowed`, report `chrome_upload_permission_missing` and tell the user:
+If upload fails with `Not allowed`, the agent reports `chrome_upload_permission_missing` and tells the user:
 
 ```text
-Open chrome://extensions, click Details under the Codex extension, and enable "Allow access to file URLs."
+Open chrome://extensions, click Details under the browser-control extension, and enable "Allow access to file URLs."
 ```
 
 ## Wait
 
-After submission, poll every 3-5 minutes. Do not press page controls while the answer is generating.
+After submission, the agent polls every 3-5 minutes. The agent does not press page controls while the answer is generating.
 
-Record:
+The agent records:
 
 - conversation URL;
 - generating or complete state;
-- visible status, such as `Unzipping files`, `checking git status`, `Finalizing answer`, or `Thought for Xm Ys`;
+- visible progress labels;
 - whether the final answer is visible;
 - visible error, login prompt, upload rejection, or model-selection problem.
 
-ChatGPT Pro runs can take 10-20 minutes or longer. `Finalizing answer` means progress unless the page shows an error or the user instructs otherwise.
+ChatGPT Pro runs can take 10-20 minutes or longer. Visible progress labels mean progress unless the page shows an error or the user instructs otherwise.
 
 ## Save Answer
 
-After the final ChatGPT answer appears, save the full assistant turn from the page DOM before local verification.
+After the final ChatGPT answer appears, the agent saves the full assistant turn from the page DOM before local verification.
 
-Use the latest assistant conversation turn, not visible viewport text. In Chrome DOM reads, find the latest conversation turn containing `data-message-author-role="assistant"`. Scoped extraction from `[data-testid^="conversation-turn-"]` is acceptable. Do not extract `document.body.innerText`.
+The agent uses the latest assistant conversation turn, not visible viewport text. In Chrome DOM reads, the agent finds the latest conversation turn containing `data-message-author-role="assistant"`. The agent may use scoped extraction from `[data-testid^="conversation-turn-"]`. The agent does not extract `document.body.innerText`.
 
-Save the final answer text to `ANSWER_FILE`. The saved answer must contain:
+The agent saves the final answer text to `ANSWER_FILE`. The saved answer must contain:
 
 - final answer text only;
 - all sections and verification commands present in the page;
 - no user prompt text;
 - no partial activity text.
 
-Verify extraction:
+The agent verifies extraction:
 
 ```sh
 test -s "$ANSWER_FILE"
@@ -189,36 +211,37 @@ rg -n "Findings|Not findings|Rejected|Summary|Claims|Sources|Verification|Open q
 tail -n 40 "$ANSWER_FILE"
 ```
 
-If DOM extraction fails or returns only visible text, use ChatGPT's copy control for the final assistant message. If copying is unavailable, scroll through the final ChatGPT answer and extract sections in order. Mark `ANSWER_FILE` as `partial` unless `tail -n 40 "$ANSWER_FILE"` shows the expected ending.
+If DOM extraction fails or returns only visible text, the agent uses ChatGPT's copy control for the final assistant message. If copying is unavailable, the agent scrolls through the final ChatGPT answer and extracts sections in order. The agent marks `ANSWER_FILE` as `partial` unless `tail -n 40 "$ANSWER_FILE"` shows the expected ending.
 
 ## Accept Answer
 
-Require:
+The agent requires:
 
 - recorded conversation URL;
 - latest, smartest available Pro model, or user-approved visible Pro model;
 - non-empty `ANSWER_FILE`;
 - visible attachment chip before submission when a package zip was uploaded;
-- answer that uses the route's evidence.
+- final answer uses the chosen route's evidence.
 
 Evidence requirements:
 
-- `repo-review`: repository paths, diff evidence, impact, and suggested fix.
+- `repo-diff-review`: repository paths, diff evidence, impact, and suggested fix.
+- `repo-context-consult`: scoped repo paths, supported claims, impact, and suggested fix or recommendation.
 - `artifact-consult`: uploaded filenames, file/page/section references when available, supported claims, and uncertainty.
 - `web-consult`: cited web URLs or source names, date-sensitive caveats, and separated inference.
 - `prompt-only`: direct answer and stated assumptions.
 
-If the answer asks for missing files, ignores an uploaded package zip, or returns suspiciously fast for a large package zip, mark it low-confidence. Inspect the visible conversation state before rerunning. Do not start duplicate runs blindly.
+If the answer asks for missing files, ignores an uploaded package zip, or returns suspiciously fast for a large package zip, the agent marks the answer low-confidence. The agent inspects the visible conversation state before rerunning. The agent does not start duplicate runs blindly.
 
 ## Verify
 
-Read `ANSWER_FILE` as a draft:
+The agent reads `ANSWER_FILE` as a draft:
 
-- verify paths, lines, pages, URLs, and quoted claims locally;
-- run focused tests or static checks when feasible;
-- separate claims in `ANSWER_FILE` from locally confirmed facts;
-- reject hallucinated or non-reproducible claims;
-- report blockers and coverage limits.
+- The agent verifies paths, lines, pages, URLs, and quoted claims locally.
+- The agent runs focused tests or static checks when feasible.
+- The agent separates claims in `ANSWER_FILE` from locally confirmed facts.
+- The agent rejects hallucinated or non-reproducible claims.
+- The agent reports blockers and coverage limits.
 
 Review report:
 
