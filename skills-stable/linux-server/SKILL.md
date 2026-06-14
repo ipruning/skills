@@ -5,7 +5,8 @@ description: "Operate Debian/Ubuntu Linux servers over SSH. Use for VPS setup, S
 
 # Linux Server
 
-First identify what the machine is: personal node, shared admin server, unclear server, container host, public app server, maintenance target, or performance-tuning target. Then use only the commands for that machine and task.
+Host role, risk state, and task mode decide which evidence to read and which
+host state may change. Classify only the labels that affect those decisions.
 
 ## Operating Rules
 
@@ -16,25 +17,36 @@ First identify what the machine is: personal node, shared admin server, unclear 
    - listeners: `ss -tulpen`
    - firewall: `ufw status verbose`, `nft list ruleset`, `iptables -S`, `ip6tables -S`
    - services: `systemctl is-active <unit>`
-4. Change one area at a time: SSH, then firewall, then packages, then services or tuning.
+4. Preserve access first for multi-area requests: SSH reachability, then
+   firewall reachability, then packages, services, or tuning. Stay inside the
+   requested area for single-area requests.
 5. If the user asks for a single-owner VPS setup, change only the requested area plus the verified access and port rules needed to keep the host reachable. Do not add compliance controls, non-root migration, SSH algorithm changes, sysctl tuning, fail2ban, or provider-account work unless the server actually has that need or the user asks.
 6. Patch within the current distro release only. Major-version upgrades need explicit user direction.
 7. Put local overrides in dedicated files: SSH in `/etc/ssh/sshd_config.d/`, sysctl in `/etc/sysctl.d/`, fail2ban in `jail.local`, systemd in unit drop-ins. Edit package-managed defaults only when the service has no override mechanism.
 
-## Identify The Machine
+## Classify The Work
 
-Name the machine type when that choice changes what gets opened, closed, or rewritten.
+Name a classification only when it changes which files or commands to inspect,
+which ports or sessions to preserve, or which config/state may be changed.
+
+- Host role: single-owner VPS, team admin server, container host, public web or
+  app server
+- Risk state: unclear or possibly compromised server
+- Task mode: maintenance window, swap work, performance or network tuning
+
+## Host Roles And Risk States
 
 ### Single-Owner VPS
 
 Personal VPS, proxy nodes, Snell/Xray boxes, and single-user web hosts are machines where the user manages root directly.
 
-Keep:
+Keep this access shape:
 
 - Allow root login by key: `PermitRootLogin prohibit-password`
 - Disable SSH passwords: `PasswordAuthentication no`, `KbdInteractiveAuthentication no`
 - Ensure key auth works: `PubkeyAuthentication yes`
-- Use `MaxAuthTries 20` for 1Password SSH agent or other multi-key agents
+- Raise `MaxAuthTries` only when a loaded-key agent can exhaust the server-side
+  attempt limit
 - Open only currently needed or explicitly planned ports
 - Do not force a non-root admin, `AllowUsers`, fail2ban, SSH algorithm lists, or sysctl tuning by default
 
@@ -44,7 +56,7 @@ For Snell VPS setup or repair, use [references/snell-vps.md](references/snell-vp
 
 A team admin server has more than one human administrator, and access must be revoked per person.
 
-Keep:
+Keep per-person access:
 
 - Create one user per human
 - Use `sudo` rather than shared root after admin access is verified
@@ -55,9 +67,9 @@ Use [references/ssh.md](references/ssh.md).
 
 ### Unclear Or Possibly Compromised Server
 
-Here, ownership, purpose, access paths, or compromise state is unclear.
+Ownership, purpose, access paths, or compromise state is unknown.
 
-First:
+Before remediation:
 
 - Collect evidence before repair
 - Do not upgrade, clean, rotate, delete, restart, or rewrite persistence until evidence is collected
@@ -69,10 +81,10 @@ Use [references/unknown-server-audit.md](references/unknown-server-audit.md).
 
 Docker, containerd, Kubernetes, x-ui, nginx-proxy-manager, and similar tools can publish ports outside the ordinary service list.
 
-Before changing rules:
+Before changing firewall rules:
 
 - Map every public port to its process, container, and firewall path
-- Remember Docker-published ports can bypass UFW input rules
+- Treat Docker-published ports as possible bypasses around UFW input rules
 - Do not add broad route rules unless a real container forwarding problem is confirmed
 
 Use [references/containers.md](references/containers.md) and [references/firewall.md](references/firewall.md).
@@ -81,7 +93,7 @@ Use [references/containers.md](references/containers.md) and [references/firewal
 
 HTTP(S), app ports, reverse proxies, and dashboards may be intentionally public.
 
-Keep:
+Preserve intended web traffic:
 
 - Keep `80/tcp` and `443/tcp` only when a listener or planned service needs them
 - Treat dashboards and admin panels as management ports; bind to localhost or restrict source only when the service has no public clients or the user confirms the allowed source range
@@ -89,11 +101,13 @@ Keep:
 
 Use [references/firewall.md](references/firewall.md) and [references/containers.md](references/containers.md) when containers are involved.
 
+## Task Modes
+
 ### Maintenance Window
 
 Package maintenance changes installed software or the schedule that updates it.
 
-First:
+Before package changes:
 
 - Use `apt-get`, not `apt`, in noninteractive commands
 - Stay within the current distro release
@@ -101,11 +115,24 @@ First:
 
 Use [references/maintenance.md](references/maintenance.md).
 
+### Swap Work
+
+Swap work changes active or persistent swap space.
+
+Before swap changes:
+
+- Check RAM, active swap devices, root disk space, and `/etc/fstab`
+- Preserve the existing swap path when resizing
+- Create a second active swap device only when the user explicitly wants
+  multiple swap devices
+
+Use [references/swap.md](references/swap.md).
+
 ### Performance Or Network Tuning
 
 Performance tuning belongs to proxy/VPN performance, BBR, sysctl, latency, throughput, or kernel/network parameter work.
 
-First:
+Before performance changes:
 
 - Measure or identify the performance goal before writing sysctls
 - Do not add copied tuning lists to an ordinary SSH or firewall change
@@ -113,7 +140,7 @@ First:
 
 Use [references/performance-tuning.md](references/performance-tuning.md).
 
-## First Read-Only Commands
+## Default Read-Only Commands
 
 When no narrower command set fits, start here:
 
@@ -143,7 +170,7 @@ When the user has asked to apply changes:
 
 ## Command Files
 
-- SSH access, 1Password agent friendliness, root policy, non-root admin migration: [references/ssh.md](references/ssh.md)
+- SSH access, multi-key agent handling, root policy, non-root admin migration: [references/ssh.md](references/ssh.md)
 - UFW/nftables, port/process alignment, rollback, listener exposure: [references/firewall.md](references/firewall.md)
 - Package updates, unattended-upgrades, needrestart, reboot checks: [references/maintenance.md](references/maintenance.md)
 - Swap inventory and resizing: [references/swap.md](references/swap.md)

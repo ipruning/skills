@@ -1,14 +1,14 @@
 # Snell VPS
 
-A good Snell VPS is plain: clean OS, one Snell service, key-only SSH, the
-ports it needs, a small proxy sysctl set, bounded logs, and swap as an OOM
-cushion. Do not turn a pure proxy node into a panel host.
+A pure Snell VPS has a clean OS, one Snell service, key-only SSH, the ports it
+needs, a small proxy sysctl set, bounded logs, and swap as an OOM cushion. Do
+not turn a pure Snell VPS into a panel host.
 
 ## First Decide The Host Type
 
-Pure Snell node:
+Pure Snell VPS:
 
-- Keep the machine small and boring.
+- Keep the host plain.
 - Do not add Docker, Nginx, panels, dashboards, heavy monitoring, or broad
   firewall lists unless the user asks.
 - Open SSH and Snell, nothing else.
@@ -42,8 +42,9 @@ copy in `PrivateDevices`, `ProtectSystem`, `RestrictAddressFamilies`, broad
 capability restrictions, `NoNewPrivileges`, or `PrivateTmp` unless the user
 asked for that hardening and the Snell UDP path has been tested afterward.
 
-Snell v5 on the existing fleet can use TCP and UDP. Snell v6 is normally
-TCP-only unless the user gives a concrete UDP need.
+Snell v5 can use TCP and UDP when the user request, Snell config,
+listener/firewall inventory, or client profile shows UDP/QUIC use. Snell v6 is
+normally TCP-only unless the user gives a concrete UDP need.
 
 ## SSH
 
@@ -54,28 +55,29 @@ PermitRootLogin prohibit-password
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 PubkeyAuthentication yes
-MaxAuthTries 20
+MaxAuthTries <N>
 ```
 
-`MaxAuthTries 20` is there for 1Password SSH agent and other multi-key agents.
-Do not force non-root admin users or `AllowUsers` onto a single-owner proxy
-node unless the user asks.
+Raise `MaxAuthTries` only when a loaded-key agent can exhaust the server-side
+attempt limit. Set `<N>` from observed offered-key count and operator policy.
+Do not force non-root admin users or `AllowUsers` onto a single-owner Snell VPS
+unless the user asks.
 
 ## Firewall
 
-For a pure Snell v5 node using port `14180`:
+For a pure Snell v5 VPS using the configured Snell port:
 
 ```text
 22/tcp
-14180/tcp
-14180/udp
+<snell-port>/tcp
+<snell-port>/udp
 ```
 
 For Snell v6 without a UDP requirement:
 
 ```text
 22/tcp
-14180/tcp
+<snell-port>/tcp
 ```
 
 UFW and nftables are both fine. Keep one clear owner for host firewall rules.
@@ -93,13 +95,13 @@ net.ipv4.tcp_congestion_control = bbr
 net.core.somaxconn = 8192
 net.ipv4.tcp_max_syn_backlog = 8192
 net.ipv4.ip_local_port_range = 20000 65000
-net.ipv4.ip_local_reserved_ports = 22,14180
+net.ipv4.ip_local_reserved_ports = 22,<snell-port>
 net.ipv4.tcp_mtu_probing = 1
 net.ipv4.tcp_syncookies = 1
 ```
 
-Confirm BBR support and sysctl writability before writing. If the Snell port is
-not `14180`, reserve the real port instead.
+Confirm BBR support and sysctl writability before writing. Reserve the real
+Snell port, not a copied example port.
 
 Do not make `nf_conntrack_max` a required baseline. Raise it only when Docker,
 NAT, stateful firewall rules, or observed conntrack pressure justify it.
@@ -116,16 +118,17 @@ SystemMaxUse=256M
 RuntimeMaxUse=64M
 ```
 
-Use 2-4 GiB swap on small VPSes as a crash cushion. Swap is not a throughput
-tuning. If swap is already present and idle, leave it alone.
+For small Snell VPSes, use [swap.md](swap.md) sizing. 2 GiB is normal; 4 GiB
+needs prior OOM evidence, the user's fleet convention, and enough disk. Swap is
+not a throughput tuning. If swap is already present and idle, leave it alone.
 
 ## Do Not Do This By Default
 
 | Do not | Reason |
 | --- | --- |
 | Add complex systemd sandboxing | It can break Snell v5 UDP/QUIC |
-| Close UDP on v5 without checking | Existing v5 UDP/QUIC nodes may need it |
+| Close UDP on v5 without checking | v5 UDP/QUIC deployments may need it |
 | Upgrade a stable fleet to v6 | Treat v6 as a deliberate change, not cleanup |
-| Tighten an app/container host like a pure proxy node | Docker and app ports may be real traffic |
+| Tighten an app/container host like a pure Snell VPS | Docker and app ports may be real traffic |
 | Tune conntrack without evidence | It is not the normal bottleneck on a plain Snell node |
 | Copy large sysctl lists | They hide risk and rarely solve the real bottleneck |
