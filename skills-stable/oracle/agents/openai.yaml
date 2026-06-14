@@ -1,4 +1,4 @@
 interface:
-  display_name: "Oracle（外部咨询）"
-  short_description: "用已登录 Chrome 向最新 Pro 模型发起一次外部咨询"
+  display_name: "Oracle 外部咨询"
+  short_description: "用已登录 Chrome 向最新 Pro 模型咨询，并本地核验回答"
   default_prompt: "使用 $oracle 选择合适咨询路线，必要时打包并上传本地证据，等待完整回答，再用本地证据核验结论。"
