@@ -295,7 +295,9 @@ def read_kv(path: Path) -> dict[str, str]:
 def int_value(value: Any, default: int = 0) -> int:
     try:
         return int(str(value).strip())
-    except TypeError, ValueError:
+    except TypeError:
+        return default
+    except ValueError:
         return default
 
 
@@ -612,13 +614,16 @@ def build_findings(facts: dict[str, Any]) -> list[dict[str, Any]]:
             )
         )
 
-    if ssh["max_auth_tries"] and ssh["max_auth_tries"] < 20:
+    if ssh["max_auth_tries"] and ssh["max_auth_tries"] < 10:
         findings.append(
             finding(
-                "ssh.max_auth_tries_low_for_1password",
+                "ssh.max_auth_tries_may_block_multi_key_agent",
                 "low",
                 [f"MaxAuthTries={ssh['max_auth_tries']}"],
-                "if 1Password SSH agent retries are painful, set MaxAuthTries 20 after keeping a live session open",
+                (
+                    "if multi-key SSH agent retries are failing, raise MaxAuthTries "
+                    "according to operator policy after keeping a live session open"
+                ),
             )
         )
 

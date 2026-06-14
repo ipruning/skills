@@ -4,34 +4,30 @@ description: |
   Read-only diagnosis for Surge/Snell failures on the user's macOS Surge path
   and Snell VPS evidence. Use for Snell v5/v6 listener checks, systemd UDP crash
   evidence, local Surge policy smoke tests, macOS Surge DNS/proxy/Enhanced Mode
-  failures, and post-audit manual operator action plans. Do not use this Skill
-  to change local Surge/macOS network state, apply VPS changes, restart
-  services, install software, or tune servers.
+  failures, and post-audit manual operator action plans. Not for changing local
+  Surge/macOS network state, applying VPS changes, restarting services,
+  installing software, or tuning servers.
 ---
 
 # Surge
 
-Choose the path before reading references or running commands.
+Identify the request type before reading references or running commands: Surge
+CLI help, local macOS Surge triage, or Snell VPS evidence.
 
-## Surge App-Bundled Skill
+## Surge CLI Help And Output
 
-Use this route only for ordinary Surge CLI operations that do not involve macOS
-network triage, Snell VPS evidence, or local Surge policy smoke tests. Do not
-carry a repo-local copy of the Surge app-bundled Skill.
-
-Check the Surge app-bundled Skill:
+Surge CLI help and CLI output questions need the CLI manual or installed CLI,
+not macOS network triage. When the request does not involve macOS network
+triage, Snell VPS evidence, or local Surge policy smoke tests, inspect the
+app-bundled Surge documentation if present:
 
 ```bash
 test -f /Applications/Surge.app/Contents/Resources/Skills/surge/SKILL.md
 ```
 
-If the file exists, read
-`/Applications/Surge.app/Contents/Resources/Skills/surge/SKILL.md` and follow
-the Surge app-bundled Skill. If it does not exist, proceed from the local
-`surge-cli` executable that is actually available:
-
-1. `surge-cli` in `PATH`
-2. `/Applications/Surge.app/Contents/Applications/surge-cli`
+If that file is unavailable, answer from the `surge-cli` executable that is
+actually available in `PATH` or at
+`/Applications/Surge.app/Contents/Applications/surge-cli`.
 
 ## macOS Surge Network Triage
 
@@ -40,26 +36,32 @@ named by the user, or plausibly the local proxy or DNS boundary, read
 [macOS Surge Network Triage](references/macos-network-triage.md) before
 diagnosing or reporting local proxy, DNS, or Enhanced Mode failures.
 
-For ordinary Linux server networking, do not use this Skill for generic OS
-triage. Use the server's normal tools and facts.
+For non-Surge, non-Snell Linux networking, or any task that changes VPS state
+such as firewall rules, sysctls, systemd restarts, package installs, or server
+tuning, hand off to `$linux-server` or `$exe-dot-dev` when available. Pass audit
+evidence and manual action plans, but do not run those server changes here.
 
 ## Snell VPS Evidence Audit
 
 1. Read [Snell VPS Evidence Audit](references/snell-vps-triage.md) before judging a
    VPS, Snell systemd service, UDP behavior, firewall exposure, proxy sysctls,
-   or local Surge policy path to a Snell endpoint.
-2. Use `scripts/snell_audit.py` with `uv run --script` to collect evidence.
+   local Surge policy path, legacy fields, or `Decryption failed` lines for a
+   Snell endpoint.
+2. Use `audit-snell` for one VPS or `audit-fleet` for a host file:
+
+   ```bash
+   uv run --script "$SKILL_DIR/scripts/snell_audit.py" audit-snell --host root@203.0.113.10 --out /tmp/surge-snell-runs
+   uv run --script "$SKILL_DIR/scripts/snell_audit.py" audit-fleet --hosts ./snell-hosts.txt --out /tmp/surge-snell-runs
+   ```
+
 3. Open `audit.json`. Read `facts`, `findings`, `evidence_paths`, and
    `recommended_manual_actions`.
-4. If a repair is needed, run `render-repair-plan --audit <audit.json>`. The
-   command prints manual actions. It does not run them.
-5. Use `smoke-surge` for local Surge policy smoke tests. It does not touch the
-   VPS.
+4. If a repair is needed, run
+   `uv run --script "$SKILL_DIR/scripts/snell_audit.py" render-repair-plan --audit <audit.json>`.
+   The command prints manual actions. It does not run them.
+5. Use
+   `uv run --script "$SKILL_DIR/scripts/snell_audit.py" smoke-surge --policy <policy-name>`
+   for local Surge policy smoke tests. It does not touch the VPS.
 
 Keep endpoint IPs, PSKs, profile names, and inventories in the user's task or
 private config. Audit logs must not contain plaintext Snell PSKs.
-
-## Snell Rules
-
-Use [Snell VPS Evidence Audit](references/snell-vps-triage.md) for Snell v5/v6
-listener, UDP, legacy-field, and `Decryption failed` judgment.
