@@ -1,14 +1,14 @@
 ---
 name: oracle
-description: "Use for one bounded ChatGPT Pro consultation in Chrome. Applies when the user asks for Oracle/神谕, a Pro second opinion, a PR/repo/dirty-worktree audit, architecture or code review, paper/source/archive analysis, document bundle review, or web-backed research with an uploaded package zip."
+description: "Use when the user explicitly asks for Oracle/神谕, ChatGPT Pro, a Pro second opinion, or one bounded external consultation through the user's logged-in Chrome session."
 ---
 
-ChatGPT Pro reads the prompt text and uploaded package zip in Chrome. Verify claims in the saved answer before reporting them.
+Choose the consultation route, package only needed evidence, submit it to the latest, smartest available Pro model in Chrome, save the answer, and verify it locally before reporting.
 
 ## Rules
 
 - Use the user's logged-in Chrome session.
-- Use ChatGPT Pro, Pro Extended, or another Pro model approved by the user.
+- Use the latest, smartest available Pro model by default. Use another Pro model only when the user approves it or the latest Pro model is unavailable.
 - Do not use API mode.
 - Do not click `Answer now` or any control that shortens Pro thinking.
 - Treat visible ChatGPT activity as status. Do not call it a chain of thought.
@@ -25,8 +25,8 @@ Choose one route before opening ChatGPT.
 
 | Route              | Input                                                                            | Package                                             |
 | ------------------ | -------------------------------------------------------------------------------- | --------------------------------------------------- |
-| `repo-review`      | PR, repo, dirty worktree, architecture review, code review                       | repo package zip from `scripts/zip.py`              |
-| `artifact-consult` | Paper source, LaTeX, PDF, downloaded zip, folder, dataset, non-Git local files   | artifact package zip from `scripts/artifact_zip.py` |
+| `repo-review`      | PR, repo, dirty worktree, architecture review, code review                       | repo package zip from `scripts/repo_zip.py`         |
+| `artifact-consult` | Paper source files, LaTeX, PDF, downloaded zip, folder, dataset, non-Git files   | artifact package zip from `scripts/artifact_zip.py` |
 | `web-consult`      | ChatGPT Pro should search, compare cited web sources, or challenge an assumption | optional artifact package zip                       |
 | `prompt-only`      | No local files or URLs improve the answer                                        | none                                                |
 
@@ -72,12 +72,12 @@ Build the repo package zip:
 
 ```sh
 ORACLE_SKILL_DIR="<directory containing this SKILL.md>"
-ZIP_FILE="$(uv run --script "$ORACLE_SKILL_DIR/scripts/zip.py" \
+ZIP_FILE="$(uv run --script "$ORACLE_SKILL_DIR/scripts/repo_zip.py" \
   --prompt "$PROMPT_FILE" \
   --output "$ORACLE_WORK_DIR")"
 ```
 
-`scripts/zip.py` writes the package zip path to stdout. Inside the package zip, the package root contains `AGENTS.md`, and the repository checkout below it includes `.git`.
+`scripts/repo_zip.py` writes the package zip path to stdout. Inside the package zip, the package root contains `AGENTS.md`, and the repository checkout below it includes `.git`.
 
 ## Artifact Consult
 
@@ -89,7 +89,7 @@ Write `PROMPT_FILE` with:
 - local file names and what they contain;
 - requested output;
 - whether web search is allowed or required;
-- `Do not invent claims that are not supported by attached artifacts or cited web sources.`
+- `Do not invent claims that are not supported by files inside the uploaded package zip or cited web sources.`
 
 Build the artifact package zip:
 
@@ -118,7 +118,7 @@ Write `PROMPT_FILE` with:
 - output format;
 - `Separate cited web claims from your own inferences.`
 
-If local notes, screenshots, exports, or source files anchor the question, use `artifact-consult`.
+If non-Git local notes, screenshots, exports, or source files anchor the question, use `artifact-consult`. Use `repo-review` for Git repositories, code review, and architecture review.
 
 ## Prompt Only
 
@@ -136,7 +136,7 @@ Write `PROMPT_FILE` with:
 
 1. Open a fresh `https://chatgpt.com/` tab.
 2. Confirm ChatGPT is logged in. If not, report `chatgpt_login_required`.
-3. Confirm the composer model is Pro, Pro Extended, or a user-approved Pro model. If not, report `model_not_pro`.
+3. Confirm the composer model is the latest, smartest available Pro model, or another Pro model approved by the user. If not, report `model_not_pro`.
 4. If the route built a package zip, open `Add files and more` -> `Upload photos & files`, upload `ZIP_FILE`, and confirm the attachment chip shows the zip filename.
 5. Paste the contents of `PROMPT_FILE`.
 6. Submit.
@@ -196,7 +196,7 @@ If DOM extraction fails or returns only visible text, use ChatGPT's copy control
 Require:
 
 - recorded conversation URL;
-- ChatGPT Pro, Pro Extended, or user-approved visible model;
+- latest, smartest available Pro model, or user-approved visible Pro model;
 - non-empty `ANSWER_FILE`;
 - visible attachment chip before submission when a package zip was uploaded;
 - answer that uses the route's evidence.
