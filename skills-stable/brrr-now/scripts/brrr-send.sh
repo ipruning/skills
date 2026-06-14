@@ -142,12 +142,25 @@ fields = {
 }
 
 payload = {key: value for key, value in fields.items() if value}
+interruption_level = values["interruption_level"]
+if interruption_level and interruption_level not in {
+    "passive",
+    "active",
+    "time-sensitive",
+    "critical",
+}:
+    print("interruption_level must be passive, active, time-sensitive, or critical", file=sys.stderr)
+    sys.exit(2)
+
 volume = values["volume"]
 if volume:
     try:
         payload["volume"] = float(volume)
     except ValueError:
         print("volume must be numeric", file=sys.stderr)
+        sys.exit(2)
+    if payload["volume"] < 0 or payload["volume"] > 1:
+        print("volume must be between 0 and 1", file=sys.stderr)
         sys.exit(2)
 
 print(json.dumps(payload, separators=(",", ":")))

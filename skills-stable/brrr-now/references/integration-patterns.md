@@ -1,6 +1,6 @@
 # brrr Integration Patterns
 
-Use this reference when the user wants notifications to be part of real work, not just a one-off test.
+Real-work notifications need a hook that observes completion, failure, liveness, or queue task outcome. One-off tests can call the sender directly.
 
 ## Choose the hook
 
@@ -18,7 +18,7 @@ The hook must observe the real event. A launcher process succeeding does not pro
 
 ## One-off commands
 
-For temporary agent work, copy `scripts/brrr-send.sh` to a temp directory and call it by absolute path:
+Temporary agent work copies `scripts/brrr-send.sh` to a temp directory and calls that copy by absolute path:
 
 ```bash
 tmpdir="$(mktemp -d)"
@@ -35,9 +35,9 @@ else
 fi
 ```
 
-Do not leave one-off helpers on `PATH`.
+One-off helpers stay off `PATH`.
 
-For delayed one-off notifications, dry-run the final command before sleeping:
+Delayed one-off notifications dry-run the final command before sleeping:
 
 ```bash
 "$tmpdir/brrr-send.sh" --dry-run \
@@ -54,11 +54,11 @@ sleep 60
 
 The helper accepts flags, not positional JSON.
 
-`--dry-run` validates the payload shape even when auth is not configured. If it prints `auth_mode=unconfigured`, fix setup before relying on a real notification.
+`--dry-run` validates the payload shape even when auth is not configured. If it prints `auth_mode=unconfigured`, fix delivery configuration before relying on a real notification.
 
 ## Bash scripts
 
-Use an `ERR` trap when the script is written for `bash` and uses `set -eE -o pipefail`:
+An `ERR` trap fits scripts written for `bash` with `set -eE -o pipefail`:
 
 ```bash
 #!/usr/bin/env bash
@@ -83,21 +83,21 @@ Important: in bash, a direct `exit N` may bypass the `ERR` trap. If a failure sh
 
 ## Secret locations
 
-Use the narrowest secret scope that matches the runtime:
+Secret storage uses the narrowest scope that matches the runtime:
 
 | Runtime                     | Recommended storage                                                                      |
 | --------------------------- | ---------------------------------------------------------------------------------------- |
 | exe.dev VM                  | No brrr secret. Use the HTTP Proxy integration.                                          |
-| Current interactive shell   | `read -rsp "brrr secret: " BRRR_SECRET; export BRRR_SECRET`                              |
+| Current interactive shell   | Ask the user to run `read -rsp "brrr secret: " BRRR_SECRET; export BRRR_SECRET` locally  |
 | Project local dev           | Untracked local env such as `.env.local`, `.mise/config.local.toml`, or a secret manager |
 | Root-owned host service     | `/root/.config/notify/brrr.env`, mode `600`                                              |
 | Service-specific Linux unit | `/etc/<app>/notify.env`, root-owned, mode `600`                                          |
 | User systemd unit           | `%h/.config/notify/brrr.env`, mode `600`                                                 |
 
-For files consumed by both systemd `EnvironmentFile=` and bash `source`, single-quote values:
+Files consumed by both systemd `EnvironmentFile=` and bash `source` use single-quoted values:
 
 ```bash
-BRRR_SECRET='br_usr_a1b2c3d4e5f6g7h8i9j0'
+BRRR_SECRET='<brrr-secret>'
 ```
 
 Single quotes keep the file safe for both bash and systemd parsing. Do not store secrets in `.bashrc` by default; shell profiles are not loaded by cron or systemd and are too broad for service secrets.

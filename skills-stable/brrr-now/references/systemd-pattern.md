@@ -1,10 +1,10 @@
 # brrr systemd Pattern
 
-Use this reference for long-running Linux hosts, daemons, and cron replacements. Prefer explicit absolute paths. Do not rely on a user shell `PATH`.
+Long-running Linux hosts, daemons, and cron replacements need explicit absolute paths and systemd-owned environment files. A user shell `PATH` is not part of the service contract.
 
 ## Environment file
 
-Create a root-owned file outside the repo:
+A root-owned environment file lives outside the repo:
 
 ```bash
 install -d -m 700 /root/.config/notify
@@ -14,10 +14,10 @@ install -m 600 /dev/null /root/.config/notify/brrr.env
 Example content:
 
 ```bash
-BRRR_SECRET='br_usr_a1b2c3d4e5f6g7h8i9j0'
+BRRR_SECRET='<brrr-secret>'
 ```
 
-Use `BRRR_SECRET` for public API sends. Avoid secret-bearing URLs.
+Public API sends use `BRRR_SECRET`. Secret-bearing URLs stay out of unit files.
 
 ## Failure notifier service
 
@@ -62,7 +62,7 @@ ${context}"
 
 `notify-brrr-unit` is a small systemd-specific wrapper around the general `/usr/local/libexec/brrr-send` sender. Keep the sender generic and put unit-name, journal, and host context in the wrapper.
 
-Add this to any service that should notify on failure:
+Services that should notify on failure include this unit dependency:
 
 ```ini
 [Unit]
@@ -73,7 +73,7 @@ StandardOutput=journal
 StandardError=journal
 ```
 
-Use `%p` so `notify-brrr@%p.service` receives the unit prefix without `.service`. For templated units or non-service units, verify the expanded unit name before relying on this template; adjust the wrapper if `%p` drops instance details you need.
+`%p` gives `notify-brrr@%p.service` the unit prefix without `.service`. Templated units and non-service units need an expanded-name check before the template becomes reliable; the wrapper needs adjustment when `%p` drops required instance details.
 
 ## Heartbeat
 
