@@ -1,4 +1,4 @@
 interface:
-  display_name: "Demand Audit（需求审计）"
+  display_name: "需求审计"
   short_description: "审计产品想法、功能请求、创业方向和 MVP 的真实需求与采用风险"
   default_prompt: "使用 $demand-audit 审计产品想法、功能请求、创业方向或 MVP 的真实需求、证据质量、采用风险和最小验证步骤。"
