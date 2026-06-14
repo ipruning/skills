@@ -20,7 +20,7 @@ For small proxy/VPS nodes:
 
 - 1 GiB RAM: use 2 GiB swap when `/` has at least 4 GiB free after allocation; use 4 GiB only when fleet convention or prior OOM evidence calls for it and `/` has at least 8 GiB free after allocation.
 - 2 GiB RAM: use 2 GiB swap when no fleet convention exists; use 4 GiB only when prior OOM evidence exists and `/` has at least 8 GiB free after allocation.
-- Match an existing fleet convention when the user asks for consistency.
+- Match the user's fleet convention when the user asks for consistency.
 - Do not oversize swap on tiny disks or write-heavy workloads without checking disk space.
 
 Swap prevents abrupt OOM kills; it is not a performance substitute for RAM.

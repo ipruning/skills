@@ -6,7 +6,7 @@ SSH work decides who can log in, how root logs in, how many keys the server lets
 
 - Read effective state
 - Single-owner VPS
-- 1Password and multi-key agents
+- Multi-key agents
 - Change SSH config
 - Team admin transition
 - SSH settings that need a reason
@@ -34,21 +34,23 @@ PubkeyAuthentication yes
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 PermitRootLogin prohibit-password
-MaxAuthTries 20
+MaxAuthTries <N>
 ```
 
 `PermitRootLogin prohibit-password` means root can still log in by key, but root password login is blocked.
 
 Do not add `PermitRootLogin no`, `AllowUsers`, or `AllowGroups` unless the user wants that model and an alternate admin path has been verified from a fresh session.
 
-## 1Password And Multi-Key Agents
+## Multi-Key Agents
 
-1Password SSH agent and other loaded-key agents can offer many candidate keys. A low server-side `MaxAuthTries` can close the connection before the correct key is attempted.
+Loaded-key agents can offer many candidate keys. A low server-side
+`MaxAuthTries` can close the connection before the correct key is attempted.
 
-Set on single-owner VPS hosts when the user uses 1Password SSH agent or another multi-key agent:
+Raise `MaxAuthTries` on single-owner VPS hosts only when the user's SSH agent
+can exhaust the server-side attempt limit:
 
 ```text
-MaxAuthTries 20
+MaxAuthTries <N>
 ```
 
 When server-side `MaxAuthTries` cannot be raised, or when the user wants fewer offered keys, add a host-specific client rule:
@@ -57,7 +59,7 @@ When server-side `MaxAuthTries` cannot be raised, or when the user wants fewer o
 Host <HOST_ALIAS>
   HostName <HOSTNAME_OR_IP>
   User root
-  IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"
+  IdentityAgent "<agent-socket>"
   IdentityFile ~/.ssh/<HOST_ALIAS>.pub
   IdentitiesOnly yes
 ```
@@ -75,17 +77,20 @@ ls -la /etc/ssh/sshd_config.d/
 sed -n '1,200p' /etc/ssh/sshd_config.d/*.conf 2>/dev/null
 ```
 
+Set `MAX_AUTH_TRIES` to an integer that fits the observed SSH agent and the operator policy before writing the drop-in.
+
 Persistent impact: writes `/etc/ssh/sshd_config.d/90-linux-server-access.conf` and changes effective SSH authentication policy until the drop-in is removed or replaced and `sshd` is reloaded.
 
 ```bash
+: "${MAX_AUTH_TRIES:?set MAX_AUTH_TRIES before writing SSH config}"
 install -d -m 755 -o root -g root /etc/ssh/sshd_config.d
 cp -a /etc/ssh/sshd_config.d/90-linux-server-access.conf /etc/ssh/sshd_config.d/90-linux-server-access.conf.bak.$(date +%Y%m%d%H%M%S) 2>/dev/null || true
-cat >/etc/ssh/sshd_config.d/90-linux-server-access.conf <<'EOF'
+cat >/etc/ssh/sshd_config.d/90-linux-server-access.conf <<EOF
 PubkeyAuthentication yes
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 PermitRootLogin prohibit-password
-MaxAuthTries 20
+MaxAuthTries $MAX_AUTH_TRIES
 EOF
 sshd -t
 systemctl reload ssh

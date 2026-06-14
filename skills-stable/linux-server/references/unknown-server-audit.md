@@ -20,7 +20,8 @@ Start read-only. Do not upgrade, clean, delete, rotate, restart, or rewrite pers
 
 Keep the current SSH session open.
 
-Optional active collection setup:
+Only create the `audit` tmux session when the user approves active collection or
+the audit must continue after disconnect.
 
 Runtime impact: creates a detached `tmux` session named `audit` until it is killed or the host reboots.
 

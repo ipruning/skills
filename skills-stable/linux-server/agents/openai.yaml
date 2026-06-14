@@ -1,4 +1,4 @@
 interface:
-  display_name: "Linux Server（服务器运维）"
+  display_name: "Linux 服务器运维"
   short_description: "维护 Linux VPS 的 SSH、防火墙、swap、更新和端口暴露"
   default_prompt: "使用 $linux-server 处理 Debian/Ubuntu VPS：先判断机器是什么，再检查或修改 SSH、防火墙、swap、系统更新、容器端口和代理/VPN 调优。"
