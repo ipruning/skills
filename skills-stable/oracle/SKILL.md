@@ -1,225 +1,239 @@
 ---
 name: oracle
-description: "Ask Oracle for one bounded external second opinion through ChatGPT browser mode after local inspection. Default for PR/repo/dirty-worktree review is a repo zip attachment built with scripts/zip.py. Browser only."
+description: "Use for one bounded ChatGPT Pro consultation in Chrome. Applies when the user asks for Oracle/神谕, a Pro second opinion, a PR/repo/dirty-worktree audit, architecture or code review, paper/source/archive analysis, document bundle review, or web-backed research with an uploaded package zip."
 ---
 
-Oracle is not the source of truth. Treat its answer as leads, then verify important claims locally.
-
-## Local Oracle CLI
-
-Use the installed `oracle` command in the workflow below. On a new macOS machine,
-install or update the Jihuanshe fork with mise-managed Node/npm:
-
-```sh
-mise use -g node@24
-mise exec -- npm install -g https://github.com/jihuanshe/oracle/releases/download/v0.13.1/oracle-0.13.1.tgz
-oracle --version
-```
-
-If a machine previously installed the early fork tarball `v0.13.0`, migrate once
-by removing the old upstream-scoped package and installing the Jihuanshe package:
-
-```sh
-mise exec -- npm uninstall -g @steipete/oracle @jihuanshe/oracle || true
-mise exec -- npm install -g https://github.com/jihuanshe/oracle/releases/download/v0.13.1/oracle-0.13.1.tgz
-```
-
-After that, invoke Oracle as `oracle ...`; do not use `npx -y @steipete/oracle`
-unless you intentionally want the upstream package instead of the Jihuanshe fork.
-If `oracle` fails with a mise shim/runtime error, run `mise use -g node@24`, then
-rerun the same command as `mise exec -- oracle ...`.
+ChatGPT Pro reads the prompt text and uploaded package zip in Chrome. Verify claims in the saved answer before reporting them.
 
 ## Rules
 
-- Use browser mode only.
-- For PR review, repo review, dirty-worktree review, architecture review, or "audit/review this repo/PR", prefer a repository zip attachment with `.git`. The intent is to let Pro explore the repo in its browser sandbox instead of pre-flattening the evidence.
-- Do not use `--browser-inline-files` for zip packages.
-- If browser automation fails before prompt submission, report that Oracle did not run; do not present it as a model result.
-- Do not start duplicate Oracle runs for the same slug/prompt. Before any rerun or compact fallback, inspect the existing session state with `oracle session <slug> --harvest` or `--live`; top-level `running` is not enough evidence to rerun.
-- Treat the browser tab as the source of truth after a browser run starts. A local shell timeout or stale session list can leave the session metadata at `running` even when ChatGPT later completed.
-- If any session for the requested review has `promptSubmitted: true`, do not start another run or compact fallback unless ChatGPT/browser explicitly rejects the uploaded file, the browser disconnects before completion, or the user asks to rerun with a smaller package.
+- Use the user's logged-in Chrome session.
+- Use ChatGPT Pro, Pro Extended, or another Pro model approved by the user.
+- Do not use API mode.
+- Do not click `Answer now` or any control that shortens Pro thinking.
+- Treat visible ChatGPT activity as status. Do not call it a chain of thought.
+- Build a package zip when local files affect the answer. Do not paste zip contents inline.
+- For PR, repo, dirty-worktree, and architecture reviews, build a repo package zip that contains `.git`.
+- For papers, archives, PDFs, source folders, datasets, and document packs, build an artifact package zip.
+- Use `references/cli.md` only when Chrome control is unavailable, the environment is shell-only, or the user asks for Oracle CLI.
+- Report `chrome_extension_unavailable`, `chrome_upload_permission_missing`, `chatgpt_login_required`, or `model_not_pro` when that blocker appears.
+- Before submission, collect the scope, build the package zip, and write the prompt text. After the ChatGPT answer is saved, inspect files and run focused checks.
 
-## Workflow
+## Route
 
-Inspect the local boundary before calling Oracle:
+Choose one route before opening ChatGPT.
+
+| Route              | Input                                                                            | Package                                             |
+| ------------------ | -------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `repo-review`      | PR, repo, dirty worktree, architecture review, code review                       | repo package zip from `scripts/zip.py`              |
+| `artifact-consult` | Paper source, LaTeX, PDF, downloaded zip, folder, dataset, non-Git local files   | artifact package zip from `scripts/artifact_zip.py` |
+| `web-consult`      | ChatGPT Pro should search, compare cited web sources, or challenge an assumption | optional artifact package zip                       |
+| `prompt-only`      | No local files or URLs improve the answer                                        | none                                                |
+
+If the user's request changes the files, refs, or URLs in scope, resolve the scope before building a package zip.
+
+## Work Directory
 
 ```sh
-git status --short
-git diff --stat
-git diff --name-only <base>..HEAD
-```
-
-For dirty worktrees, inspect `git diff` and untracked files before the run. After Oracle returns, run `git status --short` again; if the dirty scope changed, review the new diff locally and state the coverage boundary.
-
-Create a temporary work directory:
-
-```sh
-ORACLE_WORK_DIR="${TMPDIR:-/tmp}/oracle-work"
+ORACLE_WORK_DIR="${TMPDIR:-/tmp}/oracle-work/<short-slug>"
 mkdir -p "$ORACLE_WORK_DIR"
+PROMPT_FILE="$ORACLE_WORK_DIR/PROMPT.md"
+ANSWER_FILE="$ORACLE_WORK_DIR/answer.md"
 ```
 
-Write a short `$ORACLE_WORK_DIR/PROMPT.md`. Include:
+## Repo Review
 
-- project/problem;
-- exact review boundary, including base/head/branch or dirty-worktree scope, so Pro can inspect it with git in the attached repo; for PRs, tell Pro which refs to compare, for example `git diff $(git merge-base HEAD origin/main)..HEAD`;
-- what to audit;
-- desired output format;
-- "Do not invent findings without repository evidence."
+Resolve the review base. Use the user's PR base when present. Otherwise use `ORACLE_BASE_REF`, then `origin/main`.
 
-Patch/stat files are usually not needed when the attached repo has `.git`; they duplicate information Pro can derive with `git diff`. Put boundary details and any necessary external context in the prompt. The review object should still be the Git repo, not a flattened patch bundle.
+```sh
+BASE_REF="${ORACLE_BASE_REF:-origin/main}"
+git rev-parse --verify "$BASE_REF"
+BASE_SHA="$(git merge-base HEAD "$BASE_REF")"
+HEAD_SHA="$(git rev-parse HEAD)"
+git status --short
+git branch --show-current
+git diff --stat "$BASE_SHA..HEAD"
+git diff --name-only "$BASE_SHA..HEAD"
+```
 
-Build the zip with the bundled helper, resolved relative to this `SKILL.md`:
+If `git rev-parse` or `git merge-base` fails, ask for the base ref. For a dirty worktree, inspect `git diff` and untracked files before building the repo package zip. After the ChatGPT answer is saved, run `git status --short`; if the dirty scope changed, report the covered scope.
+
+Write `PROMPT_FILE` with:
+
+- repository name and task;
+- base ref, base SHA, head branch, and head SHA;
+- exact review command, such as `git diff <base-sha>..HEAD`;
+- dirty-worktree scope, when present;
+- review focus;
+- finding-first output format;
+- `Do not invent findings without repository evidence.`
+
+Build the repo package zip:
 
 ```sh
 ORACLE_SKILL_DIR="<directory containing this SKILL.md>"
-uv run --script "$ORACLE_SKILL_DIR/scripts/zip.py" \
-  --prompt "$ORACLE_WORK_DIR/PROMPT.md" \
-  --output "$ORACLE_WORK_DIR"
+ZIP_FILE="$(uv run --script "$ORACLE_SKILL_DIR/scripts/zip.py" \
+  --prompt "$PROMPT_FILE" \
+  --output "$ORACLE_WORK_DIR")"
 ```
 
-`scripts/zip.py` creates a package zip with a root `AGENTS.md` and the repository checkout one directory below it. The checkout includes `.git`, and the original repository contents are left intact.
+`scripts/zip.py` writes the package zip path to stdout. Inside the package zip, the package root contains `AGENTS.md`, and the repository checkout below it includes `.git`.
 
-- `--prompt` is required and becomes the package root `AGENTS.md`;
-- `--output` / `-o` selects the output directory and defaults to `<system-temp>/oracle-work`;
-- no additional context directory is created.
+## Artifact Consult
 
-Dry-run as an uploaded attachment:
+Use local files or directories as evidence in the artifact package zip.
+
+Write `PROMPT_FILE` with:
+
+- question;
+- local file names and what they contain;
+- requested output;
+- whether web search is allowed or required;
+- `Do not invent claims that are not supported by attached artifacts or cited web sources.`
+
+Build the artifact package zip:
 
 ```sh
-oracle --engine browser --model gpt-5.5-pro \
-  --browser-attachments always \
-  --max-file-size-bytes 104857600 \
-  --dry-run summary --files-report \
-  --file "$ORACLE_WORK_DIR/<repo-zip>.zip" \
-  --prompt 'Review the attached repository zip. Follow the package root AGENTS.md instructions first. Return concrete findings first with file/path evidence.'
+ORACLE_SKILL_DIR="<directory containing this SKILL.md>"
+ZIP_FILE="$(uv run --script "$ORACLE_SKILL_DIR/scripts/artifact_zip.py" \
+  --prompt "$PROMPT_FILE" \
+  --output "$ORACLE_WORK_DIR" \
+  --name "<short-slug>" \
+  --file /path/to/artifact-or-directory)"
 ```
 
-Proceed only if the dry-run says `Attachments to upload`. If it reports inline zip content, stop and fix the command.
+Repeat `--file` for multiple inputs. Inside the package zip, the package root contains `AGENTS.md`, `sources.md`, and `artifacts/`.
 
-Run Oracle with the same attachment flags:
+For a remote paper, source zip, or dataset URL, download the file first, record the URL in `PROMPT_FILE`, then add the downloaded file to the artifact package zip.
+
+## Web Consult
+
+Use web search when ChatGPT Pro should search or compare external sources.
+
+Write `PROMPT_FILE` with:
+
+- question;
+- constraints and excluded assumptions;
+- whether web search is required;
+- output format;
+- `Separate cited web claims from your own inferences.`
+
+If local notes, screenshots, exports, or source files anchor the question, use `artifact-consult`.
+
+## Prompt Only
+
+Use this route when no local file, URL, or repository scope improves the answer.
+
+Write `PROMPT_FILE` with:
+
+- question;
+- assumptions ChatGPT Pro may use;
+- assumptions ChatGPT Pro must not use;
+- output format;
+- `State assumptions before conclusions.`
+
+## Chrome Run
+
+1. Open a fresh `https://chatgpt.com/` tab.
+2. Confirm ChatGPT is logged in. If not, report `chatgpt_login_required`.
+3. Confirm the composer model is Pro, Pro Extended, or a user-approved Pro model. If not, report `model_not_pro`.
+4. If the route built a package zip, open `Add files and more` -> `Upload photos & files`, upload `ZIP_FILE`, and confirm the attachment chip shows the zip filename.
+5. Paste the contents of `PROMPT_FILE`.
+6. Submit.
+7. Record the conversation URL.
+8. Wait.
+
+When uploading a package zip, use the visible upload menu first. Do not start with hidden file inputs such as `#upload-files`; that path can reset the browser control session. If the visible menu cannot open a file chooser, reconnect Chrome once and retry the visible menu.
+
+If Chrome reports `Browser is not available: extension` or `native pipe is closed`, reconnect the extension once. If it still fails, report `chrome_extension_unavailable`.
+
+If upload fails with `Not allowed`, report `chrome_upload_permission_missing` and tell the user:
+
+```text
+Open chrome://extensions, click Details under the Codex extension, and enable "Allow access to file URLs."
+```
+
+## Wait
+
+After submission, poll every 3-5 minutes. Do not press page controls while the answer is generating.
+
+Record:
+
+- conversation URL;
+- generating or complete state;
+- visible status, such as `Unzipping files`, `checking git status`, `Finalizing answer`, or `Thought for Xm Ys`;
+- whether the final answer is visible;
+- visible error, login prompt, upload rejection, or model-selection problem.
+
+ChatGPT Pro runs can take 10-20 minutes or longer. `Finalizing answer` means progress unless the page shows an error or the user instructs otherwise.
+
+## Save Answer
+
+After the final ChatGPT answer appears, save the full assistant turn from the page DOM before local verification.
+
+Use the latest assistant conversation turn, not visible viewport text. In Chrome DOM reads, find the latest conversation turn containing `data-message-author-role="assistant"`. Scoped extraction from `[data-testid^="conversation-turn-"]` is acceptable. Do not extract `document.body.innerText`.
+
+Save the final answer text to `ANSWER_FILE`. The saved answer must contain:
+
+- final answer text only;
+- all sections and verification commands present in the page;
+- no user prompt text;
+- no partial activity text.
+
+Verify extraction:
 
 ```sh
-oracle --engine browser --model gpt-5.5-pro \
-  --browser-attachments always \
-  --browser-hide-window \
-  --max-file-size-bytes 104857600 \
-  --file "$ORACLE_WORK_DIR/<repo-zip>.zip" \
-  --prompt 'Review the attached repository zip. Follow the package root AGENTS.md instructions first. Return concrete findings first with file/path evidence.' \
-  --slug short-descriptive-slug \
-  --write-output "$ORACLE_WORK_DIR/answer.md"
+test -s "$ANSWER_FILE"
+wc -c "$ANSWER_FILE"
+rg -n "Findings|Not findings|Rejected|Summary|Claims|Sources|Verification|Open questions|Recommendations" "$ANSWER_FILE"
+tail -n 40 "$ANSWER_FILE"
 ```
 
-Use the actual `Session: ...` value printed by the CLI for all later
-`oracle session` commands. The stored session id may be a deduplicated or
-shortened variant of the requested `--slug`.
+If DOM extraction fails or returns only visible text, use ChatGPT's copy control for the final assistant message. If copying is unavailable, scroll through the final ChatGPT answer and extract sections in order. Mark `ANSWER_FILE` as `partial` unless `tail -n 40 "$ANSWER_FILE"` shows the expected ending.
 
-For long runs, harvest the same browser session instead of restarting:
+## Accept Answer
 
-```sh
-sleep 60
-oracle session <slug> --harvest --write-output "$ORACLE_WORK_DIR/answer.md" || true
-test -s "$ORACLE_WORK_DIR/answer.md" && sed -n '1,220p' "$ORACLE_WORK_DIR/answer.md"
-```
+Require:
 
-If the foreground command is killed by the agent shell timeout, do not assume the
-Oracle run failed. The browser controller may have already submitted the prompt
-and the ChatGPT tab may continue generating. Reattach/harvest the existing slug:
+- recorded conversation URL;
+- ChatGPT Pro, Pro Extended, or user-approved visible model;
+- non-empty `ANSWER_FILE`;
+- visible attachment chip before submission when a package zip was uploaded;
+- answer that uses the route's evidence.
 
-```sh
-oracle session <slug> --live --write-output "$ORACLE_WORK_DIR/answer.md"
-```
+Evidence requirements:
 
-If `--live` is inconvenient or times out locally, harvest the current tab without
-starting a new run:
+- `repo-review`: repository paths, diff evidence, impact, and suggested fix.
+- `artifact-consult`: uploaded filenames, file/page/section references when available, supported claims, and uncertainty.
+- `web-consult`: cited web URLs or source names, date-sensitive caveats, and separated inference.
+- `prompt-only`: direct answer and stated assumptions.
 
-```sh
-oracle session <slug> --harvest --write-output "$ORACLE_WORK_DIR/answer.md"
-```
+If the answer asks for missing files, ignores an uploaded package zip, or returns suspiciously fast for a large package zip, mark it low-confidence. Inspect the visible conversation state before rerunning. Do not start duplicate runs blindly.
 
-When the conversation URL is known, pass it explicitly to avoid attaching to the
-wrong tab:
+## Verify
 
-```sh
-oracle session <slug> --harvest \
-  --browser-tab 'https://chatgpt.com/c/<conversation-id>' \
-  --write-output "$ORACLE_WORK_DIR/answer.md"
-```
+Read `ANSWER_FILE` as a draft:
 
-Interpret these signals as follows:
-
-- Read session metadata with `sed -n '1,220p' "$HOME/.oracle/sessions/<slug>/meta.json"`.
-- `promptSubmitted: false` in `~/.oracle/sessions/<slug>/meta.json`: prompt never reached ChatGPT. You may retry after fixing the stated browser/login issue.
-- `promptSubmitted: true` plus no output file: do **not** rerun yet; use `oracle session <slug> --live` or `--harvest`.
-- `browser.harvest.state: completed` in `meta.json`: the model completed even if the top-level session status still says `running`.
-- `oracle session <slug> --harvest` saying the assistant is still generating: wait or use `--live`; this is not a failure.
-- Local shell messages like `Command timed out after ...`: the agent-side command timed out, not necessarily the browser/model run.
-
-## Failure Handling
-
-If Cloudflare or a manual login/check blocks the first browser launch before
-submission, the error details include a reusable browser profile. Complete the
-check in the opened Chrome window if visible. If no visible check remains, still
-retry once with the same zip and the printed profile directory before reporting
-failure:
-
-```sh
-oracle --engine browser --model gpt-5.5-pro \
-  --browser-attachments always \
-  --browser-hide-window \
-  --browser-manual-login-profile-dir "<printed-profile-dir>" \
-  --max-file-size-bytes 104857600 \
-  --file "$ORACLE_WORK_DIR/<repo-zip>.zip" \
-  --prompt 'Review the attached repository zip. Follow the package root AGENTS.md instructions first. Return concrete findings first with file/path evidence.' \
-  --slug <slug>-retry \
-  --write-output "$ORACLE_WORK_DIR/answer.md"
-```
-
-After this retry, check the retry session's `meta.json`: if `promptSubmitted` is
-`true`, keep harvesting that session until completion instead of starting another
-copy. Count retries per failure branch; do not chain Cloudflare retry,
-model-strategy retry, and compact fallback unless the latest session still has
-`promptSubmitted: false`.
-
-If model selection fails before submission, retry once with the same zip and slug suffix plus:
-
-```sh
---browser-model-strategy ignore
-```
-
-`current` still touches the model selector; `ignore` is the strategy that skips it. Use `ignore` only when the active ChatGPT session is already on the desired model, or when using the active model is acceptable.
-
-If a session has `promptSubmitted: false`, `chrome-disconnected`, or `Chrome window closed before oracle finished`, Oracle did not complete. Stop retrying after the one targeted retry above and report browser automation failure.
-
-Do not treat "no output file" alone as failure for browser runs. First run:
-
-```sh
-oracle session <slug> --harvest --write-output "$ORACLE_WORK_DIR/answer.md"
-```
-
-Only report failure if harvest/live cannot find a completed assistant answer and
-the session metadata or CLI error shows the prompt was not submitted, the browser
-disconnected, or the Chrome window closed before completion.
-
-Only fall back to a compact Git repo after checking the original slug with
-`--harvest` or `--live`. A large zip plus a slow ChatGPT response is not by
-itself a reason to rerun. If the original session was never submitted, failed
-before submission, or ChatGPT/browser explicitly rejected the upload as too
-large, shrink it by building a compact Git repo, not a patch bundle:
-
-- create a temporary repository with `.git`;
-- commit the relevant files at the review base;
-- commit the relevant files at the review head;
-- make sure the review diff is represented by commits, so `git diff HEAD~1..HEAD` inside that compact repo is the review diff;
-- zip that compact repo with `scripts/zip.py` or another zip step that preserves `.git`;
-- keep the prompt small and tell Pro to inspect the attached repo with `git diff HEAD~1..HEAD`.
-
-Avoid falling back to inline files or a standalone patch bundle for PR/repo review: that changes the task from "explore this repo" to "read this excerpt" and loses useful Git context. If you include patch/stat files, keep them as supporting context, not the primary artifact.
-
-## Verification
-
-Read Oracle’s answer as a review draft, not proof:
-
-- verify file paths and line references locally;
+- verify paths, lines, pages, URLs, and quoted claims locally;
 - run focused tests or static checks when feasible;
-- separate Oracle claims from locally confirmed facts;
-- report limitations clearly.
+- separate claims in `ANSWER_FILE` from locally confirmed facts;
+- reject hallucinated or non-reproducible claims;
+- report blockers and coverage limits.
+
+Review report:
+
+```text
+Confirmed findings
+Rejected / not findings
+Local verification
+Coverage limits
+```
+
+Consult report:
+
+```text
+Answer
+Evidence in the saved answer
+What I verified locally
+Limits / next checks
+```

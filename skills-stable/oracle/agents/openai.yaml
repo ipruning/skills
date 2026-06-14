@@ -1,4 +1,4 @@
 interface:
-  display_name: "Oracle（外部二次意见）"
-  short_description: "通过 ChatGPT 浏览器模式获取一次有边界的外部二次意见"
-  default_prompt: "使用 $oracle 在本地检查之后，通过 ChatGPT 浏览器模式获取一次有边界的外部二次意见，并回到本地证据验证关键结论。"
+  display_name: "Oracle（外部咨询）"
+  short_description: "把本地上下文交给 ChatGPT Pro 做长思考咨询"
+  default_prompt: "使用 $oracle 选择合适的上下文包，上传到已登录的 ChatGPT Pro，等待完整回答，再用本地证据核验结论。"
