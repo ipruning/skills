@@ -1,13 +1,18 @@
 # macOS Surge Operator Actions
 
-Use this reference only when the user explicitly asks for a local Surge/macOS
-network toggle or repair command. These are manual operator actions. Do not run
-them from this Skill without that explicit request.
+These actions apply only when the user explicitly asks for a local Surge/macOS
+network toggle or repair command. They are manual operator actions. Do not run
+them during diagnosis without that explicit request.
 
 ## API Key
 
+Use the active profile path from `"$surge_cli" --raw dump profile`, the current
+Surge UI state, or profile path evidence in the user's request. Do not assume
+`default.conf`.
+
 ```bash
-x_key=$(perl -ne 'print $1 if /http-api = (.*?)@/' "$HOME/Library/Application Support/Surge/Profiles/default.conf")
+profile_path="<active Surge profile path>"
+x_key=$(perl -ne 'print $1 if /http-api = (.*?)@/' "$profile_path")
 ```
 
 ## Feature Toggles
@@ -29,7 +34,7 @@ xh POST https://localhost:6171/v1/outbound X-Key:$x_key mode=direct
 ## Local Shell Proxy
 
 ```bash
-# Set proxy; Surge usually listens on 6152/6153
+# Confirm the local Surge ports before exporting these values.
 export http_proxy=http://127.0.0.1:6152
 export https_proxy=http://127.0.0.1:6152
 export all_proxy=socks5://127.0.0.1:6153

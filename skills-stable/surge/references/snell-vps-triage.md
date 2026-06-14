@@ -4,11 +4,11 @@ Surge + Snell failure can be local Surge routing, the Snell listener, systemd,
 firewall rules, provider networking, Linux limits, or the VPS outbound path.
 
 Look first. Do not apply changes, restart services, install software, or tune
-the VPS from this skill.
+the VPS during audit.
 
 ## Local Surge Policy Smoke Tests
 
-Collect the local state before changing Surge runtime or profile state:
+Collect the local state before judging Surge runtime or profile state:
 
 ```bash
 surge-cli --raw environment
@@ -32,17 +32,19 @@ policy exists in the active profile before blaming the VPS.
 
 When Surge enhanced mode or rule mode is active, local CLI tools can route
 through the proxy being tested. Before SSH or direct TCP tests touch a Snell
-endpoint, route that endpoint as `DIRECT` with a temporary rule.
+endpoint, check whether the active profile already routes that endpoint as
+`DIRECT`.
 
-Permanent `DIRECT` rules change the profile. Add them only after confirming the
-endpoint belongs to the user's fleet and after writing down the rollback.
+If a temporary `DIRECT` rule is needed, output it as a manual operator action
+with the expected rollback. Do not change Surge runtime or profile state from
+the audit path.
 
 ## Remote Audit
 
 Audit one VPS:
 
 ```bash
-uv run --script scripts/snell_audit.py audit-snell \
+uv run --script "$SKILL_DIR/scripts/snell_audit.py" audit-snell \
   --host root@203.0.113.10 \
   --journal-since "6 hours ago" \
   --out /tmp/surge-snell-runs
@@ -51,7 +53,7 @@ uv run --script scripts/snell_audit.py audit-snell \
 Audit a fleet:
 
 ```bash
-uv run --script scripts/snell_audit.py audit-fleet \
+uv run --script "$SKILL_DIR/scripts/snell_audit.py" audit-fleet \
   --hosts ./snell-hosts.txt \
   --journal-since "6 hours ago" \
   --out /tmp/surge-snell-runs
@@ -60,7 +62,7 @@ uv run --script scripts/snell_audit.py audit-fleet \
 Print manual repair actions:
 
 ```bash
-uv run --script scripts/snell_audit.py render-repair-plan \
+uv run --script "$SKILL_DIR/scripts/snell_audit.py" render-repair-plan \
   --audit /tmp/surge-snell-runs/<run_id>/audit.json
 ```
 
@@ -95,7 +97,7 @@ The raw log is redacted. Snell `psk` must never appear in evidence files.
 
 | Version | Listener                                          | Config                                                  | Firewall                                                        |
 | ------- | ------------------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------- |
-| v5      | TCP + UDP can be valid on existing UDP/QUIC nodes | `listen` and `psk`; old fields can be present           | UDP exposure may be intentional when the service listens on UDP |
+| v5      | TCP + UDP can be valid in UDP/QUIC deployments    | `listen` and `psk`; old fields can be present           | UDP exposure may be intentional when the service listens on UDP |
 | v6      | Usually TCP-only                                  | Avoid old `ipv6`, `obfs`, `reuse`, and `version` fields | Keep UDP closed unless the user gives a concrete reason         |
 
 Do not mark `udp_listen=yes` as always healthy. Do not mark `udp_listen=no` as
@@ -103,25 +105,21 @@ always broken.
 
 ## Small Snell VPS Baseline
 
-A pure Snell node should look plain:
+A pure Snell VPS should look plain:
 
 - Debian or Ubuntu minimal
 - Snell as one binary and one systemd service
 - no panel, Docker, Nginx, dashboard, heavy monitoring, or big IP lists unless
   the machine is also an app host
-- key-only SSH with `MaxAuthTries 20`
+- key-only SSH, with SSH limits judged from SSH config and inventory
 - only SSH and Snell exposed
 - small proxy sysctl set
 - bounded journald
 - swap as an OOM cushion, not a speed trick
 
-Only when the task identifies the server as the known existing Snell v5 fleet on
-port `14180`, the normal listener shape is:
-
-```text
-14180/tcp
-14180/udp
-```
+Only when the user request, Snell config, listener/firewall inventory, or client
+profile identifies a Snell v5 UDP/QUIC deployment, accept the documented
+listener shape, such as both TCP and UDP on the configured Snell port.
 
 For ordinary Snell v6, expect TCP unless the user gives a UDP reason.
 
@@ -171,4 +169,4 @@ warning unless load, resource pressure, or crashes point to a real failure.
 ## Audit CLI Output Contract
 
 Stdout is one JSON object. Logs and command output stay in the run directory.
-The VPS payload is Bash because clean Debian hosts may not have Python packages.
+Remote collection uses Bash; do not require Python packages on the VPS.

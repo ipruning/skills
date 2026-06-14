@@ -382,11 +382,13 @@ def test_payload_redacts_psk_from_raw_log(tmp_path: Path):
 def test_skill_docs_default_to_read_only_audit():
     combined = "\n".join([SKILL.read_text(), TRIAGE.read_text(), OPERATOR_ACTION_PATTERNS.read_text()])
 
-    assert "change local Surge/macOS network state" in combined
-    assert "apply VPS changes" in combined
+    assert "Not for changing local" in combined
+    assert "Surge/macOS network state" in combined
+    assert "VPS changes" in combined
     assert "restart services" in combined
     assert "Look first. Do not apply changes, restart services, install software, or tune" in combined
-    assert "do not apply them from this Skill" in combined
+    assert "human operator" in combined
+    assert "not apply them during diagnosis" in combined
     assert "audit-snell" in combined
     assert "audit-fleet" in combined
     assert "install-snell" not in combined
@@ -411,7 +413,6 @@ def test_snell_minimal_baseline_is_shared_with_linux_server_skill():
     linux_text = LINUX_SERVER_SNELL.read_text()
 
     for expected in [
-        "MaxAuthTries 20",
         "LimitNOFILE=1048576",
         "net.core.default_qdisc = fq",
         "net.ipv4.tcp_mtu_probing = 1",
@@ -422,4 +423,8 @@ def test_snell_minimal_baseline_is_shared_with_linux_server_skill():
         assert expected in surge_text
         assert expected in linux_text
 
+    assert "MaxAuthTries 20" not in linux_text
+    assert "MaxAuthTries 20" not in surge_text
+    assert "Raise `MaxAuthTries` only when a loaded-key agent" in linux_text
+    assert "with SSH limits judged from SSH config and inventory" in surge_text
     assert "Do not treat this as a mandate to rewrite an app or container host" in surge_text
