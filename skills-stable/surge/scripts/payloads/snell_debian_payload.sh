@@ -11,7 +11,7 @@ SERVICE_NAME="snell-server"
 DEFAULT_BINARY_PATH="/usr/local/bin/snell-server"
 DEFAULT_CONFIG_FILE="/etc/snell/snell-server.conf"
 
-SURGE_PATCH_OPERATION=""
+SNELL_AUDIT_OPERATION=""
 SNELL_PORT="14180"
 SNELL_JOURNAL_SINCE="10 min ago"
 
@@ -47,7 +47,7 @@ write_failure_result() {
   local payload
   payload=$(printf '{"status":"%s","operation":"%s","error":"%s"}' \
     "$(json_escape "$status")" \
-    "$(json_escape "$SURGE_PATCH_OPERATION")" \
+    "$(json_escape "$SNELL_AUDIT_OPERATION")" \
     "$(json_escape "$message")")
   printf '%s\n' "$payload" >"$RESULT_FILE"
   if [ "$STDOUT_JSON_EMITTED" != true ]; then
@@ -108,14 +108,6 @@ kv() {
   local key=$1
   local value=${2:-}
   printf '%s=%s\n' "$key" "$value"
-}
-
-command_or_empty() {
-  if command -v "$1" >/dev/null 2>&1; then
-    command -v "$1"
-  else
-    printf ''
-  fi
 }
 
 service_cat() {
@@ -417,7 +409,7 @@ write_summary_kv() {
   root_available="$(df -Pk / 2>/dev/null | awk 'NR == 2 { print $4; exit }')"
 
   {
-    kv schema_version "surge-patch.audit.remote.v1"
+    kv schema_version "surge-snell.audit.remote.v1"
     kv collected_at "$(date -u '+%Y-%m-%dT%H:%M:%SZ' || true)"
     kv hostname "$(hostname -f 2>/dev/null || hostname 2>/dev/null || true)"
     kv kernel "$(uname -r 2>/dev/null || true)"
@@ -521,11 +513,11 @@ run_audit() {
   write_result '{"status":"audited","operation":"audit-snell","persistent_effects":[],"summary_kv":"logs/audit_summary.kv","raw_log":"logs/audit_raw.log"}'
 }
 
-case "$SURGE_PATCH_OPERATION" in
+case "$SNELL_AUDIT_OPERATION" in
 audit-snell)
   run_audit
   ;;
 *)
-  die "unsupported read-only operation: ${SURGE_PATCH_OPERATION}"
+  die "unsupported read-only operation: ${SNELL_AUDIT_OPERATION}"
   ;;
 esac

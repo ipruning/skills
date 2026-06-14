@@ -1,12 +1,12 @@
-# Snell VPS Triage
+# Snell VPS Evidence Audit
 
 Surge + Snell failure can be local Surge routing, the Snell listener, systemd,
 firewall rules, provider networking, Linux limits, or the VPS outbound path.
 
-Look first. Do not repair, restart, rewrite, delete, or tune the VPS from this
-skill.
+Look first. Do not apply changes, restart services, install software, or tune
+the VPS from this skill.
 
-## Local Surge
+## Local Surge Policy Smoke Tests
 
 Collect the local state before changing Surge runtime or profile state:
 
@@ -42,26 +42,26 @@ endpoint belongs to the user's fleet and after writing down the rollback.
 Audit one VPS:
 
 ```bash
-uv run --script scripts/surge_patch.py audit-snell \
+uv run --script scripts/snell_audit.py audit-snell \
   --host root@203.0.113.10 \
   --journal-since "6 hours ago" \
-  --out /tmp/surge-patch-runs
+  --out /tmp/surge-snell-runs
 ```
 
 Audit a fleet:
 
 ```bash
-uv run --script scripts/surge_patch.py audit-fleet \
+uv run --script scripts/snell_audit.py audit-fleet \
   --hosts ./snell-hosts.txt \
   --journal-since "6 hours ago" \
-  --out /tmp/surge-patch-runs
+  --out /tmp/surge-snell-runs
 ```
 
 Print manual repair actions:
 
 ```bash
-uv run --script scripts/surge_patch.py render-repair-plan \
-  --audit /tmp/surge-patch-runs/<run_id>/audit.json
+uv run --script scripts/snell_audit.py render-repair-plan \
+  --audit /tmp/surge-snell-runs/<run_id>/audit.json
 ```
 
 `audit-snell` exits non-zero only when SSH, upload, remote execution, or
@@ -93,10 +93,10 @@ The raw log is redacted. Snell `psk` must never appear in evidence files.
 
 ## Snell v5 And v6
 
-| Version | Listener | Config | Firewall |
-| --- | --- | --- | --- |
-| v5 | TCP + UDP can be valid on existing UDP/QUIC nodes | `listen` and `psk`; old fields can be present | UDP exposure may be intentional when the service listens on UDP |
-| v6 | Usually TCP-only | Avoid old `ipv6`, `obfs`, `reuse`, and `version` fields | Keep UDP closed unless the user gives a concrete reason |
+| Version | Listener                                          | Config                                                  | Firewall                                                        |
+| ------- | ------------------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------- |
+| v5      | TCP + UDP can be valid on existing UDP/QUIC nodes | `listen` and `psk`; old fields can be present           | UDP exposure may be intentional when the service listens on UDP |
+| v6      | Usually TCP-only                                  | Avoid old `ipv6`, `obfs`, `reuse`, and `version` fields | Keep UDP closed unless the user gives a concrete reason         |
 
 Do not mark `udp_listen=yes` as always healthy. Do not mark `udp_listen=no` as
 always broken.
@@ -115,7 +115,8 @@ A pure Snell node should look plain:
 - bounded journald
 - swap as an OOM cushion, not a speed trick
 
-For the existing Snell v5 fleet on port `14180`, the normal shape is:
+Only when the task identifies the server as the known existing Snell v5 fleet on
+port `14180`, the normal listener shape is:
 
 ```text
 14180/tcp
@@ -124,29 +125,11 @@ For the existing Snell v5 fleet on port `14180`, the normal shape is:
 
 For ordinary Snell v6, expect TCP unless the user gives a UDP reason.
 
-The proxy sysctl baseline for a pure Snell node is:
-
-```ini
-net.core.default_qdisc = fq
-net.ipv4.tcp_congestion_control = bbr
-net.core.somaxconn = 8192
-net.ipv4.tcp_max_syn_backlog = 8192
-net.ipv4.ip_local_port_range = 20000 65000
-net.ipv4.ip_local_reserved_ports = 22,14180
-net.ipv4.tcp_mtu_probing = 1
-net.ipv4.tcp_syncookies = 1
-```
-
-Bound journald on noisy nodes:
-
-```ini
-SystemMaxUse=256M
-RuntimeMaxUse=64M
-```
-
-Do not treat this as a mandate to rewrite an app or container host. If Docker,
-x-ui, nginx-proxy-manager, web ports, or dashboards are real workloads,
-preserve them and judge Snell separately.
+If `recommended_manual_actions` needs an operator action plan, read
+[Snell Operator Action Patterns](snell-operator-action-patterns.md). Do not
+treat the baseline as a mandate to rewrite an app or container host. If Docker, x-ui,
+nginx-proxy-manager, web ports, or dashboards are real workloads, preserve them
+and judge Snell separately.
 
 ## UDP Crash Pattern
 
@@ -164,26 +147,7 @@ Drop-ins with `PrivateDevices`, `ProtectSystem`, `RestrictAddressFamilies`,
 `CapabilityBoundingSet`, `NoNewPrivileges`, or `PrivateTmp` need manual review.
 Do not delete them automatically.
 
-## Stable Snell v5 Unit
-
-This unit shape has been stable on the existing Snell v5 fleet:
-
-```ini
-[Service]
-Type=simple
-User=snell
-Group=snell
-ExecStart=/usr/local/bin/snell-server -c /etc/snell/snell-server.conf
-Restart=always
-RestartSec=2
-LimitNOFILE=1048576
-UMask=0077
-```
-
-It keeps privilege separation and restart behavior without sandboxing that can
-break Snell v5 UDP/QUIC. It is not a reason to rewrite a working service.
-
-## Read The Result
+## Audit JSON Result
 
 Start with `audit.json`:
 
@@ -204,7 +168,7 @@ Important finding ids:
 traffic, a wrong PSK, a stale client, or the operator's own test. Treat it as a
 warning unless load, resource pressure, or crashes point to a real failure.
 
-## Output
+## Audit CLI Output Contract
 
 Stdout is one JSON object. Logs and command output stay in the run directory.
 The VPS payload is Bash because clean Debian hosts may not have Python packages.
