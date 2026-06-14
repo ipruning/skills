@@ -80,7 +80,7 @@ def write_agents_prompt(package_path: Path, prompt_md: Path) -> None:
         "---\n\n"
         "# Package layout\n\n"
         "- `artifacts/` contains the local files or directories supplied for this consultation.\n"
-        "- `sources.md` lists original local paths captured during packaging.\n"
+        "- `sources.md` lists the package paths and original local filenames captured during packaging.\n"
     )
     (package_path / PROMPT_NAME).write_text(generated_text, encoding="utf-8")
 
@@ -88,7 +88,7 @@ def write_agents_prompt(package_path: Path, prompt_md: Path) -> None:
 def write_sources(package_path: Path, copied: list[tuple[Path, str]]) -> None:
     lines = ["# Sources", ""]
     for src, dest in copied:
-        lines.append(f"- `{dest}` <- `{src}`")
+        lines.append(f"- `{dest}` <- local file or directory `{src.name}`")
     lines.append("")
     (package_path / "sources.md").write_text("\n".join(lines), encoding="utf-8")
 
