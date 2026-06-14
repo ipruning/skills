@@ -95,6 +95,14 @@ def write_text(path: Path, text: str, mode: int = 0o600) -> None:
     path.chmod(mode)
 
 
+def subprocess_output_text(value: str | bytes | None) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode(errors="replace")
+    return value
+
+
 def read_optional_text(path: Path) -> str:
     try:
         return path.read_text()
@@ -947,8 +955,8 @@ def run_surge_probe(
         rc = result.returncode
         timed_out = False
     except subprocess.TimeoutExpired as exc:
-        stdout = exc.stdout or ""
-        stderr = exc.stderr or ""
+        stdout = subprocess_output_text(exc.stdout)
+        stderr = subprocess_output_text(exc.stderr)
         rc = 124
         timed_out = True
 
