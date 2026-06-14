@@ -1,0 +1,83 @@
+# Host metrics -> Logfire via OpenTelemetry Collector contrib.
+# Keep LOGFIRE_TOKEN and OTEL_RESOURCE_ATTRIBUTES in a root-owned env file
+# or systemd credential, not in this YAML.
+#
+# Required environment:
+#   LOGFIRE_TOKEN=<dedicated-write-token>
+#   LOGFIRE_OTLP_ENDPOINT=<region-matched-otlp-endpoint>
+#   OTEL_RESOURCE_ATTRIBUTES=service.namespace=<org>,service.name=hostmetrics,service.instance.id=hostmetrics-<host-id>,host.name=<hostname>,host.id=<host-id>,deployment.environment.name=<environment>,monitor.id=hostmetrics/<hostname>
+
+receivers:
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
+      memory:
+        metrics:
+          system.memory.utilization:
+            enabled: true
+      load:
+      disk:
+      filesystem:
+        metrics:
+          system.filesystem.utilization:
+            enabled: true
+        exclude_fs_types:
+          fs_types:
+            - autofs
+            - binfmt_misc
+            - bpf
+            - cgroup2
+            - configfs
+            - debugfs
+            - devpts
+            - devtmpfs
+            - fusectl
+            - hugetlbfs
+            - mqueue
+            - nsfs
+            - overlay
+            - proc
+            - pstore
+            - rpc_pipefs
+            - securityfs
+            - squashfs
+            - sysfs
+            - tracefs
+          match_type: strict
+        exclude_mount_points:
+          mount_points:
+            - ^/(dev|proc|sys|run)($|/)
+            - ^/var/lib/docker/.+
+          match_type: regexp
+      network:
+      paging:
+      processes:
+
+processors:
+  resourcedetection:
+    detectors: [env, system]
+    timeout: 5s
+    override: false
+    system:
+      hostname_sources: [os]
+  batch:
+
+exporters:
+  otlphttp/logfire:
+    endpoint: "${env:LOGFIRE_OTLP_ENDPOINT}"
+    headers:
+      Authorization: "Bearer ${env:LOGFIRE_TOKEN}"
+
+service:
+  telemetry:
+    logs:
+      level: info
+  pipelines:
+    metrics:
+      receivers: [hostmetrics]
+      processors: [resourcedetection, batch]
+      exporters: [otlphttp/logfire]

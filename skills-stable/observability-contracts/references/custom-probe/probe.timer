@@ -1,0 +1,15 @@
+[Unit]
+Description=Run <name> observability probe
+
+[Timer]
+OnBootSec=2m
+OnUnitActiveSec=<interval>
+# For wall-clock schedules, replace OnBootSec and OnUnitActiveSec with:
+# OnCalendar=<calendar-expression>
+Persistent=false
+RandomizedDelaySec=30s
+AccuracySec=1m
+Unit=<name>.service
+
+[Install]
+WantedBy=timers.target

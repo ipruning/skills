@@ -1,0 +1,4 @@
+interface:
+  display_name: "Observability Contracts"
+  short_description: "Verified monitoring, alerts, and runbooks"
+  default_prompt: "Use $observability-contracts to define and verify the protected subject, signal producer, observability backend evidence, alert, notification channel, responder, and runbook."
