@@ -1,6 +1,4 @@
 interface:
-  display_name: "Surge"
-  short_description: "Run and automate Surge workflows"
-  default_prompt: "Use this skill to operate Surge with surge-cli safely. Prefer --raw output, inspect baseline state first, apply minimal set key-path changes, and verify post-change state."
-  icon_large: "./assets/logo.png"
-  icon_small: "./assets/logo.png"
+    display_name: "Surge"
+    short_description: "只读诊断 macOS Surge 网络与 Snell VPS 证据"
+    default_prompt: "Use $surge for read-only macOS Surge network triage, Snell VPS evidence audits, and local Surge policy smoke tests. Do not change local Surge/macOS network state or remote server state; produce manual operator action plans only after audit evidence."

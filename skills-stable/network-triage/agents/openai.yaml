@@ -1,4 +1,0 @@
-interface:
-  display_name: "Network Triage（网络故障诊断）"
-  short_description: "诊断 macOS 在 Surge、DNS、代理变量和开发工具链下的网络故障"
-  default_prompt: "使用 $network-triage 诊断 macOS 网络故障，重点检查 Surge、DNS、代理环境变量、Enhanced Mode，以及 brew/npm/Docker/GitHub 卡住的问题。"

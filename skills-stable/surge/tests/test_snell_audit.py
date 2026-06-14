@@ -10,15 +10,19 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "scripts" / "surge_patch.py"
+REPO_ROOT = ROOT.parents[1]
+SCRIPT = ROOT / "scripts" / "snell_audit.py"
 PAYLOAD = ROOT / "scripts" / "payloads" / "snell_debian_payload.sh"
 SKILL = ROOT / "SKILL.md"
 TRIAGE = ROOT / "references" / "snell-vps-triage.md"
-LINUX_SERVER_SNELL = Path("/Users/alex/Developer/ipruning/skills/skills-stable/linux-server/references/snell-vps.md")
+OPERATOR_ACTION_PATTERNS = ROOT / "references" / "snell-operator-action-patterns.md"
+MACOS_TRIAGE = ROOT / "references" / "macos-network-triage.md"
+MACOS_OPERATOR_ACTIONS = ROOT / "references" / "macos-surge-operator-actions.md"
+LINUX_SERVER_SNELL = REPO_ROOT / "skills-stable" / "linux-server" / "references" / "snell-vps.md"
 
 
 def load_module():
-    spec = importlib.util.spec_from_file_location("surge_patch", SCRIPT)
+    spec = importlib.util.spec_from_file_location("snell_audit", SCRIPT)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -113,7 +117,7 @@ def finding_ids(pack: dict) -> set[str]:
 
 
 def test_v5_udp_crash_is_high_issue(tmp_path: Path):
-    surge_patch = load_module()
+    snell_audit = load_module()
     journal = "\n".join(
         [
             "2026-06-13T00:00:01 host snell-server[1234]: UDP socket send error: invalid argument",
@@ -123,7 +127,7 @@ def test_v5_udp_crash_is_high_issue(tmp_path: Path):
     )
     run_dir = write_audit_fixture(tmp_path, kv=base_kv(), journal=journal)
 
-    pack = surge_patch.build_evidence_pack(local_dir=run_dir, target="root@example", transport_status="ok")
+    pack = snell_audit.build_evidence_pack(local_dir=run_dir, target="root@example", transport_status="ok")
 
     assert pack["status"] == "issue"
     assert "snell.v5.udp_crash" in finding_ids(pack)
@@ -133,7 +137,7 @@ def test_v5_udp_crash_is_high_issue(tmp_path: Path):
 
 
 def test_decryption_only_warns_without_udp_crash(tmp_path: Path):
-    surge_patch = load_module()
+    snell_audit = load_module()
     journal = "\n".join(
         [
             "2026-06-13T00:00:01 host snell-server[1234]: Decryption failed from 198.51.100.10",
@@ -142,7 +146,7 @@ def test_decryption_only_warns_without_udp_crash(tmp_path: Path):
     )
     run_dir = write_audit_fixture(tmp_path, kv=base_kv(), journal=journal)
 
-    pack = surge_patch.build_evidence_pack(local_dir=run_dir, target="root@example", transport_status="ok")
+    pack = snell_audit.build_evidence_pack(local_dir=run_dir, target="root@example", transport_status="ok")
 
     assert pack["status"] == "warn"
     assert "logs.decryption_failed_seen" in finding_ids(pack)
@@ -150,7 +154,7 @@ def test_decryption_only_warns_without_udp_crash(tmp_path: Path):
 
 
 def test_v6_udp_and_legacy_config_are_version_aware(tmp_path: Path):
-    surge_patch = load_module()
+    snell_audit = load_module()
     run_dir = write_audit_fixture(
         tmp_path,
         kv=base_kv(
@@ -161,7 +165,7 @@ def test_v6_udp_and_legacy_config_are_version_aware(tmp_path: Path):
         ),
     )
 
-    pack = surge_patch.build_evidence_pack(local_dir=run_dir, target="root@example", transport_status="ok")
+    pack = snell_audit.build_evidence_pack(local_dir=run_dir, target="root@example", transport_status="ok")
 
     ids = finding_ids(pack)
     assert pack["status"] == "warn"
@@ -174,7 +178,7 @@ def test_v6_udp_and_legacy_config_are_version_aware(tmp_path: Path):
 def test_audit_fleet_continues_after_issue(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ):
-    surge_patch = load_module()
+    snell_audit = load_module()
     hosts = tmp_path / "hosts.txt"
     hosts.write_text("root@one\nroot@two\n")
     calls: list[str] = []
@@ -195,10 +199,10 @@ def test_audit_fleet_continues_after_issue(
             "persistent_effects": [],
         }, 0
 
-    monkeypatch.setattr(surge_patch, "run_audit_for_host", fake_run)
+    monkeypatch.setattr(snell_audit, "run_audit_for_host", fake_run)
     args = argparse.Namespace(hosts=hosts, fail_on_issue=False)
 
-    rc = surge_patch.command_audit_fleet(args)
+    rc = snell_audit.command_audit_fleet(args)
 
     assert rc == 0
     assert calls == ["root@one", "root@two"]
@@ -208,7 +212,7 @@ def test_audit_fleet_continues_after_issue(
 
 
 def test_audit_fleet_fail_on_issue(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
-    surge_patch = load_module()
+    snell_audit = load_module()
     hosts = tmp_path / "hosts.txt"
     hosts.write_text("root@one\n")
 
@@ -226,25 +230,25 @@ def test_audit_fleet_fail_on_issue(monkeypatch: pytest.MonkeyPatch, tmp_path: Pa
             "persistent_effects": [],
         }, 0
 
-    monkeypatch.setattr(surge_patch, "run_audit_for_host", fake_run)
+    monkeypatch.setattr(snell_audit, "run_audit_for_host", fake_run)
     args = argparse.Namespace(hosts=hosts, fail_on_issue=True)
 
-    assert surge_patch.command_audit_fleet(args) == 1
+    assert snell_audit.command_audit_fleet(args) == 1
 
 
 def test_single_audit_issue_exits_zero_without_fail_on_issue(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
-    surge_patch = load_module()
+    snell_audit = load_module()
     local_dir = tmp_path / "run"
     local_dir.mkdir()
-    manifest = {"target": "root@example", "remote_dir": "/var/tmp/surge-patch-runs/test-run"}
+    manifest = {"target": "root@example", "remote_dir": "/var/tmp/surge-snell-runs/test-run"}
     completed = subprocess.CompletedProcess(["true"], 0, "", "")
 
-    monkeypatch.setattr(surge_patch, "prepare_audit_run", lambda args, host: (local_dir, manifest))
-    monkeypatch.setattr(surge_patch, "upload_audit_run", lambda local_dir, manifest, args: completed)
-    monkeypatch.setattr(surge_patch, "run_remote_audit", lambda manifest, args: completed)
-    monkeypatch.setattr(surge_patch, "collect_audit_run", lambda local_dir, manifest, args: completed)
+    monkeypatch.setattr(snell_audit, "prepare_audit_run", lambda args, host: (local_dir, manifest))
+    monkeypatch.setattr(snell_audit, "upload_audit_run", lambda local_dir, manifest, args: completed)
+    monkeypatch.setattr(snell_audit, "run_remote_audit", lambda manifest, args: completed)
+    monkeypatch.setattr(snell_audit, "collect_audit_run", lambda local_dir, manifest, args: completed)
     monkeypatch.setattr(
-        surge_patch,
+        snell_audit,
         "build_evidence_pack",
         lambda **kwargs: {
             "schema_version": 2,
@@ -261,25 +265,25 @@ def test_single_audit_issue_exits_zero_without_fail_on_issue(monkeypatch: pytest
     )
     args = argparse.Namespace(port=14180, fail_on_issue=False)
 
-    pack, rc = surge_patch.run_audit_for_host(args, "root@example")
+    pack, rc = snell_audit.run_audit_for_host(args, "root@example")
 
     assert pack["status"] == "issue"
     assert rc == 0
 
 
 def test_single_audit_issue_respects_fail_on_issue(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
-    surge_patch = load_module()
+    snell_audit = load_module()
     local_dir = tmp_path / "run"
     local_dir.mkdir()
-    manifest = {"target": "root@example", "remote_dir": "/var/tmp/surge-patch-runs/test-run"}
+    manifest = {"target": "root@example", "remote_dir": "/var/tmp/surge-snell-runs/test-run"}
     completed = subprocess.CompletedProcess(["true"], 0, "", "")
 
-    monkeypatch.setattr(surge_patch, "prepare_audit_run", lambda args, host: (local_dir, manifest))
-    monkeypatch.setattr(surge_patch, "upload_audit_run", lambda local_dir, manifest, args: completed)
-    monkeypatch.setattr(surge_patch, "run_remote_audit", lambda manifest, args: completed)
-    monkeypatch.setattr(surge_patch, "collect_audit_run", lambda local_dir, manifest, args: completed)
+    monkeypatch.setattr(snell_audit, "prepare_audit_run", lambda args, host: (local_dir, manifest))
+    monkeypatch.setattr(snell_audit, "upload_audit_run", lambda local_dir, manifest, args: completed)
+    monkeypatch.setattr(snell_audit, "run_remote_audit", lambda manifest, args: completed)
+    monkeypatch.setattr(snell_audit, "collect_audit_run", lambda local_dir, manifest, args: completed)
     monkeypatch.setattr(
-        surge_patch,
+        snell_audit,
         "build_evidence_pack",
         lambda **kwargs: {
             "schema_version": 2,
@@ -296,23 +300,23 @@ def test_single_audit_issue_respects_fail_on_issue(monkeypatch: pytest.MonkeyPat
     )
     args = argparse.Namespace(port=14180, fail_on_issue=True)
 
-    _, rc = surge_patch.run_audit_for_host(args, "root@example")
+    _, rc = snell_audit.run_audit_for_host(args, "root@example")
 
     assert rc == 1
 
 
 def test_single_audit_transport_failure_exits_nonzero(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
-    surge_patch = load_module()
+    snell_audit = load_module()
     local_dir = tmp_path / "run"
     local_dir.mkdir()
-    manifest = {"target": "root@example", "remote_dir": "/var/tmp/surge-patch-runs/test-run"}
+    manifest = {"target": "root@example", "remote_dir": "/var/tmp/surge-snell-runs/test-run"}
     failed = subprocess.CompletedProcess(["ssh"], 255, "", "ssh failed")
 
-    monkeypatch.setattr(surge_patch, "prepare_audit_run", lambda args, host: (local_dir, manifest))
-    monkeypatch.setattr(surge_patch, "upload_audit_run", lambda local_dir, manifest, args: failed)
+    monkeypatch.setattr(snell_audit, "prepare_audit_run", lambda args, host: (local_dir, manifest))
+    monkeypatch.setattr(snell_audit, "upload_audit_run", lambda local_dir, manifest, args: failed)
     args = argparse.Namespace(port=14180, fail_on_issue=False)
 
-    pack, rc = surge_patch.run_audit_for_host(args, "root@example")
+    pack, rc = snell_audit.run_audit_for_host(args, "root@example")
 
     assert rc == 255
     assert pack["transport_status"] == "failed"
@@ -330,7 +334,7 @@ def test_payload_redacts_psk_from_raw_log(tmp_path: Path):
     config.write_text(f"[snell-server]\nlisten = 0.0.0.0:14180\npsk = {secret}\n")
     binary.write_text("#!/usr/bin/env bash\nprintf 'snell-server v5.0.1\\n'\n")
     binary.chmod(0o755)
-    (run_dir / "input.env").write_text("SURGE_PATCH_OPERATION=audit-snell\nSNELL_PORT=14180\n")
+    (run_dir / "input.env").write_text("SNELL_AUDIT_OPERATION=audit-snell\nSNELL_PORT=14180\n")
 
     fake_systemctl = fake_bin / "systemctl"
     fake_systemctl.write_text(
@@ -376,10 +380,13 @@ def test_payload_redacts_psk_from_raw_log(tmp_path: Path):
 
 
 def test_skill_docs_default_to_read_only_audit():
-    combined = "\n".join([SKILL.read_text(), TRIAGE.read_text()])
+    combined = "\n".join([SKILL.read_text(), TRIAGE.read_text(), OPERATOR_ACTION_PATTERNS.read_text()])
 
-    assert "The script reads what is on the machine. It does not fix the machine." in combined
-    assert "Look first. Do not repair, restart, rewrite, delete, or tune the VPS" in combined
+    assert "change local Surge/macOS network state" in combined
+    assert "apply VPS changes" in combined
+    assert "restart services" in combined
+    assert "Look first. Do not apply changes, restart services, install software, or tune" in combined
+    assert "do not apply them from this Skill" in combined
     assert "audit-snell" in combined
     assert "audit-fleet" in combined
     assert "install-snell" not in combined
@@ -388,10 +395,20 @@ def test_skill_docs_default_to_read_only_audit():
     assert "schema v2" not in combined
 
 
+def test_macos_triage_keeps_write_actions_in_operator_reference():
+    triage_text = MACOS_TRIAGE.read_text()
+    operator_text = MACOS_OPERATOR_ACTIONS.read_text()
+
+    assert "xh POST" not in triage_text
+    assert "export http_proxy" not in triage_text
+    assert "unset http_proxy" not in triage_text
+    assert "xh POST" in operator_text
+    assert "export http_proxy" in operator_text
+
+
 def test_snell_minimal_baseline_is_shared_with_linux_server_skill():
-    surge_text = TRIAGE.read_text()
+    surge_text = TRIAGE.read_text() + "\n" + OPERATOR_ACTION_PATTERNS.read_text()
     linux_text = LINUX_SERVER_SNELL.read_text()
-    combined = surge_text + "\n" + linux_text
 
     for expected in [
         "MaxAuthTries 20",
@@ -401,6 +418,8 @@ def test_snell_minimal_baseline_is_shared_with_linux_server_skill():
         "SystemMaxUse=256M",
         "RuntimeMaxUse=64M",
         "Do not add aggressive systemd sandboxing by default",
-        "Do not treat this as a mandate to rewrite an app or container host",
     ]:
-        assert expected in combined
+        assert expected in surge_text
+        assert expected in linux_text
+
+    assert "Do not treat this as a mandate to rewrite an app or container host" in surge_text

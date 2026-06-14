@@ -1,4 +1,0 @@
-interface:
-  display_name: "Surge Snell VPS"
-  short_description: "读取 Surge/Snell VPS 状态，不改服务器"
-  default_prompt: "Use $surge-patch to read a Surge/Snell VPS, inspect the local audit files, and print manual repair actions only if needed."

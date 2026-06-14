@@ -1,62 +1,65 @@
 ---
 name: surge
-description: Operate and troubleshoot Surge via surge-cli, including command discovery, runtime diagnostics, state inspection (dump/watch/test), and environment mutation with set key-paths. Use when a task asks to control Surge behavior, inspect live status, adjust policy/runtime switches, or automate Surge operations from CLI.
+description: |
+  Read-only diagnosis for Surge/Snell failures on the user's macOS Surge path
+  and Snell VPS evidence. Use for Snell v5/v6 listener checks, systemd UDP crash
+  evidence, local Surge policy smoke tests, macOS Surge DNS/proxy/Enhanced Mode
+  failures, and post-audit manual operator action plans. Do not use this Skill
+  to change local Surge/macOS network state, apply VPS changes, restart
+  services, install software, or tune servers.
 ---
 
-# Surge CLI Ops
+# Surge
 
-Use this skill to run Surge operations safely and consistently through `surge-cli`.
+Choose the path before reading references or running commands.
 
-## Startup
+## Surge App-Bundled Skill
 
-1. Resolve executable path in this order:
-   - `surge-cli` in `PATH`
-   - `/Applications/Surge.app/Contents/Applications/surge-cli`
-2. Prefer JSON output with `--raw` for machine parsing.
-3. If operating on remote instances, add `--remote password@host:port`.
+Use this route only for ordinary Surge CLI operations that do not involve macOS
+network triage, Snell VPS evidence, or local Surge policy smoke tests. Do not
+carry a repo-local copy of the Surge app-bundled Skill.
 
-## Baseline Context Workflow
-
-Before mutating runtime settings, collect baseline state:
-
-1. `surge-cli --raw environment`
-2. `surge-cli --raw dump policy`
-3. `surge-cli --raw dump profile`
-
-After changes, re-run the relevant read commands to verify effects.
-
-## Mutation Rules
-
-When using `set`:
-
-1. Use minimal key-path deltas only.
-2. Batch related updates in one command when possible.
-3. Treat `<nil>` and `(null)` as null assignments.
-4. Re-check `environment` immediately after mutation.
-
-Examples:
+Check the Surge app-bundled Skill:
 
 ```bash
-surge-cli --raw set ProxyMode=2
-surge-cli --raw set ProxyGroupSelection.Proxy=HK
-surge-cli --raw set AutoPolicyGroupOverride.Streaming=<nil>
+test -f /Applications/Surge.app/Contents/Resources/Skills/surge/SKILL.md
 ```
 
-## Streaming Command Handling
+If the file exists, read
+`/Applications/Surge.app/Contents/Resources/Skills/surge/SKILL.md` and follow
+the Surge app-bundled Skill. If it does not exist, proceed from the local
+`surge-cli` executable that is actually available:
 
-For streaming commands (for example diagnostics/bandwidth tests):
+1. `surge-cli` in `PATH`
+2. `/Applications/Surge.app/Contents/Applications/surge-cli`
 
-1. Process incremental chunks.
-2. Respect completion markers (`hasMore=false` or command-specific completion payload).
-3. Do not assume a single response frame.
+## macOS Surge Network Triage
 
-## Platform and Capability Notes
+If the failure is on the user's macOS machine and Surge is active, configured,
+named by the user, or plausibly the local proxy or DNS boundary, read
+[macOS Surge Network Triage](references/macos-network-triage.md) before
+diagnosing or reporting local proxy, DNS, or Enhanced Mode failures.
 
-1. Some commands are platform-limited (for example certain device-management and profile-edit commands).
-2. Validate capability and platform before execution in automation workflows.
+For ordinary Linux server networking, do not use this Skill for generic OS
+triage. Use the server's normal tools and facts.
 
-## Reference
+## Snell VPS Evidence Audit
 
-Read detailed command semantics, full command list, and environment key definitions from:
+1. Read [Snell VPS Evidence Audit](references/snell-vps-triage.md) before judging a
+   VPS, Snell systemd service, UDP behavior, firewall exposure, proxy sysctls,
+   or local Surge policy path to a Snell endpoint.
+2. Use `scripts/snell_audit.py` with `uv run --script` to collect evidence.
+3. Open `audit.json`. Read `facts`, `findings`, `evidence_paths`, and
+   `recommended_manual_actions`.
+4. If a repair is needed, run `render-repair-plan --audit <audit.json>`. The
+   command prints manual actions. It does not run them.
+5. Use `smoke-surge` for local Surge policy smoke tests. It does not touch the
+   VPS.
 
-- [Command Reference](references/command-reference.md)
+Keep endpoint IPs, PSKs, profile names, and inventories in the user's task or
+private config. Audit logs must not contain plaintext Snell PSKs.
+
+## Snell Rules
+
+Use [Snell VPS Evidence Audit](references/snell-vps-triage.md) for Snell v5/v6
+listener, UDP, legacy-field, and `Decryption failed` judgment.
