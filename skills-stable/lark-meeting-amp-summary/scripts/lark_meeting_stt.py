@@ -28,14 +28,17 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TEMPLATE = SKILL_ROOT / "templates" / "meeting-summary.md.j2"
 DEFAULT_ENCODING = "o200k_base"
-DEFAULT_MAX_INPUT_TOKENS = 100_000
+DEFAULT_MAX_PROMPT_TIKTOKEN_COUNT = 100_000
+SELECTED_MINUTES_FILE = "selected-minutes.txt"
+TRANSCRIPT_INDEX_FILE = "transcript-index.json"
+PROMPT_INDEX_FILE = "prompt-index.json"
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Audit, export, and render Lark meeting raw STT.")
     subcommands = parser.add_subparsers(dest="command", required=True)
 
-    audit = subcommands.add_parser("audit", help="Discover meeting candidates without reading STT full text.")
+    audit = subcommands.add_parser("audit", help="Discover audited minutes without reading STT full text.")
     audit.add_argument("--start", help="Start date, YYYY-MM-DD.")
     audit.add_argument("--end", help="End date, YYYY-MM-DD.")
     audit.add_argument("--days", type=int, default=2, help="Date window ending today when --start/--end are omitted.")
@@ -45,36 +48,60 @@ def parse_args() -> argparse.Namespace:
 
     export = subcommands.add_parser("export", help="Export selected raw STT and write metadata-only transcript index.")
     export.add_argument(
-        "--run", type=Path, required=True, help="Run directory. Reads selected.txt and writes transcripts.json."
+        "--run",
+        type=Path,
+        required=True,
+        help=f"Run directory. Reads {SELECTED_MINUTES_FILE} and writes {TRANSCRIPT_INDEX_FILE}.",
     )
-    export.add_argument("--tokens", help="Comma/newline separated minute tokens.")
-    export.add_argument("--selected", type=Path, help="Selected token file. Defaults to RUN/selected.txt.")
-    export.add_argument("--all-audited", action="store_true", help="Export every candidate from audit.json.")
-    export.add_argument("--audit", type=Path, help="Audit JSON for --all-audited. Defaults to RUN/audit.json.")
-    export.add_argument("--batch-size", type=int, default=50, help="Minute tokens per lark-cli export request.")
+    export.add_argument("--minute-ids", help="Comma/newline separated Lark minute IDs.")
+    export.add_argument(
+        "--selected-minutes",
+        type=Path,
+        help=f"Selected minute ID file. Defaults to RUN/{SELECTED_MINUTES_FILE}.",
+    )
+    export.add_argument(
+        "--all-audited-minutes", action="store_true", help="Export every audited minute from audit.json."
+    )
+    export.add_argument("--audit", type=Path, help="Audit JSON for --all-audited-minutes. Defaults to RUN/audit.json.")
+    export.add_argument("--batch-size", type=int, default=50, help="Minute IDs per lark-cli export request.")
     export.add_argument("--overwrite", action="store_true", help="Overwrite existing exported STT artifacts.")
-    export.add_argument("--encoding", default=DEFAULT_ENCODING, help="tiktoken encoding for transcript token counts.")
+    export.add_argument(
+        "--encoding",
+        default=DEFAULT_ENCODING,
+        help="tiktoken encoding for transcript_tiktoken_count.",
+    )
     export.add_argument("--format", choices=("json", "md"), default="json", help="Stdout format.")
 
     render = subcommands.add_parser("render", help="Render prompts from exported STT with a tiktoken hard gate.")
     render.add_argument(
-        "--run", type=Path, required=True, help="Run directory. Defaults to RUN/transcripts.json and RUN/prompts."
+        "--run",
+        type=Path,
+        required=True,
+        help=f"Run directory. Defaults to RUN/{TRANSCRIPT_INDEX_FILE}, RUN/prompts, and RUN/{PROMPT_INDEX_FILE}.",
     )
     render.add_argument(
-        "--transcripts", type=Path, help="transcripts.json from export. Defaults to RUN/transcripts.json."
+        "--transcript-index",
+        type=Path,
+        help=f"{TRANSCRIPT_INDEX_FILE} from export. Defaults to RUN/{TRANSCRIPT_INDEX_FILE}.",
     )
-    render.add_argument("--prompts", type=Path, help="Prompt output directory. Defaults to RUN/prompts.")
+    render.add_argument("--prompt-dir", type=Path, help="Prompt output directory. Defaults to RUN/prompts.")
     render.add_argument("--template", type=Path, default=DEFAULT_TEMPLATE, help="Jinja prompt template.")
     render.add_argument("--start", help="Start date for template metadata, YYYY-MM-DD.")
     render.add_argument("--end", help="End date for template metadata, YYYY-MM-DD.")
-    render.add_argument("--days", type=int, default=2, help="Fallback date window when no audit.json is available.")
-    render.add_argument("--max-input-tokens", type=int, default=DEFAULT_MAX_INPUT_TOKENS, help="Hard tiktoken gate.")
+    render.add_argument(
+        "--max-prompt-tiktoken-count",
+        type=int,
+        default=DEFAULT_MAX_PROMPT_TIKTOKEN_COUNT,
+        help="Hard tiktoken gate for each rendered prompt.",
+    )
     render.add_argument("--encoding", default=DEFAULT_ENCODING, help="tiktoken encoding.")
     render.add_argument("--format", choices=("json", "md"), default="json", help="Stdout format.")
 
     summarize = subcommands.add_parser("summarize", help="Run Amp for rendered prompts with progress JSONL.")
-    summarize.add_argument("--run", type=Path, required=True, help="Run directory. Reads RUN/prompts.json.")
-    summarize.add_argument("--prompts", type=Path, help="prompts.json from render. Defaults to RUN/prompts.json.")
+    summarize.add_argument("--run", type=Path, required=True, help=f"Run directory. Reads RUN/{PROMPT_INDEX_FILE}.")
+    summarize.add_argument(
+        "--prompt-index", type=Path, help=f"{PROMPT_INDEX_FILE} from render. Defaults to RUN/{PROMPT_INDEX_FILE}."
+    )
     summarize.add_argument("--summaries", type=Path, help="Summary output directory. Defaults to RUN/summaries.")
     summarize.add_argument("--timeout-seconds", type=int, default=900, help="Per-prompt Amp timeout.")
     summarize.add_argument("--concurrency", type=int, default=8, help="Maximum concurrent Amp processes.")
@@ -130,12 +157,12 @@ def report_markdown(payload: dict[str, Any]) -> str:
         lines.extend(f"- {key}: {value}" for key, value in summary.items())
         lines.append("")
     for key in (
-        "duplicate_hints",
+        "duplicate_warnings",
         "errors",
         "excluded",
-        "stale_transcript_artifacts",
-        "unselected_transcript_artifacts",
-        "skipped_oversized",
+        "stale_exported_files",
+        "unexpected_exported_files",
+        "skipped_oversized_prompts",
         "stop_points",
     ):
         items = payload.get(key)
@@ -168,14 +195,14 @@ def parse_date_window(start: str | None, end: str | None, days: int) -> tuple[st
 
 def render_date_window(args: argparse.Namespace, base: Path) -> tuple[str, str]:
     if args.start or args.end:
-        return parse_date_window(args.start, args.end, args.days)
+        return parse_date_window(args.start, args.end, 1)
     audit_path = base / "audit.json"
     if audit_path.exists():
         audit = load_json(audit_path)
         run = audit.get("run") or {}
         if run.get("start") and run.get("end"):
             return str(run["start"]), str(run["end"])
-    return parse_date_window(None, None, args.days)
+    raise SystemExit(f"missing {audit_path}; pass --start and --end or run audit first")
 
 
 def validate_date(value: str) -> None:
@@ -185,14 +212,14 @@ def validate_date(value: str) -> None:
         raise SystemExit(f"invalid date {value!r}; expected YYYY-MM-DD") from exc
 
 
-def token_encoder(name: str) -> tiktoken.Encoding:
+def tiktoken_encoder(name: str) -> tiktoken.Encoding:
     try:
         return tiktoken.get_encoding(name)
     except ValueError as exc:
         raise SystemExit(f"unknown tiktoken encoding {name!r}") from exc
 
 
-def token_count(text: str, *, encoding: tiktoken.Encoding) -> int:
+def count_tiktoken(text: str, *, encoding: tiktoken.Encoding) -> int:
     return len(encoding.encode(text))
 
 
@@ -236,21 +263,21 @@ def run_json(cmd: list[str], *, cwd: Path, log: Path | None = None) -> Any:
 
 def run_paginated(base_cmd: list[str], *, cwd: Path, page_dir: Path, log_dir: Path) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
-    page_token = ""
+    pagination_page_token = ""
     page = 1
     while True:
         cmd = [*base_cmd, "--format", "json"]
-        if page_token:
-            cmd.extend(["--page-token", page_token])
+        if pagination_page_token:
+            cmd.extend(["--page-token", pagination_page_token])
         eprint(f"page {page}: {' '.join(base_cmd)}")
         payload = run_json(cmd, cwd=cwd, log=log_dir / f"page-{page}.log")
         write_json(page_dir / f"page-{page}.json", payload)
         items.extend(payload.get("data", {}).get("items") or [])
         if payload.get("data", {}).get("has_more") is not True:
             return items
-        page_token = payload.get("data", {}).get("page_token") or ""
-        if not page_token:
-            raise RuntimeError(f"has_more=true but page_token is empty for {' '.join(base_cmd)}")
+        pagination_page_token = payload.get("data", {}).get("page_token") or ""
+        if not pagination_page_token:
+            raise RuntimeError(f"has_more=true but pagination page_token is empty for {' '.join(base_cmd)}")
         page += 1
 
 
@@ -282,11 +309,6 @@ def normalize_title(value: str) -> str:
     return re.sub(r"\s+", "", value).lower()
 
 
-def token_from_slug(slug: str) -> str:
-    match = re.search(r"(obcn[a-z0-9]+)$", slug)
-    return match.group(1) if match else ""
-
-
 def sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
@@ -304,8 +326,8 @@ def transcript_prefix_hash(text: str) -> str:
     return sha256_text(re.sub(r"\s+", "", prefix))
 
 
-def candidate_from_token(
-    token: str,
+def audited_minute_from_lark_token(
+    lark_minute_token: str,
     *,
     source: str,
     item: dict[str, Any] | None = None,
@@ -319,53 +341,55 @@ def candidate_from_token(
         field for field, value in (("title", title), ("start_time", start_time), ("duration", duration)) if not value
     ]
     return {
-        "minute_token": token,
+        "minute_id": lark_minute_token,
         "title": title,
         "sources": [source],
         "meeting_ids": [meeting_id] if meeting_id else [],
         "start_time": start_time,
         "duration": duration,
         "metadata_unavailable": unavailable,
-        "decision_hint": "candidate",
+        "selection_status": "selectable",
     }
 
 
-def merge_candidate(candidates: dict[str, dict[str, Any]], candidate: dict[str, Any]) -> None:
-    token = candidate["minute_token"]
-    existing = candidates.setdefault(token, candidate)
-    if existing is candidate:
+def merge_audited_minute(audited_minutes: dict[str, dict[str, Any]], audited_minute: dict[str, Any]) -> None:
+    minute_id = audited_minute["minute_id"]
+    existing = audited_minutes.setdefault(minute_id, audited_minute)
+    if existing is audited_minute:
         return
-    existing["sources"] = unique([*existing.get("sources", []), *candidate.get("sources", [])])
-    existing["meeting_ids"] = unique([*existing.get("meeting_ids", []), *candidate.get("meeting_ids", [])])
+    existing["sources"] = unique([*existing.get("sources", []), *audited_minute.get("sources", [])])
+    existing["meeting_ids"] = unique([*existing.get("meeting_ids", []), *audited_minute.get("meeting_ids", [])])
     for key in ("title", "start_time", "duration"):
-        if not existing.get(key) and candidate.get(key):
-            existing[key] = candidate[key]
+        if not existing.get(key) and audited_minute.get(key):
+            existing[key] = audited_minute[key]
     existing["metadata_unavailable"] = [
         field for field in ("title", "start_time", "duration") if not existing.get(field)
     ]
 
 
-def build_candidate_duplicate_hints(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def build_audit_duplicate_warnings(audited_minutes: list[dict[str, Any]]) -> list[dict[str, Any]]:
     by_signature: dict[str, list[str]] = {}
-    for candidate in candidates:
-        title = normalize_title(candidate.get("title") or "")
-        start = candidate.get("start_time") or ""
-        duration = candidate.get("duration") or ""
+    for audited_minute in audited_minutes:
+        title = normalize_title(audited_minute.get("title") or "")
+        start = audited_minute.get("start_time") or ""
+        duration = audited_minute.get("duration") or ""
         signature = "|".join(str(part) for part in (title, start, duration) if part)
         if signature:
-            by_signature.setdefault(signature, []).append(candidate["minute_token"])
+            by_signature.setdefault(signature, []).append(audited_minute["minute_id"])
     return [
-        {"kind": "same_title_time_duration", "signature": signature, "minute_tokens": tokens}
-        for signature, tokens in by_signature.items()
-        if len(tokens) > 1
+        {"kind": "same_title_time_duration", "signature": signature, "minute_ids": minute_ids}
+        for signature, minute_ids in by_signature.items()
+        if len(minute_ids) > 1
     ]
 
 
-def apply_candidate_decision_hints(candidates: list[dict[str, Any]], duplicate_hints: list[dict[str, Any]]) -> None:
-    duplicate_tokens = {token for hint in duplicate_hints for token in hint.get("minute_tokens", [])}
-    for candidate in candidates:
-        candidate["decision_hint"] = (
-            "likely_duplicate" if candidate["minute_token"] in duplicate_tokens else "candidate"
+def apply_audit_selection_status(
+    audited_minutes: list[dict[str, Any]], duplicate_warnings: list[dict[str, Any]]
+) -> None:
+    duplicate_minute_ids = {minute_id for warning in duplicate_warnings for minute_id in warning.get("minute_ids", [])}
+    for audited_minute in audited_minutes:
+        audited_minute["selection_status"] = (
+            "needs_duplicate_review" if audited_minute["minute_id"] in duplicate_minute_ids else "selectable"
         )
 
 
@@ -375,7 +399,7 @@ def audit_markdown(report: dict[str, Any]) -> str:
     lines = [
         "# Lark Meeting STT Audit",
         "",
-        "Select meetings from this audit only. Do not open `stt/**/transcript.txt` during audit.",
+        "Select minute IDs from this audit only. Do not open `stt/**/transcript.txt` during audit.",
         "",
         "## Range",
         "",
@@ -390,33 +414,33 @@ def audit_markdown(report: dict[str, Any]) -> str:
     lines.extend(
         [
             "",
-            "## Candidates",
+            "## Audited Minutes",
             "",
-            "| decision | minute_token | title | sources | start_time | duration | missing_metadata |",
+            "| selection_status | minute_id | title | sources | start_time | duration | missing_metadata |",
             "|---|---|---|---|---|---|---|",
         ]
     )
-    for candidate in report["candidates"]:
+    for audited_minute in report["audited_minutes"]:
         lines.append(
-            "| {decision_hint} | `{minute_token}` | {title} | {sources} | {start_time} | {duration} | {missing} |".format(
-                decision_hint=candidate.get("decision_hint") or "",
-                minute_token=candidate.get("minute_token") or "",
-                title=(candidate.get("title") or "metadata unavailable").replace("|", "\\|"),
-                sources=", ".join(candidate.get("sources") or []),
-                start_time=candidate.get("start_time") or "metadata unavailable",
-                duration=candidate.get("duration") or "metadata unavailable",
-                missing=", ".join(candidate.get("metadata_unavailable") or []),
+            "| {selection_status} | `{minute_id}` | {title} | {sources} | {start_time} | {duration} | {missing} |".format(
+                selection_status=audited_minute.get("selection_status") or "",
+                minute_id=audited_minute.get("minute_id") or "",
+                title=(audited_minute.get("title") or "metadata unavailable").replace("|", "\\|"),
+                sources=", ".join(audited_minute.get("sources") or []),
+                start_time=audited_minute.get("start_time") or "metadata unavailable",
+                duration=audited_minute.get("duration") or "metadata unavailable",
+                missing=", ".join(audited_minute.get("metadata_unavailable") or []),
             )
         )
-    if report["duplicate_hints"]:
-        lines.extend(["", "## Duplicate Hints", ""])
-        lines.extend(f"- `{json.dumps(hint, ensure_ascii=False)}`" for hint in report["duplicate_hints"])
+    if report["duplicate_warnings"]:
+        lines.extend(["", "## Duplicate Warnings", ""])
+        lines.extend(f"- `{json.dumps(warning, ensure_ascii=False)}`" for warning in report["duplicate_warnings"])
     lines.extend(
         [
             "",
             "## Selection",
             "",
-            "Write one selected `minute_token` per line to `selected.txt`, then run export.",
+            f"Write one selected `minute_id` per line to `{SELECTED_MINUTES_FILE}`, then run export.",
         ]
     )
     return "\n".join(lines) + "\n"
@@ -482,44 +506,50 @@ def handle_audit(args: argparse.Namespace) -> int:
     )
     write_json(raw / "minutes-participant.json", {"ok": True, "data": {"items": participant_items, "has_more": False}})
 
-    vc_notes: list[dict[str, Any]] = []
+    vc_note_links: list[dict[str, Any]] = []
     for index, batch in enumerate(chunks(meeting_ids, 50), start=1):
         if not batch:
             continue
         payload = run_json(
             ["lark-cli", "vc", "+notes", "--meeting-ids", ",".join(batch), "--format", "json"],
             cwd=base,
-            log=raw / "vc-note-batches" / f"ids-{index:03d}.log",
+            log=raw / "vc-minute-link-batches" / f"meeting-ids-{index:03d}.log",
         )
-        write_json(raw / "vc-note-batches" / f"ids-{index:03d}.json", payload)
-        vc_notes.extend(payload.get("data", {}).get("notes") or [])
-    write_json(raw / "vc-notes.json", {"ok": True, "data": {"notes": vc_notes}})
+        write_json(raw / "vc-minute-link-batches" / f"meeting-ids-{index:03d}.json", payload)
+        vc_note_links.extend(payload.get("data", {}).get("notes") or [])
+    write_json(raw / "vc-minute-links.json", {"ok": True, "data": {"minute_links": vc_note_links}})
 
-    candidates: dict[str, dict[str, Any]] = {}
+    audited_minutes: dict[str, dict[str, Any]] = {}
     for item in owner_items:
         if item.get("token"):
-            merge_candidate(candidates, candidate_from_token(str(item["token"]), source="minutes_owner", item=item))
+            merge_audited_minute(
+                audited_minutes,
+                audited_minute_from_lark_token(str(item["token"]), source="minutes_owner_search", item=item),
+            )
     for item in participant_items:
         if item.get("token"):
-            merge_candidate(
-                candidates, candidate_from_token(str(item["token"]), source="minutes_participant", item=item)
+            merge_audited_minute(
+                audited_minutes,
+                audited_minute_from_lark_token(str(item["token"]), source="minutes_participant_search", item=item),
             )
-    for note in vc_notes:
-        token = str(note.get("minute_token") or "")
-        if token:
-            merge_candidate(
-                candidates,
-                candidate_from_token(
-                    token,
-                    source="vc_notes",
-                    item=note,
-                    meeting_id=str(note.get("meeting_id") or ""),
+    for minute_link in vc_note_links:
+        lark_minute_token = str(minute_link.get("minute_token") or "")
+        if lark_minute_token:
+            merge_audited_minute(
+                audited_minutes,
+                audited_minute_from_lark_token(
+                    lark_minute_token,
+                    source="vc_minute_lookup",
+                    item=minute_link,
+                    meeting_id=str(minute_link.get("meeting_id") or ""),
                 ),
             )
 
-    candidate_list = sorted(candidates.values(), key=lambda item: (item.get("title") or "", item["minute_token"]))
-    duplicate_hints = build_candidate_duplicate_hints(candidate_list)
-    apply_candidate_decision_hints(candidate_list, duplicate_hints)
+    audited_minute_list = sorted(
+        audited_minutes.values(), key=lambda item: (item.get("title") or "", item["minute_id"])
+    )
+    duplicate_warnings = build_audit_duplicate_warnings(audited_minute_list)
+    apply_audit_selection_status(audited_minute_list, duplicate_warnings)
     report = {
         "ok": True,
         "run": {"start": start, "end": end, "dir": str(base)},
@@ -527,14 +557,14 @@ def handle_audit(args: argparse.Namespace) -> int:
             "vc_meetings": len(meeting_ids),
             "minutes_owned": len(owner_items),
             "minutes_participated": len(participant_items),
-            "minute_candidates": len(candidate_list),
-            "duplicate_hint_groups": len(duplicate_hints),
+            "audited_minutes": len(audited_minute_list),
+            "duplicate_warning_groups": len(duplicate_warnings),
         },
-        "candidates": candidate_list,
-        "duplicate_hints": duplicate_hints,
+        "audited_minutes": audited_minute_list,
+        "duplicate_warnings": duplicate_warnings,
         "stop_points": [
             "Read audit.md/audit.json only; do not open stt/**/transcript.txt during audit.",
-            "Write selected minute tokens to selected.txt before export.",
+            f"Write selected minute IDs to {SELECTED_MINUTES_FILE} before export.",
         ],
     }
     write_json(base / "audit.json", report)
@@ -543,7 +573,7 @@ def handle_audit(args: argparse.Namespace) -> int:
     return 0
 
 
-def token_file_values(path: Path) -> list[str]:
+def selected_minute_file_values(path: Path) -> list[str]:
     return [
         line.strip()
         for line in path.read_text(encoding="utf-8").splitlines()
@@ -551,39 +581,40 @@ def token_file_values(path: Path) -> list[str]:
     ]
 
 
-def parse_tokens(args: argparse.Namespace, base: Path) -> list[str]:
-    tokens: list[str] = []
-    if args.tokens:
-        tokens.extend(part.strip() for part in args.tokens.replace("\n", ",").split(","))
-    if tokens:
-        return unique([token for token in tokens if token and not token.startswith("#")])
+def parse_selected_minute_ids(args: argparse.Namespace, base: Path) -> list[str]:
+    minute_ids: list[str] = []
+    if args.minute_ids:
+        minute_ids.extend(part.strip() for part in args.minute_ids.replace("\n", ",").split(","))
+    if minute_ids:
+        return unique([minute_id for minute_id in minute_ids if minute_id and not minute_id.startswith("#")])
 
-    if args.all_audited:
+    if args.all_audited_minutes:
         audit_path = args.audit or (base / "audit.json")
         data = load_json(audit_path)
-        return unique(
-            [str(item.get("minute_token")) for item in data.get("candidates", []) if item.get("minute_token")]
-        )
+        return unique([str(item.get("minute_id")) for item in data.get("audited_minutes", []) if item.get("minute_id")])
 
-    selected = args.selected or (base / "selected.txt")
-    if selected.exists():
-        return unique(token_file_values(selected))
-    raise SystemExit("provide --tokens, create RUN/selected.txt, pass --selected, or use --all-audited")
+    selected_minutes = args.selected_minutes or (base / SELECTED_MINUTES_FILE)
+    if selected_minutes.exists():
+        return unique(selected_minute_file_values(selected_minutes))
+    raise SystemExit(
+        f"provide --minute-ids, create RUN/{SELECTED_MINUTES_FILE}, pass --selected-minutes, "
+        "or use --all-audited-minutes"
+    )
 
 
-def load_audit_candidates(base: Path) -> dict[str, dict[str, Any]]:
+def load_audited_minutes(base: Path) -> dict[str, dict[str, Any]]:
     audit_path = base / "audit.json"
     if not audit_path.exists():
         return {}
     audit = load_json(audit_path)
     return {
-        str(candidate.get("minute_token")): candidate
-        for candidate in audit.get("candidates", [])
-        if candidate.get("minute_token")
+        str(audited_minute.get("minute_id")): audited_minute
+        for audited_minute in audit.get("audited_minutes", [])
+        if audited_minute.get("minute_id")
     }
 
 
-def build_transcript_duplicate_hints(transcripts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def build_transcript_duplicate_warnings(transcripts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     by_sha: dict[str, list[str]] = {}
     by_first_line: dict[str, list[str]] = {}
     by_prefix: dict[str, list[str]] = {}
@@ -592,18 +623,18 @@ def build_transcript_duplicate_hints(transcripts: list[dict[str, Any]]) -> list[
         if transcript["first_line"]:
             by_first_line.setdefault(transcript["first_line"], []).append(transcript["rel_path"])
         by_prefix.setdefault(transcript["prefix_sha256"], []).append(transcript["rel_path"])
-    duplicate_hints = [
+    duplicate_warnings = [
         {"kind": "same_transcript_sha256", "files": files} for files in by_sha.values() if len(files) > 1
     ]
-    duplicate_hints += [
+    duplicate_warnings += [
         {"kind": "same_transcript_first_line", "first_line": first_line, "files": files}
         for first_line, files in by_first_line.items()
         if len(files) > 1
     ]
-    duplicate_hints += [
+    duplicate_warnings += [
         {"kind": "same_transcript_prefix", "files": files} for files in by_prefix.values() if len(files) > 1
     ]
-    return duplicate_hints
+    return duplicate_warnings
 
 
 def duplicate_recommendation(files: list[str], transcripts: list[dict[str, Any]]) -> dict[str, Any]:
@@ -613,7 +644,7 @@ def duplicate_recommendation(files: list[str], transcripts: list[dict[str, Any]]
         item = by_file.get(rel_path) or {}
         sources = item.get("sources") or []
         return (
-            1 if "vc_notes" in sources else 0,
+            1 if "vc_minute_lookup" in sources else 0,
             len(sources),
             1 if item.get("title") else 0,
         )
@@ -622,72 +653,81 @@ def duplicate_recommendation(files: list[str], transcripts: list[dict[str, Any]]
     return {
         "recommended_keep": keep,
         "recommended_exclude": [file for file in files if file != keep],
-        "reason": "prefer vc_notes source, then richer source coverage, then titled transcript",
+        "reason": "rank vc_minute_lookup source first, then richer source coverage, then titled transcript",
     }
 
 
 def decisions_markdown(
     *,
-    selected_tokens: list[str],
+    selected_minute_ids: list[str],
     errors: list[dict[str, Any]],
-    duplicate_hints: list[dict[str, Any]],
+    duplicate_warnings: list[dict[str, Any]],
     transcripts: list[dict[str, Any]],
-    stale: list[str],
-    unselected_artifacts: list[dict[str, Any]],
+    stale_exported_files: list[str],
+    unexpected_exported_files: list[dict[str, Any]],
 ) -> str:
     lines = [
         "# Lark Meeting STT Decisions",
         "",
-        "Generated from export metadata only. Do not open `stt/**/transcript.txt` for selection decisions.",
+        "Export metadata supplies these decisions. Do not open `stt/**/transcript.txt` for selection decisions.",
         "",
         "## Coverage",
         "",
-        f"- selected_minute_tokens: {len(selected_tokens)}",
+        f"- selected_minutes: {len(selected_minute_ids)}",
         f"- exported_transcripts: {len(transcripts)}",
         f"- errors: {len(errors)}",
-        f"- duplicate_hint_groups: {len(duplicate_hints)}",
-        f"- stale_transcript_artifacts: {len(stale)}",
-        f"- unselected_transcript_artifacts: {len(unselected_artifacts)}",
+        f"- duplicate_warning_groups: {len(duplicate_warnings)}",
+        f"- stale_exported_files: {len(stale_exported_files)}",
+        f"- unexpected_exported_files: {len(unexpected_exported_files)}",
         "",
     ]
     if errors:
         lines.extend(["## Excluded", ""])
         for error in errors:
-            token = error.get("minute_token") or error.get("token") or ""
-            reason = error.get("error") or error.get("hint") or "unknown"
-            lines.append(f"- `{token}`: {reason}")
+            minute_id = error.get("minute_id") or ""
+            reason = error.get("error") or error.get("recovery_hint") or "unknown"
+            lines.append(f"- `{minute_id}`: {reason}")
         lines.append("")
-    if duplicate_hints:
-        lines.extend(["## Duplicate Hints", ""])
-        for hint in duplicate_hints:
-            recommendation = hint.get("recommendation") or {}
-            lines.append(f"- `{hint.get('kind')}`: `{json.dumps(hint, ensure_ascii=False)}`")
+    if duplicate_warnings:
+        lines.extend(["## Duplicate Warnings", ""])
+        for warning in duplicate_warnings:
+            recommendation = warning.get("recommendation") or {}
+            lines.append(f"- `{warning.get('kind')}`: `{json.dumps(warning, ensure_ascii=False)}`")
             if recommendation:
                 lines.append(f"  - keep: `{recommendation.get('recommended_keep')}`")
         lines.append("")
-    if stale:
-        lines.extend(["## Stale Transcript Artifacts", ""])
-        lines.extend(f"- `{path}`" for path in stale)
+    if stale_exported_files:
+        lines.extend(["## Stale Exported Files", ""])
+        lines.extend(f"- `{path}`" for path in stale_exported_files)
         lines.append("")
-    if unselected_artifacts:
-        lines.extend(["## Unselected Transcript Artifacts", ""])
-        for artifact in unselected_artifacts:
-            lines.append(f"- `{json.dumps(artifact, ensure_ascii=False)}`")
+    if unexpected_exported_files:
+        lines.extend(["## Unexpected Exported Files", ""])
+        for exported_file in unexpected_exported_files:
+            lines.append(f"- `{json.dumps(exported_file, ensure_ascii=False)}`")
         lines.append("")
     return "\n".join(lines).rstrip() + "\n"
+
+
+def export_error_from_lark_result(result: dict[str, Any]) -> dict[str, Any]:
+    minute_id = str(result.get("minute_token") or "")
+    return {
+        "minute_id": minute_id,
+        "error": result.get("error") or "unknown",
+        "recovery_hint": result.get("hint") or "",
+    }
 
 
 def handle_export(args: argparse.Namespace) -> int:
     require_commands(["lark-cli"])
     base = args.run.expanduser().resolve()
-    tokens = parse_tokens(args, base)
-    if not tokens:
-        raise SystemExit("no minute tokens selected")
-    selected_set = set(tokens)
+    selected_minute_ids = parse_selected_minute_ids(args, base)
+    if not selected_minute_ids:
+        raise SystemExit("no minute IDs selected")
+    selected_set = set(selected_minute_ids)
     if args.batch_size < 1:
         raise SystemExit("--batch-size must be >= 1")
-    encoding = token_encoder(args.encoding)
-    audit_candidates = load_audit_candidates(base)
+    encoding = tiktoken_encoder(args.encoding)
+    audited_minutes = load_audited_minutes(base)
 
     raw = base / "raw"
     logs = base / "logs"
@@ -695,11 +735,11 @@ def handle_export(args: argparse.Namespace) -> int:
     raw.mkdir(parents=True, exist_ok=True)
     logs.mkdir(parents=True, exist_ok=True)
     stt.mkdir(parents=True, exist_ok=True)
-    write_text(base / "selected.txt", "".join(f"{token}\n" for token in tokens))
+    write_text(base / SELECTED_MINUTES_FILE, "".join(f"{minute_id}\n" for minute_id in selected_minute_ids))
 
-    notes: list[dict[str, Any]] = []
-    for index, batch in enumerate(chunks(tokens, args.batch_size), start=1):
-        eprint(f"export batch {index}: {len(batch)} token(s)")
+    minute_artifacts: list[dict[str, Any]] = []
+    for index, batch in enumerate(chunks(selected_minute_ids, args.batch_size), start=1):
+        eprint(f"export batch {index}: {len(batch)} minute ID(s)")
         cmd = [
             "lark-cli",
             "vc",
@@ -714,38 +754,38 @@ def handle_export(args: argparse.Namespace) -> int:
         if args.overwrite:
             cmd.append("--overwrite")
         payload = run_json(cmd, cwd=base, log=logs / f"export-stt-{index:03d}.log")
-        write_json(raw / "minute-note-batches" / f"tokens-{index:03d}.json", payload)
-        notes.extend(payload.get("data", {}).get("notes") or [])
-    write_json(raw / "minute-notes.json", {"ok": True, "data": {"notes": notes}})
+        write_json(raw / "minute-artifact-batches" / f"minute-ids-{index:03d}.json", payload)
+        minute_artifacts.extend(payload.get("data", {}).get("notes") or [])
+    write_json(raw / "minute-artifacts.json", {"ok": True, "data": {"minute_artifacts": minute_artifacts}})
 
-    note_meta: dict[str, dict[str, str]] = {}
+    artifact_meta: dict[str, dict[str, str]] = {}
     errors: list[dict[str, Any]] = []
-    unselected_artifacts: list[dict[str, Any]] = []
-    for note in notes:
-        if note.get("error"):
-            note_token = str(note.get("minute_token") or note.get("token") or "")
-            if not note_token or note_token in selected_set:
-                errors.append(note)
+    unexpected_exported_files: list[dict[str, Any]] = []
+    for artifact in minute_artifacts:
+        if artifact.get("error"):
+            minute_id = str(artifact.get("minute_token") or "")
+            if not minute_id or minute_id in selected_set:
+                errors.append(export_error_from_lark_result(artifact))
             continue
-        note_token = str(note.get("minute_token") or "")
-        transcript_file = (note.get("artifacts") or {}).get("transcript_file")
+        minute_id = str(artifact.get("minute_token") or "")
+        transcript_file = (artifact.get("artifacts") or {}).get("transcript_file")
         if transcript_file:
-            if note_token not in selected_set:
-                unselected_artifacts.append(
+            if minute_id not in selected_set:
+                unexpected_exported_files.append(
                     {
-                        "minute_token": note_token,
+                        "minute_id": minute_id,
                         "transcript_file": str(transcript_file),
-                        "reason": "artifact_not_in_current_selection",
+                        "reason": "file_not_requested_by_current_selection",
                     }
                 )
                 continue
-            note_meta[str(transcript_file)] = {
-                "title": str(note.get("title") or ""),
-                "minute_token": note_token,
+            artifact_meta[str(transcript_file)] = {
+                "title": str(artifact.get("title") or ""),
+                "minute_id": minute_id,
             }
 
-    current_transcript_rels = sorted(note_meta)
-    stale = sorted(
+    current_transcript_rels = sorted(artifact_meta)
+    stale_exported_files = sorted(
         path.relative_to(base).as_posix()
         for path in stt.glob("**/transcript.txt")
         if path.relative_to(base).as_posix() not in current_transcript_rels
@@ -754,105 +794,114 @@ def handle_export(args: argparse.Namespace) -> int:
     transcripts: list[dict[str, Any]] = []
     for rel in current_transcript_rels:
         path = base / rel
+        meta = artifact_meta.get(rel, {})
+        minute_id = meta.get("minute_id") or ""
         if not path.exists():
-            errors.append({"transcript_file": rel, "error": "transcript_file_missing_after_export"})
+            errors.append(
+                {
+                    "minute_id": minute_id,
+                    "transcript_file": rel,
+                    "error": "transcript_file_missing_after_export",
+                }
+            )
             continue
         rel = path.relative_to(base).as_posix()
         text = path.read_text(encoding="utf-8", errors="replace")
         lines = text.splitlines()
         slug = path.parent.name
-        meta = note_meta.get(rel, {})
-        minute_token = meta.get("minute_token") or ""
-        if minute_token not in selected_set:
-            unselected_artifacts.append(
+        if minute_id not in selected_set:
+            unexpected_exported_files.append(
                 {
-                    "minute_token": minute_token or token_from_slug(slug),
+                    "minute_id": minute_id,
                     "transcript_file": rel,
-                    "reason": "transcript_not_in_current_selection",
+                    "reason": "transcript_file_not_requested_by_current_selection",
                 }
             )
             continue
-        audit_candidate = audit_candidates.get(minute_token, {})
+        audited_minute = audited_minutes.get(minute_id, {})
         transcripts.append(
             {
-                "minute_token": minute_token,
-                "title": meta.get("title") or audit_candidate.get("title") or "",
+                "minute_id": minute_id,
+                "title": meta.get("title") or audited_minute.get("title") or "",
                 "rel_path": rel,
                 "slug": slug,
-                "sources": audit_candidate.get("sources") or [],
-                "meeting_ids": audit_candidate.get("meeting_ids") or [],
+                "sources": audited_minute.get("sources") or [],
+                "meeting_ids": audited_minute.get("meeting_ids") or [],
                 "bytes": path.stat().st_size,
                 "line_count": len(lines),
                 "first_line": lines[0] if lines else "",
                 "sha256": sha256_file(path),
                 "prefix_sha256": transcript_prefix_hash(text),
-                "token_count": token_count(text, encoding=encoding),
+                "transcript_tiktoken_count": count_tiktoken(text, encoding=encoding),
             }
         )
 
-    exported_tokens = {transcript["minute_token"] for transcript in transcripts}
-    errored_tokens = {str(error.get("minute_token") or error.get("token") or "") for error in errors}
-    for token in tokens:
-        if token not in exported_tokens and token not in errored_tokens:
-            errors.append({"minute_token": token, "error": "selected_token_missing_transcript_after_export"})
+    exported_minute_ids = {transcript["minute_id"] for transcript in transcripts}
+    failed_minute_ids = {str(error.get("minute_id") or "") for error in errors}
+    for minute_id in selected_minute_ids:
+        if minute_id not in exported_minute_ids and minute_id not in failed_minute_ids:
+            errors.append({"minute_id": minute_id, "error": "selected_minute_missing_transcript_after_export"})
 
-    duplicate_hints = build_transcript_duplicate_hints(transcripts)
-    for hint in duplicate_hints:
-        files = hint.get("files") or []
+    duplicate_warnings = build_transcript_duplicate_warnings(transcripts)
+    for warning in duplicate_warnings:
+        files = warning.get("files") or []
         if files:
-            hint["recommendation"] = duplicate_recommendation(files, transcripts)
+            warning["recommendation"] = duplicate_recommendation(files, transcripts)
     excluded = [
         {
-            "minute_token": error.get("minute_token") or error.get("token") or "",
-            "reason": error.get("error") or error.get("hint") or "unknown",
+            "minute_id": error.get("minute_id") or "",
+            "reason": error.get("error") or error.get("recovery_hint") or "unknown",
         }
         for error in errors
     ]
     report = {
         "ok": True,
         "summary": {
-            "selected_minute_tokens": len(tokens),
+            "selected_minutes": len(selected_minute_ids),
             "exported_transcripts": len(transcripts),
             "errors": len(errors),
-            "duplicate_hint_groups": len(duplicate_hints),
-            "stale_transcript_artifacts": len(stale),
-            "unselected_transcript_artifacts": len(unselected_artifacts),
+            "duplicate_warning_groups": len(duplicate_warnings),
+            "stale_exported_files": len(stale_exported_files),
+            "unexpected_exported_files": len(unexpected_exported_files),
         },
         "run": {"dir": str(base)},
         "encoding": args.encoding,
         "transcripts": transcripts,
-        "duplicate_hints": duplicate_hints,
+        "duplicate_warnings": duplicate_warnings,
         "errors": errors,
         "excluded": excluded,
-        "stale_transcript_artifacts": stale,
-        "unselected_transcript_artifacts": unselected_artifacts,
+        "stale_exported_files": stale_exported_files,
+        "unexpected_exported_files": unexpected_exported_files,
         "stop_points": [
-            "Inspect transcripts.json metadata only; do not open stt/**/transcript.txt.",
+            f"Inspect {TRANSCRIPT_INDEX_FILE} metadata only; do not open stt/**/transcript.txt.",
             "Render prompts only after duplicate and error decisions are made.",
         ],
     }
-    write_json(base / "transcripts.json", report)
-    write_text(base / "excluded.txt", "".join(f"{item['minute_token']}\t{item['reason']}\n" for item in excluded))
+    write_json(base / TRANSCRIPT_INDEX_FILE, report)
     write_text(
-        base / "dedupe.md",
+        base / "excluded-minutes.txt",
+        "".join(f"{item['minute_id']}\t{item['reason']}\n" for item in excluded),
+    )
+    write_text(
+        base / "duplicate-decisions.md",
         decisions_markdown(
-            selected_tokens=tokens,
+            selected_minute_ids=selected_minute_ids,
             errors=[],
-            duplicate_hints=duplicate_hints,
+            duplicate_warnings=duplicate_warnings,
             transcripts=transcripts,
-            stale=[],
-            unselected_artifacts=[],
+            stale_exported_files=[],
+            unexpected_exported_files=[],
         ),
     )
     write_text(
-        base / "decisions.md",
+        base / "export-decisions.md",
         decisions_markdown(
-            selected_tokens=tokens,
+            selected_minute_ids=selected_minute_ids,
             errors=errors,
-            duplicate_hints=duplicate_hints,
+            duplicate_warnings=duplicate_warnings,
             transcripts=transcripts,
-            stale=stale,
-            unselected_artifacts=unselected_artifacts,
+            stale_exported_files=stale_exported_files,
+            unexpected_exported_files=unexpected_exported_files,
         ),
     )
     emit(report, fmt=args.format)
@@ -886,21 +935,22 @@ def render_prompt(
 def handle_render(args: argparse.Namespace) -> int:
     if not args.template.exists():
         raise SystemExit(f"template not found: {args.template}")
-    if args.max_input_tokens < 1:
-        raise SystemExit("--max-input-tokens must be >= 1")
+    if args.max_prompt_tiktoken_count < 1:
+        raise SystemExit("--max-prompt-tiktoken-count must be >= 1")
     base = args.run.expanduser().resolve()
-    transcripts_path = (args.transcripts or (base / "transcripts.json")).expanduser().resolve()
-    prompts_dir = (args.prompts or (base / "prompts")).expanduser().resolve()
-    prompts_index = prompts_dir.parent / f"{prompts_dir.name}.json"
+    transcript_index_path = (args.transcript_index or (base / TRANSCRIPT_INDEX_FILE)).expanduser().resolve()
+    prompt_dir = (args.prompt_dir or (base / "prompts")).expanduser().resolve()
+    prompt_index_path = base / PROMPT_INDEX_FILE
     start, end = render_date_window(args, base)
-    encoding = token_encoder(args.encoding)
-    data = load_json(transcripts_path)
-    prompts_dir.mkdir(parents=True, exist_ok=True)
+    encoding = tiktoken_encoder(args.encoding)
+    data = load_json(transcript_index_path)
+    prompt_dir.mkdir(parents=True, exist_ok=True)
 
     prompts: list[dict[str, Any]] = []
-    skipped_oversized: list[dict[str, Any]] = []
-    for transcript in data.get("transcripts", []):
-        transcript_path = transcripts_path.parent / transcript["rel_path"]
+    skipped_oversized_prompts: list[dict[str, Any]] = []
+    transcripts = data["transcripts"]
+    for transcript in transcripts:
+        transcript_path = transcript_index_path.parent / transcript["rel_path"]
         transcript_text = transcript_path.read_text(encoding="utf-8", errors="replace")
         rendered = render_prompt(
             template_path=args.template,
@@ -909,17 +959,17 @@ def handle_render(args: argparse.Namespace) -> int:
             start=start,
             end=end,
         )
-        prompt_token_count = token_count(rendered, encoding=encoding)
-        prompt_path = prompts_dir / f"{transcript['slug']}.prompt.md"
+        prompt_tiktoken_count = count_tiktoken(rendered, encoding=encoding)
+        prompt_path = prompt_dir / f"{transcript['slug']}.prompt.md"
         row = {
-            "minute_token": transcript.get("minute_token") or "",
-            "title": transcript.get("title") or "",
-            "source_transcript": transcript.get("rel_path") or str(transcript_path),
-            "token_count": prompt_token_count,
-            "max_input_tokens": args.max_input_tokens,
+            "minute_id": transcript["minute_id"],
+            "title": transcript["title"],
+            "source_transcript": transcript["rel_path"],
+            "prompt_tiktoken_count": prompt_tiktoken_count,
+            "max_prompt_tiktoken_count": args.max_prompt_tiktoken_count,
         }
-        if prompt_token_count > args.max_input_tokens:
-            skipped_oversized.append({**row, "reason": "rendered_prompt_exceeds_max_input_tokens"})
+        if prompt_tiktoken_count > args.max_prompt_tiktoken_count:
+            skipped_oversized_prompts.append({**row, "reason": "rendered_prompt_exceeds_max_prompt_tiktoken_count"})
             continue
         write_text(prompt_path, rendered)
         prompts.append(
@@ -934,29 +984,29 @@ def handle_render(args: argparse.Namespace) -> int:
         )
 
     report = {
-        "ok": not skipped_oversized,
+        "ok": not skipped_oversized_prompts,
         "summary": {
-            "source_transcripts": len(data.get("transcripts", [])),
+            "source_transcripts": len(transcripts),
             "rendered_prompts": len(prompts),
-            "skipped_oversized": len(skipped_oversized),
+            "skipped_oversized_prompts": len(skipped_oversized_prompts),
         },
         "template": str(args.template),
         "encoding": args.encoding,
-        "max_input_tokens": args.max_input_tokens,
-        "index": str(prompts_index),
+        "max_prompt_tiktoken_count": args.max_prompt_tiktoken_count,
+        "index": str(prompt_index_path),
         "prompts": prompts,
-        "skipped_oversized": skipped_oversized,
+        "skipped_oversized_prompts": skipped_oversized_prompts,
         "stop_points": [
-            "Run Amp outside this CLI using prompt files under the token budget.",
-            "If skipped_oversized is non-empty, do not open transcript text; reduce selected.txt or split that meeting.",
+            "Use rendered prompt files under the tiktoken budget for Amp.",
+            f"If skipped_oversized_prompts is non-empty, do not open transcript text; reduce {SELECTED_MINUTES_FILE} or split that meeting.",
         ],
     }
-    write_json(prompts_index, report)
+    write_json(prompt_index_path, report)
     emit(report, fmt=args.format)
-    if skipped_oversized:
+    if skipped_oversized_prompts:
         eprint(
-            "render failed: at least one prompt exceeds --max-input-tokens. "
-            "Do not open transcript text; reduce selected.txt or split the oversized meeting."
+            "render failed: at least one prompt exceeds --max-prompt-tiktoken-count. "
+            f"Do not open transcript text; reduce {SELECTED_MINUTES_FILE} or split the oversized meeting."
         )
         return 1
     return 0
@@ -969,15 +1019,15 @@ def handle_summarize(args: argparse.Namespace) -> int:
     if args.concurrency < 1:
         raise SystemExit("--concurrency must be >= 1")
     base = args.run.expanduser().resolve()
-    prompts_path = (args.prompts or (base / "prompts.json")).expanduser().resolve()
+    prompt_index_path = (args.prompt_index or (base / PROMPT_INDEX_FILE)).expanduser().resolve()
     summaries_dir = (args.summaries or (base / "summaries")).expanduser().resolve()
-    prompts_data = load_json(prompts_path)
+    prompts_data = load_json(prompt_index_path)
     summaries_dir.mkdir(parents=True, exist_ok=True)
     index_path = summaries_dir / "index.jsonl"
 
-    prompts = prompts_data.get("prompts", [])
+    prompts = prompts_data["prompts"]
     if not isinstance(prompts, list):
-        raise SystemExit(f"invalid prompts file: {prompts_path}: prompts must be a list")
+        raise SystemExit(f"invalid prompt index file: {prompt_index_path}: prompts must be a list")
     jsonl_lock = threading.Lock()
 
     def append_event(payload: dict[str, Any]) -> None:
@@ -994,12 +1044,12 @@ def handle_summarize(args: argparse.Namespace) -> int:
             "started_at": started_at,
             "prompt": str(prompt_path),
             "summary": str(summary_path),
-            "minute_token": prompt.get("minute_token") or "",
-            "title": prompt.get("title") or "",
-            "token_count": prompt.get("token_count"),
+            "minute_id": prompt["minute_id"],
+            "title": prompt["title"],
+            "prompt_tiktoken_count": prompt["prompt_tiktoken_count"],
         }
         append_event(start_event)
-        eprint(f"summarizing {prompt_path.name} tokens={prompt.get('token_count')}")
+        eprint(f"summarizing {prompt_path.name} prompt_tiktoken_count={prompt['prompt_tiktoken_count']}")
         cmd = [
             "amp",
             "--execute",
