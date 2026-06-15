@@ -1,18 +1,19 @@
 ---
 name: lark-meeting-amp-summary
 description: >-
-  Recent accessible Feishu/Lark meetings or Minutes need a metadata-only STT
-  selection surface, exported raw STT transcript indexes, tiktoken-gated prompt
-  files, and Amp summaries.
+  Accessible Feishu/Lark meeting STT needs metadata-only audit, selection, and
+  export; optionally render tiktoken-gated prompts and run Amp summaries.
 ---
 
 # Lark Meeting Amp Summary
 
 ## Contract
 
-The workflow audits before export. During audit and selection, the workflow reads only `audit.md`, `audit.json`, `export-decisions.md`, `duplicate-decisions.md`, and metadata from `transcript-index.json`. The workflow does not open `stt/**/transcript.txt`. Rendered prompt files are the first files that contain full STT text. `render` stops when a prompt exceeds the tiktoken budget.
+The workflow handles raw STT audit, export, prompt rendering, and optional Amp summaries. If the user asks for historical meeting products without this raw STT workflow, use `lark-vc`. If the user asks to create, update, upload, or manage Minutes, use `lark-minutes`. If the user asks about future calendar events, use `lark-calendar`.
 
-Raw STT supplies summary evidence. Feishu AI minutes supply metadata only.
+The workflow audits before export. During audit minute selection, the workflow reads only `audit.md` and `audit.json`. During post-export review, the workflow reads `initial-export.json`, `export-decisions.md`, `duplicate-decisions.md`, and metadata from `transcript-index.json`. The workflow does not open `stt/**/transcript.txt`. Rendered prompt files are the first files that contain full STT text. `render` scans every transcript, skips oversized prompts, writes under-budget prompts, and exits non-zero if any prompt exceeds the tiktoken budget.
+
+Raw STT supplies summary evidence. Feishu AI minutes supply metadata only. The default template receives only raw STT text and the best-known meeting title.
 
 The workflow uses these names:
 
@@ -31,7 +32,9 @@ Run commands from this Skill directory. Keep the run directory outside the repo:
 run="$HOME/Downloads/lark-meeting-$(date +%Y%m%d-%H%M%S)"
 ```
 
-Old run files are invalid input. The workflow does not read `selected.txt`, `transcripts.json`, `prompts.json`, `dedupe.md`, or `decisions.md`.
+Use only this run's files listed in Output Files. Ignore legacy artifacts from older runs.
+
+Resolve relative date words before audit. If the user says "last Sunday", "last week", or a similar phrase, write the exact local dates into `--start` and `--end` before running the command.
 
 ### 1. Audit Minutes
 
@@ -72,7 +75,7 @@ If the count is surprising, `metadata_unavailable` is broad, or `duplicate_warni
 
 ### 2. Export Selected STT Metadata
 
-The export command writes `stt/`, `raw/`, `logs/`, `selected-minutes.txt`, `transcript-index.json`, `excluded-minutes.txt`, `duplicate-decisions.md`, and `export-decisions.md`. The command reads STT internally for hash and tiktoken counts, but JSON/stdout never include transcript body. A rerun indexes only files whose `minute_id` is in the current selection. The export metadata reports stale or unexpected files and keeps them out of `transcript-index.json`.
+The export command writes `stt/`, `raw/`, `logs/`, `selected-minutes.txt`, `initial-export.json`, `transcript-index.json`, `excluded-minutes.txt`, `duplicate-decisions.md`, and `export-decisions.md`. The command reads STT internally for hash and tiktoken counts, but JSON/stdout never include transcript body. The first export writes `initial-export.json`; later export reruns never overwrite it. A rerun indexes only files whose `minute_id` is in the current selection. The export metadata reports stale or unexpected files and keeps them out of `transcript-index.json`.
 
 `transcripts[]` must match the current `selected-minutes.txt`. If `lark-cli` returns or leaves files for minute IDs not present in `selected-minutes.txt`, the export metadata records them under `unexpected_exported_files` or `stale_exported_files` and excludes them from transcript counts, duplicate warnings, render, and title inference.
 
@@ -110,7 +113,10 @@ jq '.summary, .duplicate_warnings, .transcripts[] | {minute_id,title,bytes,line_
 - `duplicate_warnings[]`: same SHA, same first line, same prefix, plus a recommendation that ranks `vc_minute_lookup`, richer source coverage, then titled transcripts
 - `errors[]`
 - `excluded[]`
+- `stale_exported_files[]`
 - `unexpected_exported_files[]`
+
+`initial-export.json` preserves the first export evidence for this run. Use it when a later clean export overwrote `transcript-index.json`, `export-decisions.md`, or `duplicate-decisions.md`.
 
 Stop after export when:
 
@@ -131,25 +137,37 @@ uv run --script scripts/lark_meeting_stt.py render \
   --max-prompt-tiktoken-count 100000
 ```
 
-If any rendered prompt exceeds the budget, `render` exits non-zero, writes no prompt for that transcript, and records the transcript in `prompt-index.json.skipped_oversized_prompts`. Do not open transcript text to debug this; reduce `selected-minutes.txt` or split the oversized meeting.
+If any rendered prompt exceeds the budget, `render` exits non-zero after processing all transcripts. It writes under-budget prompts, writes no prompt for oversized transcripts, and records oversized transcripts in `prompt-index.json` field `skipped_oversized_prompts[]`. Do not open transcript text to debug this. Change `selected-minutes.txt`, rerun export, and rerun render, or split the oversized meeting.
 
 ### 4. Summarize With Amp
 
-Rendered prompt files contain meeting STT and go to Amp. Run Amp only after transcript selection and the tiktoken gate pass. The bundled runner records progress, timeout, and exit codes:
+Rendered prompt files contain meeting STT and go to Amp. Run Amp only when the user asks for summaries, rollups, or Amp output, and only after transcript selection and the tiktoken gate pass. If the user asks only for audit, export, or an index, stop after the requested stage and report output paths. The bundled runner records progress, timeout, and exit codes:
 
 ```bash
 uv run --script scripts/lark_meeting_stt.py summarize \
   --run "$run" \
-  --concurrency 8 \
+  --concurrency 4 \
   --timeout-seconds 900 \
   --format json
 ```
 
-`summarize` runs Amp prompts concurrently by default (`--concurrency 8`). `summaries/index.jsonl` records per-prompt started/completed events, exit code, duration, output bytes, timeout status, and stderr. If Amp rate limits or local resources become noisy, lower `--concurrency`. If one prompt repeatedly times out, split that meeting or lower `--timeout-seconds`.
+`summarize` runs Amp prompts concurrently by default (`--concurrency 4`). `summaries/index.jsonl` records per-prompt started/completed events, exit code, duration, output bytes, timeout status, and stderr.
+
+If one long prompt fails while the rest pass, rerun that prompt by `minute_id`:
+
+```bash
+uv run --script scripts/lark_meeting_stt.py summarize \
+  --run "$run" \
+  --minute-id "$minute_id" \
+  --concurrency 1 \
+  --timeout-seconds 1800
+```
+
+If one prompt repeatedly times out, increase `--timeout-seconds` or split that meeting.
 
 ### 5. Final Rollup
 
-The final Markdown report uses `audit.json`, `export-decisions.md`, `duplicate-decisions.md`, `transcript-index.json`, `prompt-index.json`, `summaries/index.jsonl`, and `summaries/*.summary.md`. Do not read `stt/**/transcript.txt`. The report includes:
+The final Markdown report uses `audit.json`, `initial-export.json`, `export-decisions.md`, `duplicate-decisions.md`, `transcript-index.json`, `prompt-index.json`, `summaries/index.json`, `summaries/index.jsonl`, and `summaries/*.summary.md`. Do not read `stt/**/transcript.txt` or command logs. If `summaries/index.json.ok` is false or `summary.failures` is non-zero, handle failed prompts before the final rollup. The report includes:
 
 - coverage range and counts
 - excluded meetings and reasons
@@ -165,14 +183,16 @@ The final Markdown report uses `audit.json`, `export-decisions.md`, `duplicate-d
 - `audit.json`: audited minute counts, source coverage, duplicate warnings.
 - `audit.md`: compact audit surface for choosing minute IDs.
 - `selected-minutes.txt`: one selected `minute_id` per line.
+- `initial-export.json`: first export report, preserved across later export reruns.
 - `transcript-index.json`: metadata-only transcript index, tiktoken counts, errors, duplicate warnings.
 - `excluded-minutes.txt`: inaccessible or failed minute IDs.
 - `duplicate-decisions.md`: duplicate groups and recommended keep/exclude decisions.
 - `export-decisions.md`: coverage, exclusions, duplicate warnings, stale files, and unexpected files.
 - `prompt-index.json`: rendered prompt file index.
+- `summaries/index.json`: Amp summary result index, failure count, and per-prompt results.
 - `summaries/index.jsonl`: Amp progress events.
 - `raw/`: lark-cli page JSON and upstream minute-artifact batch JSON.
-- `logs/`: command logs.
+- `logs/`: command metadata and stderr. Logs omit stdout and are not final-report evidence.
 
 ## Template Model
 
@@ -185,7 +205,7 @@ Rendered prompts ask the model to summarize the provided transcript according to
 
 ## Failure Signals And Guards
 
-- A non-zero script exit means the current stage failed. Inspect stderr and the matching file under `logs/`.
+- A non-zero script exit means the current stage failed. Inspect terminal stderr and the stage JSON first. Logs contain command metadata and stderr only.
 - `render` exits non-zero when any rendered prompt exceeds `--max-prompt-tiktoken-count`.
 - Access failures are reported in `transcript-index.json.errors`; never replace missing raw STT with Feishu AI minutes.
 - Duplicate warnings require a keep/exclude decision before render. The CLI does not delete likely duplicates automatically.

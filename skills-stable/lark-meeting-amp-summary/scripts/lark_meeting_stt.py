@@ -31,6 +31,7 @@ DEFAULT_ENCODING = "o200k_base"
 DEFAULT_MAX_PROMPT_TIKTOKEN_COUNT = 100_000
 SELECTED_MINUTES_FILE = "selected-minutes.txt"
 TRANSCRIPT_INDEX_FILE = "transcript-index.json"
+INITIAL_EXPORT_FILE = "initial-export.json"
 PROMPT_INDEX_FILE = "prompt-index.json"
 
 
@@ -102,9 +103,10 @@ def parse_args() -> argparse.Namespace:
     summarize.add_argument(
         "--prompt-index", type=Path, help=f"{PROMPT_INDEX_FILE} from render. Defaults to RUN/{PROMPT_INDEX_FILE}."
     )
+    summarize.add_argument("--minute-id", action="append", help="Summarize only this minute_id. Repeatable.")
     summarize.add_argument("--summaries", type=Path, help="Summary output directory. Defaults to RUN/summaries.")
     summarize.add_argument("--timeout-seconds", type=int, default=900, help="Per-prompt Amp timeout.")
-    summarize.add_argument("--concurrency", type=int, default=8, help="Maximum concurrent Amp processes.")
+    summarize.add_argument("--concurrency", type=int, default=4, help="Maximum concurrent Amp processes.")
     summarize.add_argument("--amp-mode", default="deep")
     summarize.add_argument("--amp-effort", default="xhigh")
     summarize.add_argument("--amp-visibility", default="private")
@@ -123,6 +125,13 @@ def write_text(path: Path, text: str) -> None:
 
 def write_json(path: Path, payload: Any) -> None:
     write_text(path, json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+
+
+def write_json_once(path: Path, payload: Any) -> bool:
+    if path.exists():
+        return False
+    write_json(path, payload)
+    return True
 
 
 def append_jsonl(path: Path, payload: dict[str, Any]) -> None:
@@ -241,7 +250,7 @@ def run_cmd(cmd: list[str], *, cwd: Path, log: Path | None = None) -> subprocess
                     proc.stderr,
                     "",
                     "STDOUT",
-                    proc.stdout,
+                    "omitted from command logs; use stage JSON files for structured evidence",
                 ]
             ),
         )
@@ -513,7 +522,7 @@ def handle_audit(args: argparse.Namespace) -> int:
         payload = run_json(
             ["lark-cli", "vc", "+notes", "--meeting-ids", ",".join(batch), "--format", "json"],
             cwd=base,
-            log=raw / "vc-minute-link-batches" / f"meeting-ids-{index:03d}.log",
+            log=logs / "vc-minute-link-batches" / f"meeting-ids-{index:03d}.log",
         )
         write_json(raw / "vc-minute-link-batches" / f"meeting-ids-{index:03d}.json", payload)
         vc_note_links.extend(payload.get("data", {}).get("notes") or [])
@@ -854,6 +863,7 @@ def handle_export(args: argparse.Namespace) -> int:
         }
         for error in errors
     ]
+    initial_export_status = "created" if not (base / INITIAL_EXPORT_FILE).exists() else "preserved"
     report = {
         "ok": True,
         "summary": {
@@ -865,6 +875,11 @@ def handle_export(args: argparse.Namespace) -> int:
             "unexpected_exported_files": len(unexpected_exported_files),
         },
         "run": {"dir": str(base)},
+        "initial_export": {
+            "path": INITIAL_EXPORT_FILE,
+            "status": initial_export_status,
+            "policy": "written by the first export in this run and never overwritten by later export reruns",
+        },
         "encoding": args.encoding,
         "transcripts": transcripts,
         "duplicate_warnings": duplicate_warnings,
@@ -877,6 +892,7 @@ def handle_export(args: argparse.Namespace) -> int:
             "Render prompts only after duplicate and error decisions are made.",
         ],
     }
+    write_json_once(base / INITIAL_EXPORT_FILE, report)
     write_json(base / TRANSCRIPT_INDEX_FILE, report)
     write_text(
         base / "excluded-minutes.txt",
@@ -998,7 +1014,8 @@ def handle_render(args: argparse.Namespace) -> int:
         "skipped_oversized_prompts": skipped_oversized_prompts,
         "stop_points": [
             "Use rendered prompt files under the tiktoken budget for Amp.",
-            f"If skipped_oversized_prompts is non-empty, do not open transcript text; reduce {SELECTED_MINUTES_FILE} or split that meeting.",
+            "If skipped_oversized_prompts is non-empty, do not open transcript text; "
+            f"change {SELECTED_MINUTES_FILE}, rerun export, and rerun render, or split that meeting.",
         ],
     }
     write_json(prompt_index_path, report)
@@ -1006,7 +1023,8 @@ def handle_render(args: argparse.Namespace) -> int:
     if skipped_oversized_prompts:
         eprint(
             "render failed: at least one prompt exceeds --max-prompt-tiktoken-count. "
-            f"Do not open transcript text; reduce {SELECTED_MINUTES_FILE} or split the oversized meeting."
+            f"Do not open transcript text; change {SELECTED_MINUTES_FILE}, rerun export, and rerun render, "
+            "or split the oversized meeting."
         )
         return 1
     return 0
@@ -1028,6 +1046,13 @@ def handle_summarize(args: argparse.Namespace) -> int:
     prompts = prompts_data["prompts"]
     if not isinstance(prompts, list):
         raise SystemExit(f"invalid prompt index file: {prompt_index_path}: prompts must be a list")
+    if args.minute_id:
+        requested_minute_ids = set(args.minute_id)
+        prompts = [prompt for prompt in prompts if prompt.get("minute_id") in requested_minute_ids]
+        found_minute_ids = {str(prompt.get("minute_id")) for prompt in prompts}
+        missing_minute_ids = sorted(requested_minute_ids - found_minute_ids)
+        if missing_minute_ids:
+            raise SystemExit("minute_id not found in prompt index: " + ", ".join(missing_minute_ids))
     jsonl_lock = threading.Lock()
 
     def append_event(payload: dict[str, Any]) -> None:
@@ -1116,6 +1141,7 @@ def handle_summarize(args: argparse.Namespace) -> int:
             "summaries": len(results) - len(failures),
             "failures": len(failures),
             "concurrency": args.concurrency,
+            "minute_id_filter": args.minute_id or [],
         },
         "index": str(index_path),
         "results": results,
