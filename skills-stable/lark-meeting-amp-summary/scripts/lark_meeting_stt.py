@@ -1100,7 +1100,12 @@ def handle_summarize(args: argparse.Namespace) -> int:
             exit_code = proc.returncode
             timed_out = False
             stderr = proc.stderr
-            if exit_code == 0:
+            if exit_code == 0 and not proc.stdout.strip():
+                exit_code = 1
+                stderr = (stderr.strip() + "\n" if stderr.strip() else "") + "amp returned an empty summary"
+                if summary_path.exists():
+                    summary_path.unlink()
+            elif exit_code == 0:
                 tmp = summary_path.with_suffix(summary_path.suffix + ".tmp")
                 write_text(tmp, proc.stdout)
                 tmp.replace(summary_path)
