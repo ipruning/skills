@@ -103,6 +103,69 @@ The raw log is redacted. Snell `psk` must never appear in evidence files.
 Do not mark `udp_listen=yes` as always healthy. Do not mark `udp_listen=no` as
 always broken.
 
+## Snell v6 Canary
+
+Classify Snell v6 work as a beta canary before planning changes.
+
+- Keep the Snell server and Surge client on builds that both support Snell v6.
+- Do not add old Snell `obfs` settings. Snell v6 derives protocol diversity
+  from the PSK.
+- Use a fresh high-entropy PSK for each v6 canary. Do not reuse a v5 PSK or
+  share one PSK across nodes.
+- Keep ordinary Snell v6 canaries TCP-only. Snell v6 does not use the v5 QUIC
+  proxy mode; on the Surge side keep `block-quic=on` or the platform default.
+- Keep Snell server `mode` at the default unless the user explicitly asks to
+  test `unshaped` or `unsafe-raw`.
+- Use v6 server config keys that `snell-server --help` actually accepts:
+  `listen`, `psk`, optional `dns`, optional `dns-ip-preference`, optional
+  `egress-interface`. `dns-ip-preference` values are `default`, `prefer-ipv4`,
+  `prefer-ipv6`, `ipv4-only`, and `ipv6-only`.
+- For a previous v5 config with `ipv6 = false`, prefer
+  `dns-ip-preference = ipv4-only` over the deprecated `ipv6` key.
+
+Surge profile canary line:
+
+```ini
+node-name = snell, <host>, <port>, psk=<fresh-psk>, version=6, block-quic=on
+```
+
+Snell server minimal v6 config:
+
+```ini
+[snell-server]
+listen = 0.0.0.0:<port>
+psk = <fresh-psk>
+dns-ip-preference = ipv4-only
+```
+
+Before a v6 operator change, confirm the host is a suitable canary:
+
+- `audit-snell` completes against the host.
+- The Snell service is active, and the audit identifies the config path.
+- The plan names backup paths for the binary, config, systemd unit, and firewall
+  state.
+- SSH access works with an explicit key or agent identity.
+- The active Surge profile routes the Snell endpoint IP as `DIRECT`.
+- The rollback plan restores the old binary, config, and unit. If the node was a
+  v5 UDP/QUIC node, the rollback plan also reopens UDP.
+
+After a v6 operator change, verify all of these:
+
+- `snell-server -v` reports the expected v6 beta.
+- systemd reports `ActiveState=active`, `SubState=running`, and `NRestarts=0`.
+- `ss -lntup` shows a TCP listener on the Snell port and no UDP listener.
+- The firewall allows `<port>/tcp` and does not allow `<port>/udp`.
+- The redacted config contains no legacy `ipv6`, `obfs`, `reuse`, or `version`
+  key.
+- The journal has no parameter errors; check specifically for invalid
+  `dns-ip-preference`.
+- The local profile passes `surge-cli --check`.
+- The local and remote PSKs match without logging the plaintext value.
+- `surge-cli --raw test-policy <policy>` and
+  `surge-cli --raw test-policy-external-ip <policy>` succeed.
+- `test-policy-udp` succeeds as UDP relay traffic through the TCP proxy. This
+  result does not mean the Snell server should expose UDP.
+
 ## Small Snell VPS Baseline
 
 A pure Snell VPS should look plain:
