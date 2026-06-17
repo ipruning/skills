@@ -1,11 +1,6 @@
 {
   "version": 1,
   "entries": {
-    "_convex-skills": {
-      "source": "https://github.com/get-convex/agent-skills.git",
-      "tracked": true,
-      "branch": "main"
-    },
     "_jihuanshe-internal-data-skills": {
       "source": "https://github.com/jihuanshe/internal-data-skills.git",
       "tracked": true,
