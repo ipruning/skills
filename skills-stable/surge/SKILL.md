@@ -3,10 +3,10 @@ name: surge
 description: |
   Read-only diagnosis for Surge/Snell failures on the user's macOS Surge path
   and Snell VPS evidence. Use for Snell v5/v6 listener checks, systemd UDP crash
-  evidence, local Surge policy smoke tests, macOS Surge DNS/proxy/Enhanced Mode
-  failures, and post-audit manual operator action plans. Not for changing local
-  Surge/macOS network state, applying VPS changes, restarting services,
-  installing software, or tuning servers.
+  evidence, Snell v6 canary planning, local Surge policy smoke tests, macOS
+  Surge DNS/proxy/Enhanced Mode failures, and post-audit manual operator action
+  plans. Not for changing local Surge/macOS network state, applying VPS changes,
+  restarting services, installing software, or tuning servers.
 ---
 
 # Surge
@@ -45,8 +45,8 @@ evidence and manual action plans, but do not run those server changes here.
 
 1. Read [Snell VPS Evidence Audit](references/snell-vps-triage.md) before judging a
    VPS, Snell systemd service, UDP behavior, firewall exposure, proxy sysctls,
-   local Surge policy path, legacy fields, or `Decryption failed` lines for a
-   Snell endpoint.
+   local Surge policy path, legacy fields, Snell v6 canary planning, or
+   `Decryption failed` lines for a Snell endpoint.
 2. Use `audit-snell` for one VPS or `audit-fleet` for a host file:
 
    ```bash
@@ -65,3 +65,7 @@ evidence and manual action plans, but do not run those server changes here.
 
 Keep endpoint IPs, PSKs, profile names, and inventories in the user's task or
 private config. Audit logs must not contain plaintext Snell PSKs.
+
+For Snell v6 deployment or migration requests, audit the node and write a canary
+plan first. Hand off VPS changes to `$linux-server` or `$exe-dot-dev`. After the
+operator change, run `audit-snell` and `smoke-surge`.

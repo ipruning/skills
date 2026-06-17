@@ -1,4 +1,4 @@
 interface:
   display_name: "Surge"
-  short_description: "只读诊断 macOS Surge 网络与 Snell VPS 证据"
-  default_prompt: "使用 $surge 只读诊断 macOS Surge 网络和 Snell VPS 证据；不改本地网络或远端状态，只给基于证据的操作计划。"
+  short_description: "只读诊断 Surge 与 Snell v6 canary"
+  default_prompt: "使用 $surge 只读诊断 Surge/Snell 证据并规划 Snell v6 canary；不改本地网络或远端状态，只给基于证据的操作计划。"
