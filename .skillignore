@@ -1,5 +1,3 @@
-_convex-skills
-
 _jihuanshe-internal-data-skills
 
 _jihuanshe-skills/skills-beta/dbw-change-proposal
@@ -7,14 +5,12 @@ _jihuanshe-skills/skills-beta/github-actions-runners
 _jihuanshe-skills/skills-beta/slidev
 _jihuanshe-skills/skills-beta/turbopuffer
 _jihuanshe-skills/skills-beta/ty
-
 _jihuanshe-skills/skills-stable/exe-dot-dev/shelley-backup
 _jihuanshe-skills/skills-stable/fasthtml
 _jihuanshe-skills/skills-stable/linear/linear-access
 _jihuanshe-skills/skills-stable/linear/linear-issue-batch-create
 _jihuanshe-skills/skills-stable/prek
 _jihuanshe-skills/skills-stable/tigris
-
 _jihuanshe-skills/skillshare
 
 _jihuanshe-tcg-backend-doc
@@ -33,7 +29,4 @@ skills-beta/slidev
 skills-beta/text-to-lottie
 skills-beta/thermo-nuclear-code-quality-review
 
-# Local Python environments
 .venv/
-venv/
-env/
