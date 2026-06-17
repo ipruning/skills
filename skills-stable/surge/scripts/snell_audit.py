@@ -310,7 +310,9 @@ def csv_values(value: str) -> list[str]:
 
 
 def snell_major_from_text(version_text: str) -> str:
-    match = re.search(r"(?:snell-server\s+)?v?(\d+)(?:[.\s]|$)", version_text, re.IGNORECASE)
+    match = re.search(r"\bsnell-server\s+v?(\d+)(?:[.\s]|$)", version_text, re.IGNORECASE)
+    if not match:
+        match = re.search(r"\bv(\d+)(?:[.\s]|$)", version_text, re.IGNORECASE)
     return match.group(1) if match else ""
 
 

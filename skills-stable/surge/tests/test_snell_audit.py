@@ -116,6 +116,18 @@ def finding_ids(pack: dict) -> set[str]:
     return {item["id"] for item in pack["findings"]}
 
 
+def test_snell_major_ignores_timestamp_prefix():
+    snell_audit = load_module()
+
+    assert (
+        snell_audit.snell_major_from_text(
+            "2026-06-17 13:28:02.443716 [server_main] <NOTIFY> snell-server v6.0.0b3 (Jun 15 2026)"
+        )
+        == "6"
+    )
+    assert snell_audit.snell_major_from_text("snell-server v5.0.1") == "5"
+
+
 def test_v5_udp_crash_is_high_issue(tmp_path: Path):
     snell_audit = load_module()
     journal = "\n".join(
