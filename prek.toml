@@ -4,7 +4,7 @@
 
 default_install_hook_types = ["pre-commit", "pre-push"]
 default_stages = ["pre-commit", "pre-push"]
-exclude = "^skills-beta/actionbook/|^skills-beta/autoreview/|^skills-beta/browser-harness/|^skills-beta/frontend-design/|^skills-beta/handoff/|^skills-beta/improve-codebase-architecture/|^skills-beta/manim-video/|^skills-beta/scraping/scrapling-official/|^skills-beta/slidev/|^skills-beta/text-to-lottie/|^skills-beta/thermo-nuclear-code-quality-review/|^skills-stable/longbridge/|^skillshare/"
+exclude = "^skills-beta/actionbook/|^skills-beta/autoreview/|^skills-beta/browser-harness/|^skills-beta/frontend-design/|^skills-beta/handoff/|^skills-beta/improve-codebase-architecture/|^skills-beta/manim-video/|^skills-beta/scraping/scrapling-official/|^skills-beta/shadcn/|^skills-beta/text-to-lottie/|^skills-beta/thermo-nuclear-code-quality-review/|^skills-stable/longbridge/|^skillshare/"
 fail_fast = false
 
 # =============================================================================
@@ -84,7 +84,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/astral-sh/ruff-pre-commit"
-rev = "v0.15.16"
+rev = "v0.15.17"
 hooks = [
     {
         id = "ruff-check",
@@ -103,7 +103,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/biomejs/pre-commit"
-rev = "v2.4.16"
+rev = "v2.5.0"
 hooks = [
     {
         id = "biome-ci",
