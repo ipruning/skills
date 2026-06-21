@@ -37,24 +37,26 @@ sag --voice Jessica --model-id eleven_v3 --lang en --speed 1.12 \
 3. 仍阻塞：加载 `brrr-now` 技能发 1 条 Push。若延误会造成不可逆后果或错过当天窗口，用 `critical`；其余用 `time-sensitive`。
 4. Push 发出后不再重复通知。继续推进未被阻塞的部分；若全部被阻塞，收尾汇报当前状态。
 
-## macOS zsh 注意事项
+## macOS shell 命令规则
 
-Assume commands may run under zsh unless the command explicitly invokes bash.
+编写或运行 shell 命令时，除非命令显式调用 `bash`，否则假定它在 `zsh` 中执行。
 
-Never assign to zsh special/read-only parameter names:
+### 回避 zsh 特殊参数名
 
-- status
-- pipestatus
-- ERRNO
-- signals
+不要把这些 zsh 参数名用作 shell 变量名；外部数据里的字段名不受影响：
 
-Bad:
+- `status`
+- `pipestatus`
+- `ERRNO`
+- `signals`
+
+错误示例：
 
 ```zsh
 status=$(jq -r '.status' "$file")
 ```
 
-Good:
+正确示例：
 
 ```zsh
 task_status=$(jq -r '.status' "$file")
@@ -62,9 +64,17 @@ http_status=$(curl -s -o /dev/null -w '%{http_code}' "$url")
 exit_code=$?
 ```
 
+### 限制长命令运行时间
+
+需要给长命令或日志流设置运行上限时，按此顺序处理：
+
+1. 用 `command -v timeout` 检查 `timeout`，可用则使用它。
+2. 否则用 `command -v gtimeout` 检查 Homebrew GNU coreutils 的 `gtimeout`，可用则使用它。
+3. 二者都不可用时，用后台进程、`sleep` 和 `kill` 做一次性兜底。
+
 ## Codex 中的浏览器规则
 
-处理网页时，先用 Codex 内置 Browser。打开、检查、点击、输入、截图和验证都属于它的范围。只有内置 Browser 不存在、缺少必需工具，或重试后仍无法连接目标时，才改用 `agent-browser skills get core`。不要因为看不到浏览器按钮，或别的工具更顺手，就跳过内置 Browser。
+处理网页时，先用 Codex 内置 Browser。打开、检查、点击、输入、截图和验证都属于它的范围。只有内置 Browser 不存在、缺少必需工具，或重试后仍无法连接目标时，才改用 `agent-browser`。不要因为看不到浏览器按钮，或别的工具更顺手，就跳过内置 Browser。
 
 ## Codex Harness 中的委派规则
 
