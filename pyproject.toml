@@ -26,6 +26,7 @@ dev = [
 [tool.ruff]
 exclude = [
     "skills-beta/actionbook/",
+    "skills-beta/agent-browser/",
     "skills-beta/autoreview/",
     "skills-beta/browser-harness/",
     "skills-beta/frontend-design/",
@@ -60,6 +61,7 @@ docstring-code-line-length = "dynamic"
 [tool.tombi.files]
 exclude = [
     "skills-beta/actionbook/**",
+    "skills-beta/agent-browser/**",
     "skills-beta/autoreview/**",
     "skills-beta/browser-harness/**",
     "skills-beta/frontend-design/**",
@@ -87,6 +89,7 @@ unresolved-import = "warn"
 [tool.ty.src]
 exclude = [
     "skills-beta/actionbook/",
+    "skills-beta/agent-browser/",
     "skills-beta/autoreview/",
     "skills-beta/browser-harness/",
     "skills-beta/frontend-design/",

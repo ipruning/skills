@@ -6,6 +6,7 @@ globs:
 ignores:
     - "_convex-skills/"
     - "skills-beta/actionbook/"
+    - "skills-beta/agent-browser/"
     - "skills-beta/autoreview/"
     - "skills-beta/browser-harness/"
     - "skills-beta/frontend-design/"
