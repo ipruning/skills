@@ -17,9 +17,9 @@ Example content:
 BRRR_SECRET='<brrr-secret>'
 ```
 
-Public API sends use `BRRR_SECRET`. Secret-bearing URLs stay out of unit files.
+`EnvironmentFile=` exports `BRRR_SECRET` for the sender script. Secret-bearing URLs stay out of unit files.
 
-## Failure notifier service
+## Failure wrapper service
 
 Template unit:
 
@@ -33,7 +33,7 @@ EnvironmentFile=/root/.config/notify/brrr.env
 ExecStart=/usr/local/libexec/notify-brrr-unit "%i"
 ```
 
-Helper:
+Wrapper script:
 
 ```bash
 #!/usr/bin/env bash
@@ -60,7 +60,7 @@ ${context}"
   --interruption-level active
 ```
 
-`notify-brrr-unit` is a small systemd-specific wrapper around the general `/usr/local/libexec/brrr-send` sender. Keep the sender generic and put unit-name, journal, and host context in the wrapper.
+`notify-brrr-unit` is the systemd wrapper. `/usr/local/libexec/brrr-send` is the sender script. Keep unit name, journal, and host context in the wrapper.
 
 Services that should notify on failure include this unit dependency:
 
@@ -73,7 +73,7 @@ StandardOutput=journal
 StandardError=journal
 ```
 
-`%p` gives `notify-brrr@%p.service` the unit prefix without `.service`. Templated units and non-service units need an expanded-name check before the template becomes reliable; the wrapper needs adjustment when `%p` drops required instance details.
+`%p` gives `notify-brrr@%p.service` the unit prefix without `.service`. Check templated units and non-service units before relying on this template; adjust the wrapper when `%p` drops required instance details.
 
 ## Heartbeat
 
@@ -112,4 +112,4 @@ systemctl daemon-reload
 systemctl enable --now heartbeat.timer
 ```
 
-The alert is the missing heartbeat. brrr does not detect missing messages by itself; use a separate monitor if absence must trigger a page.
+The missing heartbeat is the alert. brrr does not detect missing messages by itself; use a separate monitor if absence must trigger a page.

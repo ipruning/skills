@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -euo pipefail
 
 usage() {
@@ -17,9 +17,47 @@ Options:
 
 Environment:
   exe.dev: detected automatically; sends to https://brrr.int.exe.xyz/v1/send
-  BRRR_SECRET: preferred public API auth secret for Authorization header
+  BRRR_SECRET: public API bearer token for Authorization header
+  BRRR_ENV_FILE: optional shell env file to source before sending
   BRRR_TIMEOUT: curl timeout in seconds, default 10
 EOF
+}
+
+load_brrr_env() {
+    if [ -n "${BRRR_SECRET:-}" ]; then
+        return
+    fi
+
+    local candidates=()
+    if [ -n "${BRRR_ENV_FILE:-}" ]; then
+        candidates+=("$BRRR_ENV_FILE")
+    fi
+    if [ -n "${HOME:-}" ]; then
+        candidates+=("$HOME/.config/brrr/env" "$HOME/.config/notify/brrr.env")
+    fi
+
+    local env_file
+    for env_file in "${candidates[@]}"; do
+        if [ -r "$env_file" ]; then
+            # shellcheck disable=SC1090
+            source "$env_file"
+            return
+        fi
+    done
+}
+
+find_python() {
+    if [ -x /usr/bin/python3 ]; then
+        printf '%s\n' /usr/bin/python3
+        return
+    fi
+    if command -v python3 >/dev/null 2>&1; then
+        command -v python3
+        return
+    fi
+
+    echo "python3 is required for JSON payload construction" >&2
+    exit 4
 }
 
 message=
@@ -83,6 +121,8 @@ if [ -z "$message" ]; then
     exit 2
 fi
 
+load_brrr_env
+
 timeout="${BRRR_TIMEOUT:-10}"
 endpoint=
 auth_mode=
@@ -101,20 +141,18 @@ brrr is not configured.
 
 Configure one of:
   - exe.dev brrr HTTP Proxy integration, if running on exe.dev
-  - BRRR_SECRET, preferred for public API Authorization header
+  - BRRR_SECRET, the public API bearer token
+  - BRRR_ENV_FILE, or ~/.config/brrr/env with BRRR_SECRET='<secret>'
 
 Do not paste secrets into chat or commit them to a repo.
 EOF
     exit 3
 fi
 
-if ! command -v python3 >/dev/null 2>&1; then
-    echo "python3 is required for JSON payload construction" >&2
-    exit 4
-fi
+python_bin="$(find_python)"
 
 payload="$(
-    python3 - "$message" "$title" "$thread_id" "$open_url" "$sound" "$interruption_level" "$volume" <<'PY'
+    "$python_bin" - "$message" "$title" "$thread_id" "$open_url" "$sound" "$interruption_level" "$volume" <<'PY'
 import json
 import sys
 
