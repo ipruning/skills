@@ -84,7 +84,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/astral-sh/ruff-pre-commit"
-rev = "v0.15.17"
+rev = "v0.15.18"
 hooks = [
     {
         id = "ruff-check",
@@ -97,6 +97,19 @@ hooks = [
         name = "ruff format",
         args = ["--check"],
         stages = ["pre-commit"],
+        priority = 20
+    }
+]
+
+[[repos]]
+repo = "https://github.com/astral-sh/ty-pre-commit"
+rev = "v0.0.51"
+hooks = [
+    {
+        id = "ty",
+        name = "ty",
+        args = ["--isolated"],
+        stages = ["pre-push"],
         priority = 20
     }
 ]
@@ -211,16 +224,6 @@ hooks = [
         language = "system",
         pass_filenames = false,
         always_run = true,
-        stages = ["pre-push"],
-        priority = 20
-    },
-    {
-        id = "ty",
-        name = "ty",
-        entry = "mise exec -- uv run ty check .",
-        language = "system",
-        pass_filenames = false,
-        types = ["python"],
         stages = ["pre-push"],
         priority = 20
     },
