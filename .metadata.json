@@ -72,6 +72,151 @@
         "SKILL.md": "sha256:84c761151794aa6b7608236e18858bd1400c32349ce15c46b343ee1b1ec06013"
       }
     },
+    "skills-beta/convex/convex": {
+      "source": "https://github.com/get-convex/agent-skills/tree/main/skills/convex",
+      "type": "github-subdir",
+      "group": "skills-beta/convex",
+      "installed_at": "2026-06-21T23:40:33.538208+08:00",
+      "repo_url": "https://github.com/get-convex/agent-skills.git",
+      "subdir": "skills/convex",
+      "version": "e45a956",
+      "tree_hash": "ef028ac502bb9ede98dcd656126fb34394d3ea6d",
+      "file_hashes": {
+        "SKILL.md": "sha256:d0fc889b645ea292dc301968c2113e624c119381ebd82bfe628b6ca1585c6129"
+      }
+    },
+    "skills-beta/convex/convex-create-component": {
+      "source": "https://github.com/get-convex/agent-skills/tree/main/skills/convex-create-component",
+      "type": "github-subdir",
+      "group": "skills-beta/convex",
+      "installed_at": "2026-06-21T23:40:34.00472+08:00",
+      "repo_url": "https://github.com/get-convex/agent-skills.git",
+      "subdir": "skills/convex-create-component",
+      "version": "e45a956",
+      "tree_hash": "5d18cce51d602d29ac60cfe5923061ac5b9ec5ab",
+      "file_hashes": {
+        "SKILL.md": "sha256:71c4781ec586f9dde750de892242848a3981f4b0003ec5d362c2921eb27017e9",
+        "agents/openai.yaml": "sha256:03dd30545fe6a4b6694e19069b855e19981eddc4a1fdb9d5a76f50bcfd57fa25",
+        "assets/icon.svg": "sha256:9a3cd1373505abe79ed7c6036791c38a0c69e70cd41530abdd886449e247a02d",
+        "references/advanced-patterns.md": "sha256:02da039712bb9bbf0aac46f109b87fe1add5c9ec9c652f2bed38c6673efff47d",
+        "references/hybrid-components.md": "sha256:22b2a79b2de33816f49dc872069b27cc736840934d291c0f8b321003232da02a",
+        "references/local-components.md": "sha256:9377421806a92ccea7c84b358b739472265684bf3f745ca04390fa64633a0d24",
+        "references/packaged-components.md": "sha256:5c74edadb9061e4fdee82d0f9272c0555cac97b79531d36b3ccba385be11f6a6"
+      }
+    },
+    "skills-beta/convex/convex-migration-helper": {
+      "source": "https://github.com/get-convex/agent-skills/tree/main/skills/convex-migration-helper",
+      "type": "github-subdir",
+      "group": "skills-beta/convex",
+      "installed_at": "2026-06-21T23:40:34.445195+08:00",
+      "repo_url": "https://github.com/get-convex/agent-skills.git",
+      "subdir": "skills/convex-migration-helper",
+      "version": "e45a956",
+      "tree_hash": "3b342fc0bc978a9c35f4564e48b44dc23eacd5b1",
+      "file_hashes": {
+        "SKILL.md": "sha256:77bc11973377357633cf80c1d111abd52daaa4249cc6ed25b76fac51457ce7ce",
+        "agents/openai.yaml": "sha256:0bc3e0eda497793004e82ab1439e7290de33972d4acb09507c63eee4d779ed1a",
+        "assets/icon.svg": "sha256:b191971e5cd0347fb23ea91c87e7468b2a3759613d3dd928fdd326004a5542ae",
+        "references/migration-patterns.md": "sha256:6a891a932fdb045862ba09e50ba5c932469759562f053466149dc8f5390c7456",
+        "references/migrations-component.md": "sha256:fa2bd0ce2832f0e9d317d319974702e8cb28818f8bd46a8aca6037dfb908769a"
+      }
+    },
+    "skills-beta/convex/convex-performance-audit": {
+      "source": "https://github.com/get-convex/agent-skills/tree/main/skills/convex-performance-audit",
+      "type": "github-subdir",
+      "group": "skills-beta/convex",
+      "installed_at": "2026-06-21T23:40:34.932299+08:00",
+      "repo_url": "https://github.com/get-convex/agent-skills.git",
+      "subdir": "skills/convex-performance-audit",
+      "version": "e45a956",
+      "tree_hash": "dd5db2709277e051ab8f7c9a84378acfbd64b170",
+      "file_hashes": {
+        "SKILL.md": "sha256:7a3943446e7c654d4d37b960cd75f10eae89d6e9ef57c9bf72fd4b9754cd31d1",
+        "agents/openai.yaml": "sha256:df55912a7cf79e764863bdb07f8a665ed43da1bf1f74b9046a38f46ee2b5d9a6",
+        "assets/icon.svg": "sha256:7a26bbe0641421d26cf2d3b7daba200d10e780f03c8bd28ccb616bc870eb0c6f",
+        "references/function-budget.md": "sha256:4e8e5e07a910b16967a2508f79733a10249409aecf763d548ddd3fbdbb4dc941",
+        "references/hot-path-rules.md": "sha256:9ab8f2f8a7645a78ff404f22d16f749f6bd12ebc929f6e397fb833ea7f001c1d",
+        "references/occ-conflicts.md": "sha256:e55004cbcbbf1ec84b8ad041e80efdb3eaaf1d6086cb6f1eacc83ccc52000a8f",
+        "references/subscription-cost.md": "sha256:464f4c88f6fec00a90f05a05bdde000dc705c1f974683726fb19f39c5fbbd99c"
+      }
+    },
+    "skills-beta/convex/convex-quickstart": {
+      "source": "https://github.com/get-convex/agent-skills/tree/main/skills/convex-quickstart",
+      "type": "github-subdir",
+      "group": "skills-beta/convex",
+      "installed_at": "2026-06-21T23:40:35.378232+08:00",
+      "repo_url": "https://github.com/get-convex/agent-skills.git",
+      "subdir": "skills/convex-quickstart",
+      "version": "e45a956",
+      "tree_hash": "f4a8d601f97f146dc07c127c08dd94ef6eaeaa26",
+      "file_hashes": {
+        "SKILL.md": "sha256:3cdc8fc0c306f662f35c559654798023b505de558b4e212a575babc574436b59",
+        "agents/openai.yaml": "sha256:d580334718477ebc352b0eb3d81195d4ebec7aa803340bb78fefefd739905ab7",
+        "assets/icon.svg": "sha256:44d9e90de4cb0ce460aa047dc3b049535ec3a2bb25d1e1a503367c5457daf280"
+      }
+    },
+    "skills-beta/convex/convex-setup-auth": {
+      "source": "https://github.com/get-convex/agent-skills/tree/main/skills/convex-setup-auth",
+      "type": "github-subdir",
+      "group": "skills-beta/convex",
+      "installed_at": "2026-06-21T23:40:35.800458+08:00",
+      "repo_url": "https://github.com/get-convex/agent-skills.git",
+      "subdir": "skills/convex-setup-auth",
+      "version": "e45a956",
+      "tree_hash": "03cc54c4b915308053d2b30d18e575c88721b6bc",
+      "file_hashes": {
+        "SKILL.md": "sha256:771d9fb3c0e4c3ecad71634e3acdd1c69f5e8529879a036005fa9a680c8ffbfb",
+        "agents/openai.yaml": "sha256:1a384a83bd4c1b6b68f7ec6580b4de7b70d4572dd150c2e0994048bf20295dc3",
+        "assets/icon.svg": "sha256:339b23156b86e081a7c2676d7636229ad4e5cad52e3c2e3b00852bee720e5c70",
+        "references/auth0.md": "sha256:2f37666fc4ecba8359a34138c32b9525fb062d0736b6a0d4c8e19010a84af61d",
+        "references/clerk.md": "sha256:6c400d6da5253ea97a0437d54cf809e6abbf621d6521e5443b87eb9b51e86f8b",
+        "references/convex-auth.md": "sha256:5f8eb30d3ee4b8fcba2c75e5e33c8eed0f9cc69840a7bf01419b7adc4db36062",
+        "references/workos-authkit.md": "sha256:53a35fd5f45b05548edc049a1fdb138a249748ad2afaea158af1b9ec7caed475"
+      }
+    },
+    "skills-beta/convex/design": {
+      "source": "https://github.com/get-convex/convex-backend-skill/tree/main/skills/design",
+      "type": "github-subdir",
+      "group": "skills-beta/convex",
+      "installed_at": "2026-06-21T23:41:21.057483+08:00",
+      "repo_url": "https://github.com/get-convex/convex-backend-skill.git",
+      "subdir": "skills/design",
+      "version": "b04d9d3",
+      "tree_hash": "b45c666275014d78221398b7c9335cf67f8e0034",
+      "file_hashes": {
+        "LICENSE.txt": "sha256:79aaec53ef1333544088fe80ecb8ec70f2b84f60c0c4157240df0911cf9696c7",
+        "SKILL.md": "sha256:7f2aee5b528de7af4bb165344031bc169c2a273d5058c4e1646d324701bcb77c"
+      }
+    },
+    "skills-beta/convex/mike-convex-thumbnail": {
+      "source": "https://github.com/get-convex/agent-skills/tree/main/skills/mike-convex-thumbnail",
+      "type": "github-subdir",
+      "group": "skills-beta/convex",
+      "installed_at": "2026-06-21T23:40:36.247033+08:00",
+      "repo_url": "https://github.com/get-convex/agent-skills.git",
+      "subdir": "skills/mike-convex-thumbnail",
+      "version": "e45a956",
+      "tree_hash": "5f3768f23b8d828ca0b4f4113bab9de6fff11799",
+      "file_hashes": {
+        "SKILL.md": "sha256:3ad10af623e6eb104000cfecdc230e77127a3c5a692789cac036d0cf3caa1b41",
+        "agents/openai.yaml": "sha256:f88ae82e703a53d807a0eb833f17539d14bf4e7f0be6efb75aa6c95b6cc584f9",
+        "references/static-hosting-thumbnail.md": "sha256:f29f28068d9b9a1ce36092d7e7a1ad2811b6ee3d870734b36303f41177514045",
+        "scripts/check-local-assets.ps1": "sha256:cac745480d1482b14711e16ddb6ea4606e20c8fa3f3998d8c82637aebc95b5ec"
+      }
+    },
+    "skills-beta/convex/quickstart": {
+      "source": "https://github.com/get-convex/convex-backend-skill/tree/main/skills/quickstart",
+      "type": "github-subdir",
+      "group": "skills-beta/convex",
+      "installed_at": "2026-06-21T23:41:21.467063+08:00",
+      "repo_url": "https://github.com/get-convex/convex-backend-skill.git",
+      "subdir": "skills/quickstart",
+      "version": "b04d9d3",
+      "tree_hash": "30a6c9e008ff37ff28f920f1976304d5239e40a4",
+      "file_hashes": {
+        "SKILL.md": "sha256:e750af2aafede55a7f0a21dfd5e9df851c9bb3e660afc33d2986f5c1ab048507"
+      }
+    },
     "skills-beta/frontend-design": {
       "source": "https://github.com/anthropics/skills.git/skills/frontend-design",
       "type": "github-subdir",
