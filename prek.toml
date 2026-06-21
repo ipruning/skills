@@ -4,7 +4,7 @@
 
 default_install_hook_types = ["pre-commit", "pre-push"]
 default_stages = ["pre-commit", "pre-push"]
-exclude = "^skills-beta/actionbook/|^skills-beta/agent-browser/|^skills-beta/autoreview/|^skills-beta/browser-harness/|^skills-beta/frontend-design/|^skills-beta/handoff/|^skills-beta/improve-codebase-architecture/|^skills-beta/manim-video/|^skills-beta/scraping/scrapling-official/|^skills-beta/shadcn/|^skills-beta/text-to-lottie/|^skills-beta/thermo-nuclear-code-quality-review/|^skills-stable/longbridge/|^skillshare/"
+exclude = "^skills-beta/actionbook/|^skills-beta/agent-browser/|^skills-beta/autoreview/|^skills-beta/browser-harness/|^skills-beta/convex/convex/|^skills-beta/convex/convex-create-component/|^skills-beta/convex/convex-migration-helper/|^skills-beta/convex/convex-performance-audit/|^skills-beta/convex/convex-quickstart/|^skills-beta/convex/convex-setup-auth/|^skills-beta/convex/design/|^skills-beta/convex/mike-convex-thumbnail/|^skills-beta/convex/quickstart/|^skills-beta/frontend-design/|^skills-beta/handoff/|^skills-beta/improve-codebase-architecture/|^skills-beta/manim-video/|^skills-beta/scraping/scrapling-official/|^skills-beta/shadcn/|^skills-beta/text-to-lottie/|^skills-beta/thermo-nuclear-code-quality-review/|^skills-stable/longbridge/|^skillshare/"
 fail_fast = false
 
 # =============================================================================
