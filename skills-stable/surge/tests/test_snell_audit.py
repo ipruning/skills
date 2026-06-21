@@ -259,6 +259,7 @@ def test_single_audit_issue_exits_zero_without_fail_on_issue(monkeypatch: pytest
     monkeypatch.setattr(snell_audit, "upload_audit_run", lambda local_dir, manifest, args: completed)
     monkeypatch.setattr(snell_audit, "run_remote_audit", lambda manifest, args: completed)
     monkeypatch.setattr(snell_audit, "collect_audit_run", lambda local_dir, manifest, args: completed)
+    monkeypatch.setattr(snell_audit, "cleanup_remote_audit_run", lambda manifest, args: completed)
     monkeypatch.setattr(
         snell_audit,
         "build_evidence_pack",
@@ -294,6 +295,7 @@ def test_single_audit_issue_respects_fail_on_issue(monkeypatch: pytest.MonkeyPat
     monkeypatch.setattr(snell_audit, "upload_audit_run", lambda local_dir, manifest, args: completed)
     monkeypatch.setattr(snell_audit, "run_remote_audit", lambda manifest, args: completed)
     monkeypatch.setattr(snell_audit, "collect_audit_run", lambda local_dir, manifest, args: completed)
+    monkeypatch.setattr(snell_audit, "cleanup_remote_audit_run", lambda manifest, args: completed)
     monkeypatch.setattr(
         snell_audit,
         "build_evidence_pack",
@@ -317,6 +319,43 @@ def test_single_audit_issue_respects_fail_on_issue(monkeypatch: pytest.MonkeyPat
     assert rc == 1
 
 
+def test_single_audit_cleanup_failure_records_remote_directory(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    snell_audit = load_module()
+    local_dir = tmp_path / "run"
+    local_dir.mkdir()
+    manifest = {"target": "root@example", "remote_dir": "/var/tmp/surge-snell-runs/test-run"}
+    completed = subprocess.CompletedProcess(["true"], 0, "", "")
+    cleanup_failed = subprocess.CompletedProcess(["ssh"], 255, "", "cleanup failed")
+
+    monkeypatch.setattr(snell_audit, "prepare_audit_run", lambda args, host: (local_dir, manifest))
+    monkeypatch.setattr(snell_audit, "upload_audit_run", lambda local_dir, manifest, args: completed)
+    monkeypatch.setattr(snell_audit, "run_remote_audit", lambda manifest, args: completed)
+    monkeypatch.setattr(snell_audit, "collect_audit_run", lambda local_dir, manifest, args: completed)
+    monkeypatch.setattr(snell_audit, "cleanup_remote_audit_run", lambda manifest, args: cleanup_failed)
+    monkeypatch.setattr(
+        snell_audit,
+        "build_evidence_pack",
+        lambda **kwargs: {
+            "schema_version": 2,
+            "operation": "audit-snell",
+            "target": kwargs["target"],
+            "transport_status": kwargs["transport_status"],
+            "status": "ok",
+            "facts": {},
+            "findings": [],
+            "evidence_paths": {},
+            "recommended_manual_actions": [],
+            "persistent_effects": kwargs.get("persistent_effects") or [],
+        },
+    )
+    args = argparse.Namespace(port=14180, fail_on_issue=False)
+
+    pack, rc = snell_audit.run_audit_for_host(args, "root@example")
+
+    assert rc == 0
+    assert pack["persistent_effects"] == ["remote audit directory may remain: /var/tmp/surge-snell-runs/test-run"]
+
+
 def test_single_audit_transport_failure_exits_nonzero(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     snell_audit = load_module()
     local_dir = tmp_path / "run"
@@ -333,6 +372,65 @@ def test_single_audit_transport_failure_exits_nonzero(monkeypatch: pytest.Monkey
     assert rc == 255
     assert pack["transport_status"] == "failed"
     assert "transport.audit_failed" in finding_ids(pack)
+
+
+def test_surge_probe_empty_json_fails(tmp_path: Path):
+    snell_audit = load_module()
+    fake_cli = tmp_path / "surge-cli"
+    logs_dir = tmp_path / "logs"
+    logs_dir.mkdir()
+    fake_cli.write_text("#!/usr/bin/env bash\nprintf '{}\\n'\n")
+    fake_cli.chmod(0o755)
+
+    result = snell_audit.run_surge_probe(
+        surge_cli=str(fake_cli),
+        policy="missing-policy",
+        test_name="tcp",
+        logs_dir=logs_dir,
+        timeout=5,
+    )
+
+    assert result["status"] == "failed"
+    assert result["json_ok"] is True
+
+
+def test_smoke_surge_unsupported_is_warn(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+):
+    snell_audit = load_module()
+
+    monkeypatch.setattr(snell_audit, "resolve_surge_cli", lambda configured: "/tmp/fake-surge-cli")
+    monkeypatch.setattr(
+        snell_audit,
+        "run_surge_probe",
+        lambda **kwargs: {
+            "test": kwargs["test_name"],
+            "status": "unsupported",
+            "return_code": 1,
+            "timed_out": False,
+            "json_ok": False,
+            "stdout_file": "",
+            "stderr_file": "",
+            "parsed": None,
+        },
+    )
+    args = argparse.Namespace(
+        policy="policy",
+        test=["nat"],
+        run_id="smoke-test-0001",
+        out=tmp_path,
+        overwrite=False,
+        surge_cli=None,
+        host_ip=None,
+        probe_timeout=5,
+    )
+
+    rc = snell_audit.command_smoke_surge(args)
+    output = json.loads(capsys.readouterr().out)
+
+    assert rc == 0
+    assert output["status"] == "warn"
+    assert output["results"][0]["status"] == "unsupported"
 
 
 def test_payload_redacts_psk_from_raw_log(tmp_path: Path):
@@ -394,11 +492,12 @@ def test_payload_redacts_psk_from_raw_log(tmp_path: Path):
 def test_skill_docs_default_to_read_only_audit():
     combined = "\n".join([SKILL.read_text(), TRIAGE.read_text(), OPERATOR_ACTION_PATTERNS.read_text()])
 
-    assert "Not for changing local" in combined
-    assert "Surge/macOS network state" in combined
-    assert "VPS changes" in combined
+    assert "Not for executing" in combined
+    assert "local Surge/macOS network changes" in combined
+    assert "VPS state\nchanges" in combined
     assert "restart services" in combined
-    assert "Look first. Do not apply changes, restart services, install software, or tune" in combined
+    assert "The audit may run read-only collection commands over SSH" in combined
+    assert "Do not\napply changes, restart services, install software, or tune" in combined
     assert "human operator" in combined
     assert "not apply them during diagnosis" in combined
     assert "audit-snell" in combined
@@ -416,7 +515,7 @@ def test_macos_triage_keeps_write_actions_in_operator_reference():
     assert "xh POST" not in triage_text
     assert "export http_proxy" not in triage_text
     assert "unset http_proxy" not in triage_text
-    assert "xh POST" in operator_text
+    assert "xh --verify no POST" in operator_text
     assert "export http_proxy" in operator_text
 
 
