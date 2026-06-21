@@ -1,11 +1,11 @@
 ---
 name: browser-harness
-description: Always use browser-harness for any web interaction: automation, scraping, testing, or site/app work.
+description: "Always use browser-harness for any web interaction: automation, scraping, testing, or site/app work."
 ---
 
 # browser-harness
 
-Direct browser control via CDP. For task-specific edits, use `agent-workspace/agent_helpers.py`. For setup, install, or connection problems, read `install.md`.
+Direct browser control via CDP. For task-specific edits, use `agent-workspace/agent_helpers.py`. For setup, install, or connection problems, read https://github.com/browser-use/browser-harness/blob/main/install.md.
 
 Domain skills are off by default. Set `BH_DOMAIN_SKILLS=1` to enable them; see the bottom section.
 
@@ -71,7 +71,7 @@ When the task is done and a cloud browser is still running, ask directly: "Shoul
 
 Do not start a remote daemon and then keep using the default daemon. Use the same name for `BU_NAME`.
 
-Cloud profiles for cookie sync live in `interaction-skills/profile-sync.md`.
+Cloud profile cookie sync reference: https://github.com/browser-use/browser-harness/blob/main/interaction-skills/profile-sync.md.
 
 ## Page Workflow
 
@@ -85,7 +85,7 @@ Cloud profiles for cookie sync live in `interaction-skills/profile-sync.md`.
 
 ## Interaction Skills
 
-If you get stuck on a browser mechanic, check `interaction-skills/`:
+If you get stuck on a browser mechanic, check https://github.com/browser-use/browser-harness/tree/main/interaction-skills.
 
 - connection.md
 - cookies.md
