@@ -24,7 +24,15 @@
 
 仅当任务卡在等待用户的某个具体动作、且静默等待会让任务停住时，按以下流程通知：
 
-1. 运行 `notify-blocker "<blocker and action needed>"` 发语音提醒。
+语音提醒直接调用：
+
+```bash
+sag --voice Jessica --model-id eleven_v3 --lang en --speed 1.12 \
+  --stability 0.5 --style 0.30 --similarity 0.84 --timeout 30s \
+  "<blocker and action needed>"
+```
+
+1. 运行上面的 `sag` 命令发语音提醒。
 2. `sleep 180`，重新检查阻塞是否解除。
 3. 仍阻塞：加载 `brrr-now` 技能发 1 条 Push。若延误会造成不可逆后果或错过当天窗口，用 `critical`；其余用 `time-sensitive`。
 4. Push 发出后不再重复通知。继续推进未被阻塞的部分；若全部被阻塞，收尾汇报当前状态。
