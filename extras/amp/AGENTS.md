@@ -41,19 +41,42 @@ sag --voice Jessica --model-id eleven_v3 --lang en --speed 1.12 \
 
 编写或运行 shell 命令时，除非命令显式调用 `bash`，否则假定它在 `zsh` 中执行。
 
-### 回避 zsh 特殊参数名
+### 回避与 zsh 参数名冲突
 
-不要把这些 zsh 参数名用作 shell 变量名；外部数据里的字段名不受影响：
+写 zsh 命令时，不要把下列名称用作临时 shell 变量名、循环变量名或数组名；JSON 字段名、文件内容和 API 字段名不受影响：
 
+- `argv`
+- `path`
+- `commands`
 - `status`
 - `pipestatus`
+- `UID`
+- `EUID`
+- `LINENO`
+- `RANDOM`
+- `SECONDS`
 - `ERRNO`
 - `signals`
+- `options`
+- `parameters`
+- `functions`
+- `aliases`
+- `builtins`
+
+常用替代名：
+
+- 文件路径：`file_path`、`input_path`
+- 退出状态：`exit_code`、`http_status`
+- 命令列表：`cmds`、`command_list`
+- 用户 ID：`user_id`
 
 错误示例：
 
 ```zsh
 status=$(jq -r '.status' "$file")
+for path in "$@"; do sed -n '1,20p' "$path"; done
+commands=(git status rg)
+UID=$(id -u)
 ```
 
 正确示例：
@@ -62,6 +85,9 @@ status=$(jq -r '.status' "$file")
 task_status=$(jq -r '.status' "$file")
 http_status=$(curl -s -o /dev/null -w '%{http_code}' "$url")
 exit_code=$?
+for file_path in "$@"; do sed -n '1,20p' "$file_path"; done
+command_list=(git status rg)
+user_id=$(id -u)
 ```
 
 ### 限制长命令运行时间
