@@ -1,8 +1,9 @@
 # macOS Surge Operator Actions
 
-These actions apply only when the user explicitly asks for a local Surge/macOS
-network toggle or repair command. They are manual operator actions. Do not run
-them during diagnosis without that explicit request.
+Use this reference only to write a manual command plan after the user asks for a
+local Surge/macOS toggle or repair. The actor for these commands is the human
+operator or a separately authorized execution path, not the read-only diagnosis
+path.
 
 ## API Key
 
@@ -19,16 +20,16 @@ x_key=$(perl -ne 'print $1 if /http-api = (.*?)@/' "$profile_path")
 
 ```bash
 # Enhanced Mode (system-wide TUN)
-xh POST https://localhost:6171/v1/features/enhanced_mode X-Key:$x_key enabled:=true
-xh POST https://localhost:6171/v1/features/enhanced_mode X-Key:$x_key enabled:=false
+xh --verify no POST https://localhost:6171/v1/features/enhanced_mode X-Key:$x_key enabled:=true
+xh --verify no POST https://localhost:6171/v1/features/enhanced_mode X-Key:$x_key enabled:=false
 
 # System Proxy
-xh POST https://localhost:6171/v1/features/system_proxy X-Key:$x_key enabled:=true
-xh POST https://localhost:6171/v1/features/system_proxy X-Key:$x_key enabled:=false
+xh --verify no POST https://localhost:6171/v1/features/system_proxy X-Key:$x_key enabled:=true
+xh --verify no POST https://localhost:6171/v1/features/system_proxy X-Key:$x_key enabled:=false
 
 # Outbound mode
-xh POST https://localhost:6171/v1/outbound X-Key:$x_key mode=rule
-xh POST https://localhost:6171/v1/outbound X-Key:$x_key mode=direct
+xh --verify no POST https://localhost:6171/v1/outbound X-Key:$x_key mode=rule
+xh --verify no POST https://localhost:6171/v1/outbound X-Key:$x_key mode=direct
 ```
 
 ## Local Shell Proxy
@@ -47,14 +48,14 @@ unset http_proxy https_proxy all_proxy
 
 ```bash
 # Reload profile
-xh POST https://localhost:6171/v1/profiles/reload X-Key:$x_key
+xh --verify no POST https://localhost:6171/v1/profiles/reload X-Key:$x_key
 
 # Flush DNS
-xh POST https://localhost:6171/v1/dns/flush X-Key:$x_key
+xh --verify no POST https://localhost:6171/v1/dns/flush X-Key:$x_key
 
 # Switch policy group selection
-xh POST https://localhost:6171/v1/policy_groups/select X-Key:$x_key group_name='GroupName' policy='ProxyName'
+xh --verify no POST https://localhost:6171/v1/policy_groups/select X-Key:$x_key group_name='GroupName' policy='ProxyName'
 ```
 
-After any user-requested toggle, wait about 1 second and re-read the relevant
+After the operator runs a toggle, wait about 1 second and re-read the relevant
 GET endpoint before reporting the result.

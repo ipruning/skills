@@ -282,6 +282,28 @@ def collect_audit_run(
     )
 
 
+def cleanup_remote_audit_run(manifest: dict[str, Any], args: argparse.Namespace) -> subprocess.CompletedProcess[str]:
+    host = validate_host(manifest["target"])
+    remote_dir = validate_remote_path(manifest["remote_dir"])
+    return run_subprocess(
+        [
+            "ssh",
+            *ssh_options(getattr(args, "ssh_option", [])),
+            host,
+            f"rm -rf -- {shlex.quote(remote_dir)}",
+        ],
+        timeout=getattr(args, "timeout", None),
+    )
+
+
+def remote_dir_effect(manifest: dict[str, Any], *, uncertain: bool = False) -> list[str]:
+    remote_dir = manifest.get("remote_dir", "")
+    if not remote_dir:
+        return []
+    verb = "may remain" if uncertain else "remains"
+    return [f"remote audit directory {verb}: {remote_dir}"]
+
+
 def read_kv(path: Path) -> dict[str, str]:
     values: dict[str, str] = {}
     for line in read_optional_text(path).splitlines():
@@ -736,6 +758,7 @@ def build_evidence_pack(
     target: str,
     transport_status: str,
     transport_error: str = "",
+    persistent_effects: list[str] | None = None,
 ) -> dict[str, Any]:
     summary_path = local_dir / "logs" / "audit_summary.kv"
     journal_path = local_dir / "logs" / "journal_recent.log"
@@ -779,7 +802,7 @@ def build_evidence_pack(
         "findings": findings,
         "evidence_paths": evidence_paths,
         "recommended_manual_actions": recommended_manual_actions,
-        "persistent_effects": [],
+        "persistent_effects": persistent_effects or [],
         "created_at": utc_now(),
     }
     write_json(local_dir / "audit.json", pack)
@@ -799,6 +822,7 @@ def run_audit_for_host(args: argparse.Namespace, host: str) -> tuple[dict[str, A
             target=host,
             transport_status="failed",
             transport_error=upload_result.stderr or upload_result.stdout,
+            persistent_effects=remote_dir_effect(manifest, uncertain=True),
         )
         return pack, upload_result.returncode or 1
 
@@ -810,8 +834,13 @@ def run_audit_for_host(args: argparse.Namespace, host: str) -> tuple[dict[str, A
             target=host,
             transport_status="failed",
             transport_error=collect_result.stderr or collect_result.stdout,
+            persistent_effects=remote_dir_effect(manifest),
         )
         return pack, collect_result.returncode or 1
+
+    cleanup_result = cleanup_remote_audit_run(manifest, args)
+    persistent_effects = [] if cleanup_result.returncode == 0 else remote_dir_effect(manifest, uncertain=True)
+
     if run_result.returncode != 0:
         stderr = read_optional_text(local_dir / "stderr") or run_result.stderr or run_result.stdout
         pack = build_evidence_pack(
@@ -819,10 +848,16 @@ def run_audit_for_host(args: argparse.Namespace, host: str) -> tuple[dict[str, A
             target=host,
             transport_status="failed",
             transport_error=stderr,
+            persistent_effects=persistent_effects,
         )
         return pack, run_result.returncode or 1
 
-    pack = build_evidence_pack(local_dir=local_dir, target=host, transport_status="ok")
+    pack = build_evidence_pack(
+        local_dir=local_dir,
+        target=host,
+        transport_status="ok",
+        persistent_effects=persistent_effects,
+    )
     if args.fail_on_issue and pack["status"] == "issue":
         return pack, 1
     return pack, 0
@@ -977,8 +1012,16 @@ def run_surge_probe(
         except json.JSONDecodeError:
             parsed_json = None
     unsupported = "unknown command" in stderr.lower() or "not support" in stderr.lower()
+    error_payload = False
+    if isinstance(parsed_json, dict):
+        error_payload = parsed_json == {} or bool(parsed_json.get("error") or parsed_json.get("errors"))
+        if not error_payload:
+            message_text = " ".join(
+                str(parsed_json.get(key, "")) for key in ("message", "msg", "detail", "reason")
+            ).lower()
+            error_payload = any(term in message_text for term in ("missing", "not found", "not exist", "unknown"))
     status = "unsupported" if unsupported else "passed"
-    if timed_out or rc != 0 or not json_ok:
+    if timed_out or rc != 0 or not json_ok or error_payload:
         status = "unsupported" if unsupported else "failed"
     probe_result = {
         "test": test_name,
@@ -1014,7 +1057,12 @@ def command_smoke_surge(args: argparse.Namespace) -> int:
         )
         for test_name in tests
     ]
-    status = "ok" if all(item["status"] in {"passed", "unsupported"} for item in results) else "issue"
+    if any(item["status"] == "failed" for item in results):
+        status = "issue"
+    elif any(item["status"] == "unsupported" for item in results):
+        status = "warn"
+    else:
+        status = "ok"
     summary = {
         "schema_version": EVIDENCE_SCHEMA_VERSION,
         "operation": "smoke-surge",
@@ -1029,7 +1077,7 @@ def command_smoke_surge(args: argparse.Namespace) -> int:
     }
     write_json(local_dir / "result.json", summary)
     print_json(summary)
-    return 0 if status == "ok" else 1
+    return 0 if status in {"ok", "warn"} else 1
 
 
 def add_audit_common_args(parser: argparse.ArgumentParser) -> None:
