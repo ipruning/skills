@@ -54,6 +54,10 @@ http_status=$(curl -s -o /dev/null -w '%{http_code}' "$url")
 exit_code=$?
 ```
 
+## Codex 中的浏览器规则
+
+处理网页时，先用 Codex 内置 Browser：打开、检查、点击、输入、截图、验证，都属于它的范围。只有内置 Browser 不存在、缺少必需工具或重试后仍无法连接目标时，才改用 `agent-browser skills get core`。不要因为看不到浏览器按钮，或别的工具更顺手，就跳过内置 Browser。
+
 ## Codex Harness 中的委派规则
 
 你运行在 Codex Harness 中。委派前先判断用户要的是「用户可见的新 Thread」还是「内部 sub-agent」。
