@@ -37,6 +37,14 @@ sag --voice Jessica --model-id eleven_v3 --lang en --speed 1.12 \
 3. 仍阻塞：加载 `brrr-now` 技能发 1 条 Push。若延误会造成不可逆后果或错过当天窗口，用 `critical`；其余用 `time-sensitive`。
 4. Push 发出后不再重复通知。继续推进未被阻塞的部分；若全部被阻塞，收尾汇报当前状态。
 
+## GitHub 多账号处理原则
+
+多账号场景先用 `gh auth status --json hosts` 取已保存 login。单条 `gh` 命令按 login 注入 token，不切换 active account：
+
+```bash
+GH_TOKEN="$(gh auth token --user <login>)" gh <command>
+```
+
 ## macOS shell 命令规则
 
 编写或运行 shell 命令时，除非命令显式调用 `bash`，否则假定它在 `zsh` 中执行。

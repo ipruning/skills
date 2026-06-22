@@ -37,6 +37,14 @@ sag --voice Jessica --model-id eleven_v3 --lang en --speed 1.12 \
 3. 仍阻塞：加载 `brrr-now` 技能发 1 条 Push。若延误会造成不可逆后果或错过当天窗口，用 `critical`；其余用 `time-sensitive`。
 4. Push 发出后不再重复通知。继续推进未被阻塞的部分；若全部被阻塞，收尾汇报当前状态。
 
+## GitHub 多账号处理原则
+
+多账号场景先用 `gh auth status --json hosts` 取已保存 login。单条 `gh` 命令按 login 注入 token，不切换 active account：
+
+```bash
+GH_TOKEN="$(gh auth token --user <login>)" gh <command>
+```
+
 ## macOS shell 命令规则
 
 编写或运行 shell 命令时，除非命令显式调用 `bash`，否则假定它在 `zsh` 中执行。
@@ -100,7 +108,11 @@ user_id=$(id -u)
 
 ## Codex 中的浏览器规则
 
-处理网页时，先用 Codex 内置 Browser。打开、检查、点击、输入、截图和验证都属于它的范围。只有内置 Browser 不存在、缺少必需工具，或重试后仍无法连接目标时，才改用 `agent-browser`。不要因为看不到浏览器按钮，或别的工具更顺手，就跳过内置 Browser。
+处理网页时，主线程先用 Codex 内置 Browser；它负责交互、截图、登录态检查、用户同屏确认和最终视觉验收。只有内置 Browser 不存在、缺少必需工具，或重试后仍无法连接目标，主线程才用 `agent-browser`。
+
+不要让多个 sub-agent 控制 Codex 内置 Browser；并发会切换 tab、滚动视口、覆盖截图现场，制造审计假阳性。
+
+并行网页审计、批量截图、批量页面检查和 sub-agent 界面校对使用 `agent-browser --session <unique-name>`。sub-agent 先读 `agent-browser skills get core`，结束后关闭 session。主线程汇总并用 Codex 内置 Browser 抽样复核。
 
 ## Codex Harness 中的委派规则
 
@@ -119,3 +131,5 @@ user_id=$(id -u)
 - 延续：继承当前工作现场，或复用已有用户可见 Thread 或内部 sub-agent。
 
 默认不要把自己的判断塞给探索者。用户可见 Thread 和内部 sub-agent 都无法区分你验证过的事实和顺手写下的猜测。探索和复核任务只提供目标、边界和证据。
+
+委派网页审计的 Prompt 必须写明：使用 `agent-browser --session <unique-name>`；输出 URL、截图路径、关键 DOM 事实、console 错误、broken image、横向溢出和手感问题；不控制用户正在看的页面。主线程做最终视觉复核。
