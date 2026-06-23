@@ -1,4 +1,4 @@
 interface:
   display_name: "Oracle 外部咨询"
-  short_description: "用已登录 Chrome 向最新 Pro 模型咨询，并本地核验回答"
-  default_prompt: "使用 $oracle 选择合适咨询路线，必要时打包并上传本地证据，等待完整回答，再用本地证据核验结论。"
+  short_description: "向 ChatGPT Pro 咨询；无法提交包时生成手动交接包"
+  default_prompt: "使用 $oracle 为当前问题选择咨询类型和提交方式；本地文件会影响答案时打包证据；Chrome automation 或 Oracle CLI 不能提交包时，把 prompt 和 zip 放到 Downloads；拿到回答后先本地核验再汇报。"
