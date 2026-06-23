@@ -1,12 +1,6 @@
 ---
 name: observability-contracts
-description: |
-  Use when a user needs end-to-end monitoring and alerting ownership for a host,
-  service, cron job, crawler, external dependency, data pipeline, or AI workflow.
-  Use to define and verify the observability contract from signal production
-  through backend ingestion, alerting, notification, response, and runbook. Do
-  not use for standalone telemetry queries, dashboard edits, alert CRUD, or
-  general Linux operations unless they are part of that contract.
+description: "Use when a user needs end-to-end monitoring and alerting ownership for a host, service, cron job, crawler, dependency, data pipeline, or AI workflow."
 ---
 
 # Observability Contracts

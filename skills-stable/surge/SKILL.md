@@ -1,11 +1,6 @@
 ---
 name: surge
-description: |
-  Use for read-only Surge CLI help/output lookups, macOS Surge network triage,
-  local Surge policy smoke tests, Snell VPS evidence audits, Snell v5
-  UDP/systemd crash evidence, and Snell v6 canary planning. Not for executing
-  local Surge/macOS network changes, applying VPS repairs, restarting services,
-  installing software, or tuning servers.
+description: "Use for read-only Surge CLI lookups, macOS Surge network triage, local policy smoke tests, and Surge/Snell evidence audits. Not for applying network or server changes."
 ---
 
 # Surge

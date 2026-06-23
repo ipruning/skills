@@ -1,6 +1,6 @@
 ---
 name: brrr-now
-description: "Send, test, or integrate brrr.now push notifications for explicit user pings, reminders, task-complete alerts, blockers, unattended-work notifications, and code paths that must deliver out-of-band notifications."
+description: "Send, test, or integrate brrr.now push notifications for explicit pings, reminders, blockers, task-complete alerts, and notification delivery paths."
 metadata:
   version: "1"
 ---

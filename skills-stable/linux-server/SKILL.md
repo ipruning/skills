@@ -1,6 +1,6 @@
 ---
 name: linux-server
-description: "Operate Debian/Ubuntu Linux servers over SSH. Use for VPS setup, SSH login policy, firewall exposure, swap, same-release package maintenance, audits of servers with unclear ownership or compromise signs, Docker/container port exposure, and proxy/VPN network tuning. Not for macOS."
+description: "Operate Debian/Ubuntu Linux servers over SSH for setup, hardening, audits, container exposure, and proxy/VPN server tuning. Not for macOS."
 ---
 
 # Linux Server

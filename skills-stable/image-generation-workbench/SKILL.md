@@ -1,13 +1,6 @@
 ---
 name: image-generation-workbench
-description: |
-  Use when a task needs generated or edited bitmap assets, source-backed
-  screenshot, card, or UI annotation, multi-turn visual repair, visual QA,
-  variant comparison, or green-screen components. Use when the task calls or
-  maintains the local image workbench CLI. Use the reference cases only for
-  source-backed mobile UI overlays or long-screenshot guardrails. Do not load for
-  exact text layout, vector-only diagrams, or document composition unless a
-  generated raster image is part of the workflow.
+description: "Use when a task needs generated or edited bitmap assets, visual QA, screenshot-backed image work, UI annotations, variants, or the local image workbench CLI."
 metadata:
   version: "1.0"
   short-description: gpt-image-2 generation, repair, and visual QA workflow

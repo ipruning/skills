@@ -1,8 +1,6 @@
 ---
 name: lark-meeting-amp-summary
-description: >-
-  Accessible Feishu/Lark meeting STT needs metadata-only audit, selection, and
-  export; optionally render tiktoken-gated prompts and run Amp summaries.
+description: "Audit, select, and export accessible Feishu/Lark meeting STT; optionally render tiktoken-gated prompts and run Amp summaries."
 ---
 
 # Lark Meeting Amp Summary
