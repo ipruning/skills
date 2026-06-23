@@ -1,0 +1,4 @@
+interface:
+  display_name: "Things"
+  short_description: "Read-only local Things queries"
+  default_prompt: "Use $things to show my Things Today list and summarize what needs attention."
