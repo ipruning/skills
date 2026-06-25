@@ -186,12 +186,12 @@ The agent writes `PROMPT_FILE` with:
 
 The agent chooses one delivery path after it writes `PROMPT_FILE` and builds any required package.
 
-| Path              | Condition                                      | Action                                      |
-| ----------------- | ---------------------------------------------- | ------------------------------------------- |
-| `chrome-run`      | Chrome automation is available                 | Submit prompt and package in logged-in Chrome |
-| `in-app-run`      | Only Codex in-app Browser is available and no package is needed | Submit `PROMPT_FILE` in the in-app Browser  |
-| `cli-run`         | Chrome automation is unavailable or shell-only work is requested | Follow `references/cli.md`                |
-| `manual-handoff`  | A package is needed but upload or CLI submission is unavailable | Copy prompt and package to `~/Downloads`    |
+| Path             | Condition                                                        | Action                                        |
+| ---------------- | ---------------------------------------------------------------- | --------------------------------------------- |
+| `chrome-run`     | Chrome automation is available                                   | Submit prompt and package in logged-in Chrome |
+| `in-app-run`     | Only Codex in-app Browser is available and no package is needed  | Submit `PROMPT_FILE` in the in-app Browser    |
+| `cli-run`        | Chrome automation is unavailable or shell-only work is requested | Follow `references/cli.md`                    |
+| `manual-handoff` | A package is needed but upload or CLI submission is unavailable  | Copy prompt and package to `~/Downloads`      |
 
 For package consultation types, Codex in-app Browser is not a valid delivery path because it cannot upload package files.
 
