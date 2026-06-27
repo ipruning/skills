@@ -37,7 +37,7 @@ sag --voice Jessica --model-id eleven_v3 --lang en --speed 1.12 \
 3. 仍阻塞：加载 `brrr-now` 技能发 1 条 Push。若延误会造成不可逆后果或错过当天窗口，用 `critical`；其余用 `time-sensitive`。
 4. Push 发出后不再重复通知。继续推进未被阻塞的部分；若全部被阻塞，收尾汇报当前状态。
 
-## GitHub 多账号处理原则
+## GitHub 多账号工作流
 
 多账号场景先用 `gh auth status --json hosts` 取已保存 login。单条 `gh` 命令按 login 注入 token，不切换 active account：
 
@@ -45,11 +45,15 @@ sag --voice Jessica --model-id eleven_v3 --lang en --speed 1.12 \
 GH_TOKEN="$(gh auth token --user <login>)" gh <command>
 ```
 
-## macOS shell 命令规则
+## 搜索工作流
+
+优先使用现代搜索工具 `fd` 与 `ast-grep`，不要用 `find` 与 `grep`。
+
+## macOS shell 工作流
 
 编写或运行 shell 命令时，除非命令显式调用 `bash`，否则假定它在 `zsh` 中执行。
 
-### 回避与 zsh 参数名冲突
+### 不与 zsh 参数名冲突
 
 写 zsh 命令时，不要把下列名称用作临时 shell 变量名、循环变量名或数组名；JSON 字段名、文件内容和 API 字段名不受影响：
 
@@ -98,13 +102,35 @@ command_list=(git status rg)
 user_id=$(id -u)
 ```
 
-### 限制长命令运行时间
+### 控制命令运行时间
 
 需要给长命令或日志流设置运行上限时，按此顺序处理：
 
 1. 用 `command -v timeout` 检查 `timeout`，可用则使用它。
 2. 否则用 `command -v gtimeout` 检查 Homebrew GNU coreutils 的 `gtimeout`，可用则使用它。
 3. 二者都不可用时，用后台进程、`sleep` 和 `kill` 做一次性兜底。
+
+### 命令副作用与输出策略
+
+启动命令前，先判断它会改变什么状态：只读、本机文件、本机服务、数据库、云端资源、第三方系统。状态变化越远离当前工作区，越要先确认目标和恢复路径；远端写操作默认按不可逆处理，优先使用 dry run、plan、diff、preview 或小范围执行。
+
+不要把 `timeout` 当作主要安全机制。先判断命令中断后能否安全恢复、能否重复执行、运行期间能否通过日志或状态输出观察健康；`timeout` 只是最后兜底。
+
+长命令或高输出命令要预先设计 stdout / stderr：
+
+- 需要实时看进度：用 `tee`，并注意保留原命令失败状态。
+- 输出可能很大：重定向到日志文件，再用 `tail`、`rg`、`sed` 查看关键片段。
+- 只关心摘要：让命令自己输出简洁格式，或后接过滤器。
+
+如果命令输出会超过可读范围，不要直接裸跑；先写入日志文件，再按需摘取关键行。
+
+### AI 自写脚本与 CLI 组合
+
+需要临时处理数据时，区分两类命令。
+
+AI 给自己写的一次性脚本，目标是方便后续判断：输出简洁、结构化、可搜索；错误信息带上下文；退出码准确；默认不要刷屏。必要时输出 JSONL、TSV 或临时日志，不必为了通用性牺牲当前任务的可读性。
+
+组合已有 CLI 时，先查看它是否提供稳定机器输出和安全执行选项，例如 `--json`、`--porcelain`、`--quiet`、`--dry-run`、`--plan`、`--diff`、`--output`。优先使用这些选项，不要用脆弱的纯文本解析替代稳定接口。涉及远端状态、数据库、账单、权限或部署的 CLI，先确认当前状态和恢复路径。
 
 ## Codex 中的浏览器规则
 
