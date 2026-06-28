@@ -1,0 +1,4 @@
+interface:
+  display_name: "Scheduled Loop"
+  short_description: "Create the right recurring Codex loop"
+  default_prompt: "Use $scheduled-loop to turn this recurring check into the right Scheduled Task or Scheduled Message."
