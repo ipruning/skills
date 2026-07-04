@@ -24,7 +24,7 @@ uv run --script "$SKILL_DIR/scripts/things_query.py" --collection today --format
 date '+%Y-%m-%d %H:%M:%S %Z %z'
 ```
 
-2. Query the smallest useful collection.
+1. Query the smallest useful collection.
 
 ```bash
 uv run --script "$SKILL_DIR/scripts/things_query.py" --collection today --format json
@@ -32,9 +32,9 @@ uv run --script "$SKILL_DIR/scripts/things_query.py" --collection inbox --format
 uv run --script "$SKILL_DIR/scripts/things_query.py" --collection todos --search "visa" --format json
 ```
 
-3. Do not dump notes, UUIDs, or every task unless the user asks. Titles are acceptable when the user asks to see tasks. Use counts or high-level summaries for exploratory checks.
+1. Do not dump notes, UUIDs, or every task unless the user asks. Titles are acceptable when the user asks to see tasks. Use counts or high-level summaries for exploratory checks.
 
-4. State boundaries plainly:
+1. State boundaries plainly:
 
 - `things.py` reads the Things SQLite database in read-only mode.
 - Things data may reflect the last opened/synced Things database state.
