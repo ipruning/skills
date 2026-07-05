@@ -105,10 +105,10 @@ If the probe exits nonzero after emitting an error record, systemd can show loca
 
 ## systemd templates
 
-- [`probe.service`](probe.service)
-- [`probe.timer`](probe.timer)
-- [`env.example`](env.example)
-- [`event-schema.example.json`](event-schema.example.json)
+- [`templates/probe.service`](templates/probe.service)
+- [`templates/probe.timer`](templates/probe.timer)
+- [`templates/probe.env.example`](templates/probe.env.example)
+- [`templates/probe-event-schema.example.json`](templates/probe-event-schema.example.json)
 
 ## Verification
 

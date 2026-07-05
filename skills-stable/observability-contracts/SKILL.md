@@ -86,8 +86,8 @@ not verified yet:
 
 - 选了 Logfire，或涉及 token、告警、渠道、后端查询：[`references/logfire.md`](references/logfire.md)
 - systemd service、timer、secret 文件、运行时验证：[`references/systemd.md`](references/systemd.md)
-- 主机 CPU、内存、磁盘、网络等标准指标监控：[`references/system-host-monitoring/CASE.md`](references/system-host-monitoring/CASE.md)
-- 业务探针、爬虫检查、cron 语义检查、外部依赖、AI 工作流检查：[`references/custom-probe/CASE.md`](references/custom-probe/CASE.md)
+- 主机 CPU、内存、磁盘、网络等标准指标监控：[`references/host-monitoring.md`](references/host-monitoring.md)
+- 业务探针、爬虫检查、cron 语义检查、外部依赖、AI 工作流检查：[`references/custom-probe.md`](references/custom-probe.md)
 
 ## 交付报告
 

@@ -53,7 +53,7 @@ A minimal hostmetrics config should include stable resource attributes and avoid
 
 Prefer aggregate process counts over per-PID process metrics for the first version. Per-PID metrics can create many time series on busy hosts.
 
-Example file: [`otel-collector-hostmetrics.example.yaml`](otel-collector-hostmetrics.example.yaml)
+Example file: [`templates/otel-collector-hostmetrics.example.yaml`](templates/otel-collector-hostmetrics.example.yaml)
 
 Use current docs and the target collector binary as the source of truth for component names. Always run the collector's own validation command before restart.
 
