@@ -1,0 +1,6 @@
+interface:
+  display_name: "Explain Diff HTML"
+  short_description: "把代码变更讲成带测验的交互式 HTML 页面"
+  default_prompt: >-
+    使用 $explain-diff-html 为这个变更生成交互式 HTML 讲解页：分层背景、
+    带图示的直觉、代码走读和五题自测。
