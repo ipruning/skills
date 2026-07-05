@@ -1,4 +1,0 @@
-interface:
-  display_name: "可观测性契约"
-  short_description: "定义并验证端到端可观测性信号、告警、通知和责任边界"
-  default_prompt: "使用 $observability-contracts 定义并验证端到端可观测性契约，覆盖信号、告警、通知和责任边界。"

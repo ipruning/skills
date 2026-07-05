@@ -1,0 +1,4 @@
+interface:
+  display_name: "端到端监控"
+  short_description: "设计并验证端到端监控契约：信号、告警、通知和责任边界"
+  default_prompt: "使用 $end-to-end-monitoring 定义并验证端到端监控契约，覆盖信号、告警、通知和责任边界。"

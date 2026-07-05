@@ -1,11 +1,11 @@
 ---
-name: observability-contracts
-description: "Design, deploy, repair, or verify end-to-end monitoring and alerting for a host, service, cron job, crawler, dependency, data pipeline, or AI workflow: signal producer, observability backend, alert rules, notification channel, responder, runbook. Not for the agent itself periodically re-checking something inside a session — that is scheduled-loop."
+name: end-to-end-monitoring
+description: "Design, deploy, repair, or verify end-to-end monitoring and alerting for a host, service, cron job, crawler, dependency, data pipeline, or AI workflow: signal producer, observability backend, alert rules, notification channel, responder, runbook. Not for the agent itself periodically re-checking something inside a session — that is scheduled-work."
 metadata:
-  version: "2"
+  version: "3"
 ---
 
-# Observability Contracts
+# End-to-End Monitoring
 
 交付的是一份验证过的可观测性契约，不是一堆监控组件。契约的每一环都要设计并验证，验证不了的环节要点名列出：
 
@@ -13,7 +13,7 @@ metadata:
 protected subject -> signal producer -> observability backend -> alert rule -> notification channel -> responder -> runbook
 ```
 
-agent 本人在会话里周期性盯梢的需求归 `$scheduled-loop`，这里交付的是无人值守的常驻链路。
+agent 本人在会话里周期性盯梢的需求归 `$scheduled-work`，这里交付的是无人值守的常驻链路。
 
 ## 先问什么
 
