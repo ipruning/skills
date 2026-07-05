@@ -78,8 +78,8 @@ PROCESS-NAME,Tailscale,DIRECT
 Do not copy Linux sing-box Tailscale exclusions into Surge
 `tun-excluded-routes`. On macOS Surge, keep ordinary LAN ranges excluded from
 VIF, route Tailscale by DIRECT rules, and preserve MagicDNS through
-`100.100.100.100`. A healthy live route to a Tailscale peer should use the
-Tailscale utun interface, not the Surge VIF.
+`100.100.100.100`. Verify with `route -n get <tailscale-peer-ipv4>`: a healthy
+live route resolves to the Tailscale utun interface, not the Surge VIF.
 
 After editing:
 
