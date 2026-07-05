@@ -1,53 +1,51 @@
 ---
 name: observability-contracts
-description: "Use when a user needs end-to-end monitoring and alerting ownership for a host, service, cron job, crawler, dependency, data pipeline, or AI workflow."
+description: "Design, deploy, repair, or verify end-to-end monitoring and alerting for a host, service, cron job, crawler, dependency, data pipeline, or AI workflow: signal producer, observability backend, alert rules, notification channel, responder, runbook. Not for the agent itself periodically re-checking something inside a session — that is scheduled-loop."
+metadata:
+  version: "2"
 ---
 
 # Observability Contracts
 
-Deliver a verified observability contract, not a monitoring stack.
-
-The contract is complete only when each step in this path is designed and verified, or when an unverified step is named:
+交付的是一份验证过的可观测性契约，不是一堆监控组件。契约的每一环都要设计并验证，验证不了的环节要点名列出：
 
 ```text
 protected subject -> signal producer -> observability backend -> alert rule -> notification channel -> responder -> runbook
 ```
 
-## Operating Loop
+agent 本人在会话里周期性盯梢的需求归 `$scheduled-loop`，这里交付的是无人值守的常驻链路。
 
-1. Define the protected subject and the promise.
-2. Inspect machine, project, scheduler, service, and observability backend facts.
-3. Choose the smallest signal producer that satisfies the promise.
-4. Create stable identity before creating credentials or alerts.
-5. Configure the producer and secrets boundary.
-6. Create freshness alerts and semantic or threshold alerts.
-7. Verify signal, observability backend query, alert execution, notification delivery, and responder handoff.
-8. Report what is implemented, verified, and still unverified.
+## 先问什么
 
-## First Move
+只问会改变设计的问题。本地检查、已认证工具、仓库文件和官方文档能回答的，不问用户：
 
-Ask only the questions that change the design. Do not ask for facts available through local inspection, authenticated tooling, repository files, or current provider docs.
+- 保护对象是什么，什么算成功、什么算失败。
+- 检测最晚可以多晚，仍来得及修复或重跑。
+- 通知发给谁或什么服务，那个渠道允许打扰它吗。
 
-Prefer these questions:
-
-- What is the protected subject, and what counts as success or failure?
-- How late can detection happen while still leaving enough time to repair or rerun?
-- Who or what will receive the notification, and is that channel allowed to interrupt them?
-
-Pick conservative defaults when missing details do not change the design:
+缺的细节不改变设计时，取保守默认并声明：
 
 ```text
-hostmetrics cadence: 30s for a small number of hosts; use 60s when cost or cardinality matters
+hostmetrics cadence: 30s for a few hosts; 60s when cost or cardinality matters
 hostmetrics freshness threshold: 5m without expected data
 custom probe freshness: derive from cadence and repair window; do not reuse 5m for hourly jobs
 disk threshold: root filesystem >= 90%
 notification mode: onset-only
-secret storage: Linux/systemd hosts use root-owned env file, chmod 600; otherwise use the platform or deployment secret store
+secret storage: root-owned env file, chmod 600, on Linux/systemd hosts; otherwise the platform secret store
 ```
 
-## Contract To Maintain
+## 工作循环
 
-Keep a compact contract while working:
+1. 定义保护对象和承诺。
+2. 检查机器、项目、调度器、服务和 observability backend 的事实。
+3. 选满足承诺的最小 signal producer。
+4. 先建立稳定身份，再创建凭据和告警。
+5. 配置 producer 和 secrets 边界。
+6. 创建 freshness 告警，再加语义或阈值告警。
+7. 逐环验证：信号、后端查询、告警执行、通知送达、responder 接手。
+8. 汇报已实现、已验证和未验证的部分。
+
+工作时维护一份紧凑契约，只填实际需要的字段。缺的字段会改变实现或告警行为就问用户，不会就选最简默认并声明：
 
 ```text
 subject:
@@ -71,56 +69,26 @@ verification evidence:
 not verified yet:
 ```
 
-Only fill fields that are actually needed. If a missing field changes the implementation or alert behavior, ask the user. If it does not, pick the simplest reasonable default and state it.
+## 设计规则
 
-## Tool Use
+- 用现成的可观测性原语：logs、spans、metrics、severity、告警规则、freshness 检查、通知渠道和 runbook。人的参与由 severity、channel、responder、interruption behavior 和 runbook 表达，不另造事件协议。
+- 用满足契约的最小机制，已有监控能复用就复用。标准主机指标优先 OpenTelemetry Collector hostmetrics。业务、爬虫、外部依赖和 AI 工作流的检查，把探针挂在拥有承诺的调度器或运行时上，Linux 主机上通常一个 systemd timer 探针就够。
+- 先身份后凭据：project、environment、service 名、subject id、token 名，都在创建凭据之前定稳。每个 revocation boundary 一个 scoped write credential，不用 admin key 或个人 key。临时 dev-session 凭据只做引导，换成命名凭据之前不许声称监控已持久。
+- 凡是保护承诺的监控必须有 freshness 告警。它兜住主机宕机、collector 停止、凭据吊销、DNS 和网络断裂这些不再发信号的失败。
+- 一次性程序叫 probe、check 或 reporter，不叫 agent。agent 要能观察、决策并采取多步行动。
+- 信号路径和通知路径都验证过之前不许说完成。验证不了的环节，在报告里点名。
 
-- Use observability backend MCP tools for read-only telemetry queries, dashboards, channels, alert definitions, and run history when exploring.
-- Create or update alerts, dashboards, channels, and credentials only when the user asked to deploy, configure, rotate, repair, or verify that contract.
-- Use SSH for host facts, runtime state, systemd status, service logs, file permissions, and config validation.
-- Use Chrome or another authenticated UI when MCP cannot complete a required credential action or the user explicitly asks for it, such as creating a named Logfire write token. Do not inspect cookies, local storage, or passwords.
-- Use current official docs when provider endpoints, token behavior, collector config, or alert syntax may have changed.
-- Keep secrets out of durable or unnecessary surfaces: chat summaries, shell history, process argv, unit files, git, and ordinary user-writable files.
+## 工具边界
 
-## Design Rules
+只读遥测查询、dashboard、告警定义和运行历史，用 observability backend 的 MCP 工具。创建或改动告警、渠道、凭据，只在用户要求部署、配置、轮换、修复或验证时做。主机事实、运行时状态、systemd、日志和权限走 SSH。MCP 完不成的凭据操作，用已认证的浏览器 UI 完成，不碰 cookies、local storage 和密码。provider 端点、token 行为、collector 配置或告警语法可能已变化时，查当前官方文档。secret 不进聊天摘要、shell history、进程 argv、unit 文件、git 和普通用户可写文件。
 
-- Use existing observability primitives: logs, spans, metrics, severity, alert rules, freshness / absence checks, notification channels, and runbooks.
-- Human involvement is expressed by severity, channel, responder, interruption behavior, and runbook.
-- Use the smallest mechanism that satisfies the contract. Reuse existing monitoring if present.
-- For standard host CPU / memory / disk / network metrics, prefer an OpenTelemetry Collector hostmetrics setup over a custom script unless the user asks otherwise.
-- For business-specific checks, external dependency checks, crawler checks, or AI workflow checks, attach the probe to the scheduler or runtime that owns the promise. On Linux hosts, a small probe run by systemd timer is usually enough.
-- Do not call something an agent unless it observes, decides, and can take multi-step actions. A one-shot program that emits telemetry is a probe, check, or reporter.
-- Create stable identity before credentials: project, environment, service name, subject id, host id, monitor id, and token name.
-- Use one write credential per revocation boundary. A deployed producer needs a scoped write credential, not a read credential, admin key, or personal API key.
-- Treat temporary dev-session credentials as bootstrapping only. Replace them with a named, non-expiring or policy-expiring credential before claiming durable monitoring.
-- Always add a freshness alert for any monitor that is meant to protect a promise. It catches host down, collector stopped, revoked credential, DNS/export failure, and network break.
-- Do not claim the system is complete until both the signal path and notification path are verified, or explicitly mark what remains unverified.
+## 按需读的 reference
 
-## Progressive disclosure
+- 选了 Logfire，或涉及 token、告警、渠道、后端查询：[`references/logfire.md`](references/logfire.md)
+- systemd service、timer、secret 文件、运行时验证：[`references/systemd.md`](references/systemd.md)
+- 主机 CPU、内存、磁盘、网络等标准指标监控：[`references/system-host-monitoring/CASE.md`](references/system-host-monitoring/CASE.md)
+- 业务探针、爬虫检查、cron 语义检查、外部依赖、AI 工作流检查：[`references/custom-probe/CASE.md`](references/custom-probe/CASE.md)
 
-Read only the relevant reference files:
+## 交付报告
 
-- Logfire chosen, token scope, alerts, channels, or backend queries: [`references/logfire.md`](references/logfire.md)
-- systemd service, timer, secret file, or runtime verification: [`references/systemd.md`](references/systemd.md)
-- host CPU / memory / disk / filesystem / load / network / paging / process-count monitoring with Logfire hostmetrics: [`references/system-host-monitoring/CASE.md`](references/system-host-monitoring/CASE.md)
-- custom business probe, binary, crawler check, AI check, cron semantic check, or external dependency check: [`references/custom-probe/CASE.md`](references/custom-probe/CASE.md)
-
-## Delivery report
-
-At the end, separate four things:
-
-```text
-Contract:
-  the agreed observability contract.
-
-Implemented:
-  what was actually deployed or configured.
-
-Verified:
-  commands, dashboard evidence, observability backend query results, alert test, and notification receipt.
-
-Not verified / still needs user action:
-  anything you could not prove end-to-end.
-```
-
-If only the local command succeeded, say that. If telemetry reached the backend but no alert/channel was tested, say that. If notification was sent but the real responder has not confirmed receipt, say that.
+最后分四栏：契约本身、实际部署了什么、验证了什么、未验证或仍需用户动作的。验证栏给证据：命令、后端查询结果、告警测试和通知回执。只有本地命令成功就说只有本地成功。遥测到了后端但告警和渠道没测过，就照实说。通知发了但真实 responder 没确认收到，也照实说。
