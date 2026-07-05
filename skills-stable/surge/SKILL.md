@@ -1,95 +1,54 @@
 ---
 name: surge
-description: "Use on macOS when Surge may be active, installed, or part of the network path: read-only Surge CLI lookups, Surge profile syntax/output interpretation, macOS Surge Enhanced Mode/System Proxy/DNS/proxy triage, Tailscale coexistence checks, local policy smoke tests, HY2/Snell policy checks, and Surge+Snell evidence audits. Trigger when Codex is running on macOS and the task involves network failures, proxy routing, policy selection, Surge CLI, Snell fallback, Tailscale routes/MagicDNS with Surge, or Surge-managed traffic. Not for applying network or server changes."
+description: "macOS network triage when Surge is installed, active, or plausibly in the network path: Surge CLI usage and output, profile syntax, Enhanced Mode / System Proxy / DNS failures, Tailscale coexistence, local policy smoke tests, and read-only Snell VPS evidence audits with repair plans. Read-only: it never applies local network or server changes. Server-side execution belongs to linux-server; REALITY+HY2 deployment belongs to sing-box-reality-hy2."
+metadata:
+  version: "2"
 ---
 
 # Surge
 
-Identify the request type before reading references or running commands: Surge
-CLI help/output, local macOS Surge triage, local Surge policy smoke tests, Snell
-VPS evidence audit, or Snell v6 canary planning.
+macOS 网络问题的分诊台。先识别请求类型，再读 reference 或跑命令：Surge CLI 问题、本机 triage、policy 烟测、Snell VPS 审计、Snell v6 canary 规划。本 skill 只读，产出证据和手动计划，不执行本机网络切换，也不执行服务器变更。
 
-## Surge CLI Help And Output
+## Surge CLI
 
-For Surge CLI help or Surge CLI output questions, use the CLI manual or
-installed CLI, not macOS network triage. If the request is about Surge CLI
-syntax, subcommands, flags, or output interpretation, inspect the app-bundled
-Surge documentation if present:
+CLI 语法、子命令、flag 和输出解读，先查 app 内置文档：
 
 ```bash
 test -f /Applications/Surge.app/Contents/Resources/Skills/surge/SKILL.md
 ```
 
-If that file is unavailable, answer from the `surge-cli` executable that is
-actually available in `PATH` or at
-`/Applications/Surge.app/Contents/Applications/surge-cli`.
+内置文档不存在时，用 `PATH` 里或 `/Applications/Surge.app/Contents/Applications/surge-cli` 实际安装的 CLI 回答。不要拿网络 triage 流程回答 CLI 问题。
 
-## macOS Surge Network Triage
+## 本机 triage
 
-If the failure is on the user's macOS machine and Surge is active, configured,
-named by the user, or plausibly the local proxy or DNS boundary, read
-[macOS Surge Network Triage](references/macos-network-triage.md) before
-diagnosing or reporting local proxy, DNS, or Enhanced Mode failures.
+故障发生在用户的 macOS 上且 Surge 活跃、被点名或位于代理与 DNS 边界时，先读 [references/macos-network-triage.md](references/macos-network-triage.md) 再下结论。Tailscale 也在路径里时留在本 skill 处理：检查 Enhanced Mode 下 Tailscale 路由和 MagicDNS 是否保住，不要把 Linux sing-box 的 `route_exclude_address` 照搬给 Surge。
 
-If Tailscale is also in the path, keep the triage in this skill. Check whether
-Tailscale routes and MagicDNS are preserved while Surge Enhanced Mode is active;
-do not apply Linux sing-box `route_exclude_address` rules to Surge blindly.
+用户要本机开关或修复时，读 [references/macos-surge-operator-actions.md](references/macos-surge-operator-actions.md)，输出手动命令计划。
 
-If the user asks for a local Surge/macOS toggle or repair, read
-[macOS Surge Operator Actions](references/macos-surge-operator-actions.md) and
-output a manual command plan. This skill does not execute local network-state
-changes.
+## 路由边界
 
-For non-Surge, non-Snell Linux networking, hand off to `$linux-server` or
-`$exe-dot-dev` when available. For Surge/Snell tasks that require VPS state
-changes such as firewall rules, sysctls, systemd restarts, package installs, or
-server tuning, keep only the evidence audit and manual action plan here; hand
-off execution and do not run those server changes from this skill.
+- 与 Surge 和 Snell 无关的 Linux 网络问题归 `$linux-server`，exe.dev VM 上有对应 skill 时归它。
+- 审计发现需要 VPS 变更时，防火墙、sysctl、systemd 重启、装包、调优都不在这里做：这里只出证据和 `manual_actions`，执行交给 `$linux-server` 或人类操作员。
+- REALITY+HY2 栈的部署与验证归 `$sing-box-reality-hy2`，本 skill 只管 Surge 运行时行为和 Snell 证据。
 
-For sing-box REALITY + HY2 stack deployment or validation
-(`VLESS REALITY + HY2`, Linux TUN/mixed configs, certbot domain setup), use
-`$sing-box-reality-hy2`. Keep this skill focused on Surge runtime behavior and
-Snell evidence.
+## Snell VPS 审计
 
-## Snell VPS Evidence Audit
-
-1. Read [Snell VPS Evidence Audit](references/snell-vps-triage.md) before judging a
-   VPS, Snell systemd service, UDP behavior, firewall exposure, proxy sysctls,
-   local Surge policy path, legacy fields, Snell v6 canary planning, or
-   `Decryption failed` lines for a Snell endpoint.
-2. Use `audit-snell` for one VPS or `audit-fleet` for a host file. Pass
-   `--port <snell-port>` unless the endpoint uses the default `14180`:
+1. 判定 VPS、Snell systemd 服务、UDP 行为、防火墙暴露、代理 sysctl 或 `Decryption failed` 之前，先读 [references/snell-vps-triage.md](references/snell-vps-triage.md)。
+2. 单机用 `audit-snell`，成批用 `audit-fleet`。端点不是默认端口 `14180` 就传 `--port`：
 
    ```bash
-   uv run --script "$SKILL_DIR/scripts/snell_audit.py" audit-snell \
+   uv run --script "<surge skill dir>/scripts/snell_audit.py" audit-snell \
      --host root@203.0.113.10 \
      --port <snell-port> \
      --out /tmp/surge-snell-runs
-   uv run --script "$SKILL_DIR/scripts/snell_audit.py" audit-fleet \
+   uv run --script "<surge skill dir>/scripts/snell_audit.py" audit-fleet \
      --hosts ./snell-hosts.txt \
      --port <snell-port> \
      --out /tmp/surge-snell-runs
    ```
 
-3. For `audit-snell`, open the printed `evidence_paths.audit_json` file. For
-   `audit-fleet`, read stdout `results[]`, then open each host's
-   `results[].evidence_paths.audit_json`. In each audit JSON, read `facts`,
-   `findings`, `evidence_paths`, and `recommended_manual_actions`.
-4. If findings need a manual action plan, run
-   `uv run --script "$SKILL_DIR/scripts/snell_audit.py" render-repair-plan --audit <audit.json>`.
-   The command prints JSON with `manual_actions`. It does not run them; a human
-   operator or a separate server skill performs any approved change.
-5. Use
-   `uv run --script "$SKILL_DIR/scripts/snell_audit.py" smoke-surge --policy <policy-name>`
-   for local Surge policy smoke tests. It does not touch the VPS.
-   In `smoke-surge` output, top-level `status=ok` means all requested probes
-   passed; `status=warn` means at least one probe was unsupported. Inspect each
-   `results[].status` and `results[].parsed` before calling a policy healthy.
+3. `audit-snell` 看打印出的 `evidence_paths.audit_json`。`audit-fleet` 读 stdout 的 `results[]`，逐台打开各自的 `audit_json`。每份审计里读 `facts`、`findings`、`evidence_paths` 和 `recommended_manual_actions`。
+4. 需要修复计划时跑 `render-repair-plan --audit <audit.json>`。它只打印 `manual_actions`，不执行任何变更。
+5. 本机 policy 烟测跑 `smoke-surge --policy <policy-name>`，不碰 VPS。顶层 `status=ok` 是全部探测通过，`warn` 是有探测不受支持。逐条看 `results[].status` 和 `results[].parsed` 再判 policy 健康。
 
-Keep endpoint IPs, PSKs, profile names, and inventories in the user's task or
-private config. Do not rely on audit output as a complete secret scrubber unless
-a redaction guard has checked the run directory.
-
-For Snell v6 deployment or migration requests, audit the VPS and write a canary
-plan first. Hand off VPS changes to `$linux-server` or `$exe-dot-dev`. After the
-operator change, run `audit-snell` and `smoke-surge`.
+端点 IP、PSK、profile 名和清单留在用户任务或私有配置里。审计输出不保证脱敏，redaction guard 没检查过运行目录之前不要当它已脱敏。Snell v6 部署或迁移请求先审计再写 canary 计划，操作员改完之后重跑 `audit-snell` 和 `smoke-surge` 验证。
