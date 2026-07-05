@@ -1,0 +1,12 @@
+interface:
+  display_name: "sing-box REALITY HY2"
+  short_description: "部署 REALITY+HY2，并默认配置 Linux TUN"
+  default_prompt: >-
+    使用 $sing-box-reality-hy2 在 Debian/Ubuntu VPS 上部署或修复 sing-box stable：
+    TCP/443 VLESS REALITY Vision、UDP/443 Hysteria2、certbot 证书和 Cloudflare DNS。
+    Linux/VPS 客户端用 mixed 只做 smoke test，最终默认落系统级 TUN，DNS 默认
+    ipv4_only，除非 IPv6 的 DNS、路由和镜像访问都已验证；Tailscale SSH 路径要验证
+    tailnet route；不要长期 export HTTP_PROXY/ALL_PROXY。macOS 通过 Surge HY2/Snell
+    或 sing-box sidecar，注意 Surge/Tailscale 共存规则；Windows 优先 mixed，full-device
+    TUN 要按具体客户端验证 Tailscale；Android/SFA 不承诺和 Tailscale 同时全设备 VPN。
+    缺少 SSH、域名、服务器 secrets 或客户端选择时，只询问阻塞项。
