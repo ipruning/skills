@@ -1,4 +1,6 @@
 interface:
   display_name: "Scheduled Loop"
-  short_description: "Create the right recurring Codex loop"
-  default_prompt: "Use $scheduled-loop to turn this recurring check into the right Scheduled Task or Scheduled Message."
+  short_description: "把反复检查变成合适的定时任务或线程唤醒"
+  default_prompt: >-
+    使用 $scheduled-loop 把这个反复检查变成合适的调度形态：先决定全新会话还是
+    唤醒当前线程，再补全节奏、汇报门槛和停止条件。
