@@ -8,9 +8,12 @@ This repo is the source of truth for AI-tool skills and Skillshare extras. A ski
 
 The current source checkout owns its first-party skills. A nested source checkout owns its own first-party skills. The leading underscore does not decide edit ownership. The source checkout's `.metadata.json` decides the boundary: entries in `.metadata.json` are upstream Track-managed; skill directories outside those entries are first-party.
 
+`CLAUDE.md` at the repo root is a symlink to `AGENTS.md` so Claude Code loads the same guidelines. Edit `AGENTS.md` only; never replace the symlink with a copy. Nested source checkouts use the same arrangement.
+
 ```text
 skills/
 ├── AGENTS.md
+├── CLAUDE.md -> AGENTS.md
 ├── extras/                  # Skillshare extras, grouped by target tool
 │   ├── amp/AGENTS.md
 │   ├── codex/AGENTS.md
@@ -30,8 +33,10 @@ skills/
 - For global harness instructions, edit the full target-specific file under `extras/{amp,codex,claude}/`; do not generate these files from a shared template.
 - Keep trigger guidance explicit: a skill should say when to use it and when not to use it.
 - Keep `SKILL.md` concise. Put long scripts, templates, examples, or large references in supporting files and link to them.
+- Before adding or heavily revising a first-party skill, review it against the five-layer checklist in `_jihuanshe-skills/skills-stable/skill-roast/SKILL.md`. The checklist also covers drafting a new skill from scratch: run its layers in reverse to outline the first draft.
+- Write first-party `SKILL.md` bodies in Chinese classic prose with complete sentences. Keep the frontmatter description, key terms, code, code comments, and tables in English. Supporting references may stay in English.
 - Do not edit generated, vendored, or upstream Track-managed content.
-- After adding, deleting, moving, installing, uninstalling, updating, or collecting synced skills or extras, run `skillshare sync --all`. Changes under ignored paths, such as the current `skills-beta/` ignore, are not exposed to targets unless the ignore or target configuration changes.
+- After adding, deleting, moving, installing, uninstalling, updating, or collecting synced skills or extras, run `skillshare sync --all`. Changes under paths listed in `.skillignore` are not exposed to targets unless the ignore or target configuration changes; check the file rather than assuming a whole collection is ignored.
 
 ## Branch and sync policy
 
