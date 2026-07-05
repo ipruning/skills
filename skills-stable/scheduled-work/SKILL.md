@@ -11,7 +11,7 @@ metadata:
 
 ## 核心决策
 
-听起来是一个功能，实际是两种工作。每种 harness 的调度原语都分两类：定时任务每次运行都开全新线程，定时消息每次都回到同一个线程。Codex 用 `automation_update` 创建 Scheduled Task 或 Scheduled Message，Claude Code 对应 CronCreate 和 ScheduleWakeup。先决定用哪类，再找当前 harness 的对应原语。
+听起来是一个功能，实际是两种工作。每种 harness 的调度原语都分两类：一类每次运行都开全新线程，Codex 叫 Scheduled Task，Claude Code 用 CronCreate。另一类每次都回到同一个线程，Codex 叫 Scheduled Message，Claude Code 用 ScheduleWakeup。先决定要全新线程还是同一线程，再找当前 harness 的对应原语，Codex 里两类都通过 `automation_update` 创建。
 
 选全新线程，当每次运行脱离创建它的对话也说得通：任务能写成自包含指令，所需状态都在可重新获取的地方，比如文件、URL、ticket 和 API。「每天早上九点汇总我该跟进的邮件、日历和团队消息」就是这类：明天的汇总不需要记得今天的汇总，只需要同一份指令、当天的信息和一个新的汇报位置。
 

@@ -1,4 +1,4 @@
-# Case: Custom Probe or Binary
+# Custom Probe or Binary
 
 Use this when the user needs to monitor a business condition rather than generic host metrics: crawler output, external website state, cron completion, data freshness, AI workflow result, or a domain-specific invariant.
 

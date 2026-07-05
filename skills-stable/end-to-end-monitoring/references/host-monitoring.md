@@ -1,4 +1,4 @@
-# Case: System Host Monitoring With Logfire
+# System Host Monitoring With Logfire
 
 Use this when the user wants CPU, memory, disk, filesystem, load, network, paging, or process-count history for a VPS, VM, or bare-metal Linux host, and Logfire is the selected observability backend.
 
