@@ -112,4 +112,4 @@ systemctl daemon-reload
 systemctl enable --now heartbeat.timer
 ```
 
-The missing heartbeat is the alert. brrr does not detect missing messages by itself; use a separate monitor if absence must trigger a page.
+Heartbeat semantics live in [integration-patterns.md](integration-patterns.md); `Persistent=false` is deliberate — a missed beat must stay missed, because silence is the alert.

@@ -4,15 +4,14 @@ set -euo pipefail
 usage() {
     cat <<'EOF'
 Usage:
-  brrr-send.sh --message TEXT [options]
+  brrr-send.sh --title TEXT --message TEXT [options]
 
 Options:
-  --title TEXT
-  --thread-id TEXT
+  --thread-id TEXT       groups related notifications; reuse one id per topic
   --open-url URL
   --sound NAME
-  --interruption-level passive|active|time-sensitive|critical
-  --volume 0..1
+  --interruption-level passive|active|time-sensitive|critical (default: normal)
+  --volume 0..1          critical only
   --dry-run
 
 Environment:
@@ -20,6 +19,11 @@ Environment:
   BRRR_SECRET: public API bearer token for Authorization header
   BRRR_ENV_FILE: optional shell env file to source before sending
   BRRR_TIMEOUT: curl timeout in seconds, default 10
+
+Exit codes:
+  2  usage or payload validation error
+  3  no delivery configuration (secret or proxy)
+  4  python3 not found
 EOF
 }
 
@@ -115,8 +119,8 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
-if [ -z "$message" ]; then
-    echo "missing required --message" >&2
+if [ -z "$message" ] || [ -z "$title" ]; then
+    echo "missing required --title or --message" >&2
     usage >&2
     exit 2
 fi
@@ -191,6 +195,9 @@ if interruption_level and interruption_level not in {
     sys.exit(2)
 
 volume = values["volume"]
+if volume and interruption_level != "critical":
+    print("volume only applies to --interruption-level critical", file=sys.stderr)
+    sys.exit(2)
 if volume:
     try:
         payload["volume"] = float(volume)
@@ -207,12 +214,12 @@ PY
 
 if [ "$dry_run" -eq 1 ]; then
     echo "auth_mode=$auth_mode"
-    echo "payload=json"
     printf '%s\n' "$payload"
     exit 0
 fi
 
-curl_args=(-fsS --max-time "$timeout" -X POST)
+# duplicate delivery beats missed delivery for notifications
+curl_args=(-fsS --max-time "$timeout" --retry 2 -X POST)
 if [ "$auth_mode" = "bearer" ]; then
     curl_args+=(-H "Authorization: Bearer $BRRR_SECRET")
 fi

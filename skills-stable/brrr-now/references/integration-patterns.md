@@ -4,56 +4,35 @@ Real-work notifications need a hook that observes completion, failure, liveness,
 
 ## Choose the hook
 
-| Situation                                | Hook                                      | Sender script location      |
-| ---------------------------------------- | ----------------------------------------- | --------------------------- |
-| One command in the current agent session | Wrap the command and notify success/fail  | `$(mktemp -d)/brrr-send.sh` |
-| Script in a repo                         | Call the sender script or a wrapper       | `scripts/` or `ops/notify/` |
-| systemd service                          | `OnFailure=notify-brrr@%p.service`        | Stable absolute path        |
-| Cron replacement                         | systemd timer plus `OnFailure`            | Stable absolute path        |
-| Long-running daemon                      | systemd `Restart=` plus `OnFailure`       | Stable absolute path        |
-| Queue worker                             | Queue task result callback                | Repo or worker path         |
-| Host liveness                            | Heartbeat timer                           | Stable absolute path        |
+| Situation                                | Hook                                     | Sender script location                   |
+| ---------------------------------------- | ---------------------------------------- | ---------------------------------------- |
+| One command in the current agent session | Wrap the command and notify success/fail | Skill dir (copy first if absent on host) |
+| Script in a repo                         | Call the sender script or a wrapper      | `scripts/` or `ops/notify/`              |
+| systemd service                          | `OnFailure=notify-brrr@%p.service`       | Stable absolute path                     |
+| Cron replacement                         | systemd timer plus `OnFailure`           | Stable absolute path                     |
+| Long-running daemon                      | systemd `Restart=` plus `OnFailure`      | Stable absolute path                     |
+| Queue worker                             | Queue task result callback               | Repo or worker path                      |
+| Host liveness                            | Heartbeat timer                          | Stable absolute path                     |
 
 The hook must observe the real event. A launcher process succeeding does not prove that background jobs, queue tasks, or detached children succeeded.
 
 ## One-off commands
 
-Temporary work copies `scripts/brrr-send.sh` to a temp directory and calls that copy through `/bin/bash` by absolute path:
+Call the sender script through `/bin/bash` by absolute path. If the skill directory is not present on the target host, copy the script over first; one-off copies stay off `PATH`.
 
 ```bash
-tmpdir="$(mktemp -d)"
-BRRR_SKILL_DIR="<directory containing the brrr-now SKILL.md>"
-cp "$BRRR_SKILL_DIR/scripts/brrr-send.sh" "$tmpdir/brrr-send.sh"
+BRRR_SENDER="<brrr-now skill dir>/scripts/brrr-send.sh"
 
 if long_running_command; then
-  /bin/bash "$tmpdir/brrr-send.sh" --title "Task complete" --message "long_running_command finished" --thread-id "agent-task"
+  /bin/bash "$BRRR_SENDER" --title "Task complete" --message "long_running_command finished" --thread-id "agent-task"
 else
   rc=$?
-  /bin/bash "$tmpdir/brrr-send.sh" --title "Task failed" --message "long_running_command failed with rc=$rc" --thread-id "agent-task" --interruption-level active || true
+  /bin/bash "$BRRR_SENDER" --title "Task failed" --message "long_running_command failed with rc=$rc" --thread-id "agent-task" --interruption-level active || true
   exit "$rc"
 fi
 ```
 
-One-off sender scripts stay off `PATH`.
-
-Delayed one-off notifications dry-run the final command before sleeping:
-
-```bash
-/bin/bash "$tmpdir/brrr-send.sh" --dry-run \
-  --title "Reminder" \
-  --message "One minute passed." \
-  --thread-id "agent-reminder"
-
-sleep 60
-/bin/bash "$tmpdir/brrr-send.sh" \
-  --title "Reminder" \
-  --message "One minute passed." \
-  --thread-id "agent-reminder"
-```
-
-The sender script accepts flags, not positional JSON.
-
-`--dry-run` validates the payload shape without sending. If it prints `auth_mode=unconfigured`, delivery configuration is missing.
+Delayed one-off notifications dry-run the exact final command before waiting, so payload and credentials are validated while the failure is still visible.
 
 ## Bash scripts
 
