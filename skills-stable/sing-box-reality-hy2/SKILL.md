@@ -1,101 +1,51 @@
 ---
 name: sing-box-reality-hy2
-description: >-
-  Deploy, repair, and validate a narrow sing-box stable proxy stack: VLESS
-  REALITY Vision on TCP/443 plus Hysteria2 on UDP/443. Use when the user gives
-  a VPS IP, SSH host, domain, or existing server and wants server setup, client
-  config, certbot/Cloudflare DNS, VPS-to-VPS or local tests, or REALITY/HY2
-  performance diagnosis. Linux/VPS clients should converge to system-level
-  sing-box TUN; mixed is only a smoke test. Also use when migrating Linux away
-  from Clash/Mihomo or shell proxy exports. macOS uses Surge HY2/Snell or a
-  sing-box sidecar; Windows uses sing-box-compatible configs. For standalone
-  Surge/Snell audits, use the surge skill.
+description: "Deploy, repair, and validate a narrow sing-box stable stack: VLESS REALITY Vision on TCP/443 plus Hysteria2 on UDP/443, with certbot and Cloudflare DNS-only records. Use when the user gives a VPS, SSH host, or domain and wants server setup, client configs on Linux, macOS, Windows, or Android, migration off Clash/Mihomo or shell proxy exports, or REALITY/HY2 testing and performance diagnosis. Standalone Surge triage and Snell audits belong to the surge skill."
+metadata:
+  version: "2"
 ---
 
-# Sing Box REALITY HY2
+# sing-box REALITY HY2
 
-Deploy the narrow REALITY + HY2 stack. Do not turn this into a proxy panel, all-protocol bundle, or long-lived environment-variable proxy setup.
+只部署这一个窄栈，不要把它做成代理面板、全协议合集或长期环境变量代理。请求跨多个面时按顺序推进：先服务器，再 Linux mixed 烟测，再 systemd TUN，然后清掉旧代理守护进程、shell export 钩子和临时 fallback，最后 macOS 或 Windows 客户端和测速。
 
-## Route
+## 路由
 
-Identify the requested surface and read only the matching reference:
+识别请求面，只读对应的 reference：
 
-- Server setup or repair: read `references/server.md`.
-- Linux/VPS client setup, testing, or migration from Clash/Mihomo/shell exports:
-  read `references/linux-client.md`.
-- macOS/Surge setup or testing: read `references/macos-client.md`.
-- Android/SFA setup or Tailscale coexistence: read `references/android-client.md`.
-- Windows client config or testing: read `references/windows-client.md`.
-- Performance interpretation or speed testing: read `references/testing.md`.
-- SOP drift checks or "does the doc match the server": read `references/testing.md`
-  and run the live redacted cross-check.
-- Standalone Surge triage, Snell audits, Snell v6 canary planning, and Snell
-  repair plans belong to `$surge`.
+- 服务器搭建或修复：[references/server.md](references/server.md)
+- Linux/VPS 客户端、测试、从 Clash/Mihomo/shell export 迁移：[references/linux-client.md](references/linux-client.md)
+- macOS Surge 配置或测试：[references/macos-client.md](references/macos-client.md)
+- Android/SFA 与 Tailscale 共存：[references/android-client.md](references/android-client.md)
+- Windows 客户端配置或测试：[references/windows-client.md](references/windows-client.md)
+- 测速、性能解读、SOP 与真实服务器的比对：[references/testing.md](references/testing.md)
+- 独立的 Surge 分诊、Snell 审计、Snell v6 canary 和修复计划归 `$surge`
 
-When inputs are missing, ask only for the blocker:
+缺输入时只问阻塞项。服务器搭建要 SSH 访问、`SERVER_IP`、DNS-only 的 `HY2_DOMAIN`，以及可达的 `REALITY_SNI` 或使用默认值的许可。客户端要服务器 secrets，或能 SSH 上去读。certbot 可以无邮箱运行，前提是用户接受这个代价，并留一条日后补邮箱的提醒。
 
-- Server setup needs SSH access, `SERVER_IP`, a DNS-only `HY2_DOMAIN`, and a
-  reachable `REALITY_SNI` or permission to use the default.
-- Client setup needs server secrets or SSH access to read them from the server.
-- Certbot can run without email only if the user accepts that tradeoff; create a
-  reminder to add email later.
+## 硬规则
 
-If the request touches more than one surface, execute in this order:
+- 用官方 Sagernet APT 源的 `sing-box` stable，基线 1.13.x。不装 beta，不用文档标为 1.14.0 alpha 的字段，除非用户在 stable 支持后明确要求迁移。
+- 生产环境不用面板和一键脚本，用可审计的配置文件加 systemd。
+- secrets 不进聊天：REALITY 私钥、HY2 密码、PSK 一律 redact，UUID 非必要不显示。
+- 每次 restart 前跑 `sing-box check`，check 通过之后才能 `sing-box format -w`。
+- 防火墙、TUN 或路由变更之前保住 SSH。没有回滚手段或临时测试机时，不在 SSH 会话里直接启 Linux TUN。
+- Linux 的终态是 systemd TUN。`HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY` 只是烟测工具，TUN 起来之后必须从默认环境里清掉。
+- 对照文档验证真实服务器时，读 runtime 状态和 redacted 配置字段，不靠先前记忆。
 
-1. Server.
-2. Linux/mixed smoke test.
-3. Linux systemd TUN.
-4. Remove old Linux proxy daemons, shell export hooks, and temporary mixed
-   fallback unless the user explicitly wants to keep them.
-5. macOS Surge or Windows client config.
-6. Speed tests and policy selection.
+## 关键默认值
 
-## Hard Rules
+- REALITY SNI 用 VPS 可达的稳定 TLS 1.3 站点，比如 `www.apple.com`。
+- HY2 域名用 Cloudflare DNS-only 的 A 记录指向 VPS IPv4，不开橙云，IPv6 未验证就不加 AAAA。HY2 outbound 拨 `SERVER_IP`，TLS `server_name` 用 `HY2_DOMAIN`。
+- Linux selector 默认 `vless-reality-out`，全设备默认 systemd 的 `sing-box@<name>.service` 跑 `/etc/sing-box/<name>.json` 的 TUN 配置。
+- Linux TUN 的 DNS 默认 `ipv4_only`，除非 IPv6 在 DNS、路由和软件源三处都验证过。`prefer_ipv4` 仍会把 AAAA 暴露给应用，不够。
+- Tailscale 按平台分派。Linux TUN 启用前，把 [references/linux-client.md](references/linux-client.md) 列出的 Tailscale 网段加进 `route_exclude_address`，SSH 本身走 Tailscale 时尤其如此。macOS Surge 要保住 Tailscale DIRECT 和 MagicDNS，但没做过 live route 测试就不照搬 Linux 的排除段。Android/SFA 和 Tailscale 共用 VPN service 语义，不承诺同时全设备 VPN。
+- Windows 从 mixed 起步避免路由冲突，full-device TUN 按具体客户端适配并验证 Tailscale 路由。
+- macOS Surge 对这个栈 HY2 优先、Snell 兜底，Surge 的协议限制不改变 Linux 和 Android 的设计。
 
-- Use `sing-box` stable from the official Sagernet APT repo. Do not install `sing-box-beta`.
-- Baseline is `sing-box 1.13.x`. Do not use fields documented as `1.14.0 alpha`
-  or `1.14.0 changes` unless the user explicitly asks to migrate after stable
-  support exists.
-- Avoid panels and all-in-one scripts for production. Use auditable config files and systemd.
-- Never print secrets in chat. Redact password fields, PSK fields, UUIDs only when they are not needed, REALITY private keys, and HY2 passwords.
-- Use `sing-box check` before every restart.
-- Use `sing-box format -w` only after `check` passes.
-- Keep SSH reachable before firewall, TUN, or route changes.
-- Do not start Linux TUN over SSH unless there is a rollback or temporary test host.
-- Do not leave `HTTP_PROXY`, `HTTPS_PROXY`, or `ALL_PROXY` exports as the
-  default Linux experience after TUN works. Env proxy is a temporary smoke-test
-  tool, not the final setup.
-- When validating docs against a live server, inspect runtime state and redacted config fields. Do not rely on prior memory alone.
+## 验收标准
 
-## Defaults
-
-- REALITY SNI/handshake host: stable TLS 1.3 site reachable from VPS, such as `www.apple.com`.
-- HY2 domain: Cloudflare DNS-only `A` record to the VPS IPv4. No orange cloud. No AAAA unless IPv6 is verified.
-- HY2 outbound should dial `SERVER_IP`; TLS `server_name` should be `HY2_DOMAIN`.
-- Linux selector default: `vless-reality-out`.
-- Linux full-device default: systemd `sing-box@<name>.service` running a TUN config from `/etc/sing-box/<name>.json`.
-- Linux workstation TUN DNS default: `ipv4_only`, unless IPv6 has been
-  verified across DNS, routing, and package mirrors. `prefer_ipv4` still exposes
-  AAAA answers to applications and is not enough for Arch/Omarchy package
-  updates.
-- If SSH reaches the host through Tailscale, add the Tailscale IPv4/IPv6 ranges
-  listed in `references/linux-client.md` to TUN route exclusions before enabling
-  TUN.
-- Tailscale handling is platform-specific. Linux sing-box TUN should exclude
-  Tailscale ranges in `route_exclude_address`; macOS Surge should keep
-  Tailscale DIRECT and MagicDNS working, but should not copy those ranges into
-  Surge `tun-excluded-routes` without a live route test.
-- Windows starts from mixed mode to avoid route conflicts; full-device Windows
-  TUN must be adapted to the named client and verified against Tailscale routes.
-- Android/SFA and Tailscale both use Android VPN service semantics; do not
-  promise simultaneous full-device VPN operation unless the specific client and
-  device prove it.
-- Surge should use HY2 first for this stack and keep Snell as fallback. Surge
-  protocol limits do not change the Linux/Android design.
-
-## Done Criteria
-
-Do not call the deployment done until these pass:
+以下全部通过之前不许说部署完成：
 
 ```text
 Server:
@@ -119,23 +69,3 @@ macOS Surge:
   test-policy-external-ip returns VPS IP
   test-policy-udp returns a response for HY2
 ```
-
-## Field Notes
-
-- Linux TUN config must include `route.default_domain_resolver`.
-- Linux TUN route rules must put `{ "action": "sniff" }` before DNS hijack, or DNS to the TUN peer can fail.
-- If Linux TUN package updates fail with TLS EOF while `curl -4` succeeds,
-  treat leaked AAAA/IPv6 as the first suspect. Set DNS `strategy` to
-  `ipv4_only`, restart sing-box, and verify mirror hosts resolve to IPv4-only.
-  This is the Linux equivalent of Surge `ipv6 = false`.
-- For Linux workstations, the durable endpoint is TUN, not `export
-  ALL_PROXY=...`. Mixed mode is only a smoke test and should be removed or left
-  manual once TUN is active.
-- For Tailscale SSH paths, verify the tailnet peer route after TUN starts. On
-  Linux, `ip route get <tailscale-ip>` should resolve to `tailscale0`; on macOS
-  Surge, `route -n get <tailscale-ip>` should resolve to the Tailscale utun, not
-  the Surge VIF.
-- When cleaning an old Clash/Mihomo host, remove the daemon, `/opt/clash`,
-  `7890/7891/9090` listeners, shell `watch_proxy` hooks, and stale user-level
-  sing-box subscription/dashboard configs before calling the migration done.
-- A valid server config may render `"max_time_difference": "1m0s"` after `sing-box format`; treat it as equivalent to `1m`.

@@ -200,7 +200,7 @@ sing-box format -w -c /etc/sing-box/config.json
 systemctl enable --now sing-box
 systemctl restart sing-box
 systemctl is-active sing-box
-ss -lntup | grep -E ':(443|14180)\b'
+ss -lntup | grep -E ':443\b'
 curl --http3-only -I "https://$HY2_DOMAIN/" || true
 ```
 
@@ -210,5 +210,7 @@ Expected listeners:
 tcp 0.0.0.0:443 sing-box
 udp 0.0.0.0:443 sing-box
 ```
+
+After `sing-box format -w`, a valid config may render `"max_time_difference": "1m"` as `"1m0s"`; the two are equivalent.
 
 Ignore random invalid REALITY handshake logs from scanners. Valid tests show `[<user>] inbound connection to api.ipify.org:443`.
