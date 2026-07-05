@@ -1,148 +1,26 @@
 ---
 name: linux-server
-description: "Operate Debian/Ubuntu Linux servers over SSH for setup, hardening, audits, container exposure, and proxy/VPN server tuning. Not for macOS."
+description: "Operate Debian/Ubuntu servers over SSH: setup, hardening, audits, firewall and container port exposure, package maintenance, swap, and proxy/VPN server tuning. Not for macOS network problems — that is the surge skill. Snell evidence audits belong to surge; this skill executes the repairs surge plans. The REALITY+HY2 stack has its own skill, sing-box-reality-hy2."
+metadata:
+  version: "2"
 ---
 
 # Linux Server
 
-Host role, risk state, and task mode decide which evidence to read and which
-host state may change. Classify only the labels that affect those decisions.
+主机角色、风险状态和任务模式决定读什么证据、允许改什么状态。只在会改变这些决定时做分类。
 
-## Operating Rules
+## 保命规则
 
-1. Start with a read-only pass unless the user explicitly asked to configure, deploy, fix, or apply a known change.
-2. Before changing SSH, firewall, or networking, keep the current SSH session open. Open a second live session when credentials and network path are available; otherwise schedule a rollback before applying firewall or SSH changes.
-3. Verify runtime state, not only config files:
-   - SSH: `sshd -T`
-   - listeners: `ss -tulpen`
-   - firewall: `ufw status verbose`, `nft list ruleset`, `iptables -S`, `ip6tables -S`
-   - services: `systemctl is-active <unit>`
-4. Preserve access first for multi-area requests: SSH reachability, then
-   firewall reachability, then packages, services, or tuning. Stay inside the
-   requested area for single-area requests.
-5. If the user asks for a single-owner VPS setup, change only the requested area plus the verified access and port rules needed to keep the host reachable. Do not add compliance controls, non-root migration, SSH algorithm changes, sysctl tuning, fail2ban, or provider-account work unless the server actually has that need or the user asks.
-6. Patch within the current distro release only. Major-version upgrades need explicit user direction.
-7. Put local overrides in dedicated files: SSH in `/etc/ssh/sshd_config.d/`, sysctl in `/etc/sysctl.d/`, fail2ban in `jail.local`, systemd in unit drop-ins. Edit package-managed defaults only when the service has no override mechanism.
+- 默认只读。用户明确要求配置、部署、修复或应用已知变更时才写。
+- 改 SSH、防火墙或网络之前，保住当前 SSH 会话。有凭据和网络路径就开第二条活会话，没有就先安排好回滚，再动手。
+- 验证 runtime 状态，不只看配置文件：`sshd -T`、`ss -tulpen`、`ufw status verbose`、`nft list ruleset`、`iptables -S`、`systemctl is-active`。
+- 多领域请求按可达性排优先级：先 SSH 可达，再防火墙可达，然后才是包、服务和调优。单领域请求就待在请求的领域里，不顺手加固。
+- 补丁只在当前发行版大版本内打，跨大版本升级要用户明示。
+- 覆盖配置写进专用目录：SSH 用 `/etc/ssh/sshd_config.d/`，sysctl 用 `/etc/sysctl.d/`，fail2ban 用 `jail.local`，systemd 用 unit drop-in。只有服务没有覆盖机制时才改包管理的默认文件。
 
-## Classify The Work
+## 首招：只读体检
 
-Name a classification only when it changes which files or commands to inspect,
-which ports or sessions to preserve, or which config/state may be changed.
-
-- Host role: single-owner VPS, team admin server, container host, public web or
-  app server
-- Risk state: unclear or possibly compromised server
-- Task mode: maintenance window, swap work, performance or network tuning
-
-## Host Roles And Risk States
-
-### Single-Owner VPS
-
-Personal VPS, proxy nodes, Snell/Xray boxes, and single-user web hosts are machines where the user manages root directly.
-
-Keep this access shape:
-
-- Allow root login by key: `PermitRootLogin prohibit-password`
-- Disable SSH passwords: `PasswordAuthentication no`, `KbdInteractiveAuthentication no`
-- Ensure key auth works: `PubkeyAuthentication yes`
-- Raise `MaxAuthTries` only when a loaded-key agent can exhaust the server-side
-  attempt limit
-- Open only currently needed or explicitly planned ports
-- Do not force a non-root admin, `AllowUsers`, fail2ban, SSH algorithm lists, or sysctl tuning by default
-
-For Snell VPS setup or repair, use [references/snell-vps.md](references/snell-vps.md). Use [references/ssh.md](references/ssh.md) for SSH changes and [references/firewall.md](references/firewall.md) for firewall changes.
-
-### Team Admin Server
-
-A team admin server has more than one human administrator, and access must be revoked per person.
-
-Keep per-person access:
-
-- Create one user per human
-- Use `sudo` rather than shared root after admin access is verified
-- Disable root SSH only after a replacement admin path works from a fresh session
-- Add `AllowUsers` / `AllowGroups` only after all intended users are included and tested
-
-Use [references/ssh.md](references/ssh.md).
-
-### Unclear Or Possibly Compromised Server
-
-Ownership, purpose, access paths, or compromise state is unknown.
-
-Before remediation:
-
-- Collect evidence before repair
-- Do not upgrade, clean, rotate, delete, restart, or rewrite persistence until evidence is collected
-- Identify access, listeners, firewall, persistence, logs, patch state, and services without a user-confirmed purpose before remediation
-
-Use [references/unknown-server-audit.md](references/unknown-server-audit.md).
-
-### Container Host
-
-Docker, containerd, Kubernetes, x-ui, nginx-proxy-manager, and similar tools can publish ports outside the ordinary service list.
-
-Before changing firewall rules:
-
-- Map every public port to its process, container, and firewall path
-- Treat Docker-published ports as possible bypasses around UFW input rules
-- Do not add broad route rules unless a real container forwarding problem is confirmed
-
-Use [references/containers.md](references/containers.md) and [references/firewall.md](references/firewall.md).
-
-### Public Web Or App Server
-
-HTTP(S), app ports, reverse proxies, and dashboards may be intentionally public.
-
-Preserve intended web traffic:
-
-- Keep `80/tcp` and `443/tcp` only when a listener or planned service needs them
-- Treat dashboards and admin panels as management ports; bind to localhost or restrict source only when the service has no public clients or the user confirms the allowed source range
-- Preserve Docker or reverse-proxy ports that are actively serving traffic unless the user asks to remove them
-
-Use [references/firewall.md](references/firewall.md) and [references/containers.md](references/containers.md) when containers are involved.
-
-## Task Modes
-
-### Maintenance Window
-
-Package maintenance changes installed software or the schedule that updates it.
-
-Before package changes:
-
-- Use `apt-get`, not `apt`, in noninteractive commands
-- Stay within the current distro release
-- Check disk, failed units, listeners, apt simulation, and reboot need
-
-Use [references/maintenance.md](references/maintenance.md).
-
-### Swap Work
-
-Swap work changes active or persistent swap space.
-
-Before swap changes:
-
-- Check RAM, active swap devices, root disk space, and `/etc/fstab`
-- Preserve the existing swap path when resizing
-- Create a second active swap device only when the user explicitly wants
-  multiple swap devices
-
-Use [references/swap.md](references/swap.md).
-
-### Performance Or Network Tuning
-
-Performance tuning belongs to proxy/VPN performance, BBR, sysctl, latency, throughput, or kernel/network parameter work.
-
-Before performance changes:
-
-- Measure or identify the performance goal before writing sysctls
-- Do not add copied tuning lists to an ordinary SSH or firewall change
-- Leave SSH algorithms unchanged unless the user asked for crypto policy work
-
-Use [references/performance-tuning.md](references/performance-tuning.md).
-
-## Default Read-Only Commands
-
-When no narrower command set fits, start here:
+没有更窄的命令集时从这里开始：
 
 ```bash
 whoami && id && hostname && date -Is && uptime && uname -a
@@ -157,24 +35,25 @@ iptables -S 2>/dev/null
 ip6tables -S 2>/dev/null
 ```
 
-## Changing Files
+## 主机角色
 
-When the user has asked to apply changes:
+- 单主 VPS：用户直接管 root 的个人机、代理节点、Snell/Xray 盒子。保持 key-only root 的访问形状，只开当前需要或明确规划的端口。不默认加非 root 管理员、fail2ban、SSH 算法表或 sysctl 调优，机器没这个需要且用户没要求就不加。SSH 细节看 [references/ssh.md](references/ssh.md)，防火墙看 [references/firewall.md](references/firewall.md)，Snell 搭建或修复看 [references/snell-vps.md](references/snell-vps.md)。
+- 团队管理机：多于一个人类管理员，访问要能按人吊销。一人一账号，验证过 sudo 之后才收 root SSH，`AllowUsers` 要等全部预期用户都测试过再加。看 [references/ssh.md](references/ssh.md)。
+- 不明或疑似失陷机：先取证后修复。证据收齐之前不升级、不清理、不轮换、不删除、不重启、不改写持久化。看 [references/unknown-server-audit.md](references/unknown-server-audit.md)。
+- 容器主机：Docker 发布的端口可能绕过 UFW 的 input 规则。改防火墙前把每个公网端口映射到进程、容器和防火墙路径，没确认真实的转发问题就不加宽路由规则。看 [references/containers.md](references/containers.md)。
+- 公网 Web/应用机：80 和 443 只在有 listener 或规划服务时保留。面板和管理后台按管理端口对待，服务没有公网客户或用户确认了来源范围才收紧。看 [references/firewall.md](references/firewall.md)。
 
-1. Summarize the planned change in one or two sentences.
-2. Back up the specific file being changed.
-3. Validate syntax before reload where available: `sshd -t`, `nft -c -f`, `systemd-analyze verify`.
-4. Reload instead of restart when the service supports reload and syntax validation has passed.
-5. Open a fresh SSH connection after SSH/firewall changes.
-6. Re-read runtime state and report the exact effective settings.
+## 任务模式
 
-## Command Files
+- 维护窗口：noninteractive 命令用 `apt-get` 不用 `apt`，改包之前查磁盘、失败单元、listener、apt 模拟和重启需求。看 [references/maintenance.md](references/maintenance.md)。
+- Swap：改之前查 RAM、现有 swap 设备、根盘空间和 `/etc/fstab`，扩容优先沿用现有路径，用户明确要多设备才建第二块。看 [references/swap.md](references/swap.md)。
+- 性能调优：先有可测量的目标再写 sysctl，不往普通的 SSH 或防火墙变更里塞抄来的调优清单，用户没要求就不动 SSH 算法。看 [references/performance-tuning.md](references/performance-tuning.md)。
 
-- SSH access, multi-key agent handling, root policy, non-root admin migration: [references/ssh.md](references/ssh.md)
-- UFW/nftables, port/process alignment, rollback, listener exposure: [references/firewall.md](references/firewall.md)
-- Package updates, unattended-upgrades, needrestart, reboot checks: [references/maintenance.md](references/maintenance.md)
-- Swap inventory and resizing: [references/swap.md](references/swap.md)
-- Snell VPS minimal setup: [references/snell-vps.md](references/snell-vps.md)
-- Unclear-server or compromise-sign read-only audit: [references/unknown-server-audit.md](references/unknown-server-audit.md)
-- Docker, container firewalls, Docker group risk, service users: [references/containers.md](references/containers.md)
-- BBR/sysctl/network tuning and crypto-algorithm caution: [references/performance-tuning.md](references/performance-tuning.md)
+## 改文件六步
+
+1. 一两句话总结计划的变更。
+2. 备份要改的那个文件。
+3. 能验证就先验证语法：`sshd -t`、`nft -c -f`、`systemd-analyze verify`。
+4. 服务支持 reload 且语法通过时，用 reload 不用 restart。
+5. SSH 或防火墙变更后，开一条全新连接确认可达。
+6. 重读 runtime 状态，报告实际生效的设置。
