@@ -7,7 +7,7 @@ Usage:
   brrr-send.sh --title TEXT --message TEXT [options]
 
 Options:
-  --thread-id TEXT       groups related notifications; reuse one id per topic
+  --thread-id TEXT
   --open-url URL
   --sound NAME
   --interruption-level passive|active|time-sensitive|critical (default: normal)
