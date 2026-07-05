@@ -41,6 +41,41 @@ without a proxy. In that case, Surge may be the network control plane.
 - Outbound Mode can send traffic direct, by rule, or through a proxy policy;
   confirm it before blaming the VPS.
 
+## Tailscale Coexistence
+
+Surge Enhanced Mode and Tailscale both install virtual interfaces. Treat their
+route handling as platform-specific:
+
+- Keep Tailscale out of the macOS system proxy with `skip-proxy = ..., 100.64.0.0/10`.
+- Add Surge rules for Tailscale control traffic and tailnet ranges:
+  `DOMAIN-SUFFIX,tailscale.com,DIRECT`, `DOMAIN-SUFFIX,tailscale.io,DIRECT`,
+  `IP-CIDR,100.64.0.0/10,DIRECT,no-resolve`, and
+  `IP-CIDR6,fd7a:115c:a1e0::/48,DIRECT,no-resolve`.
+- Add process rules for the Tailscale network extension when present:
+  `PROCESS-NAME,io.tailscale.ipn.macsys.network-extension,DIRECT` and
+  `PROCESS-NAME,Tailscale,DIRECT`.
+- Keep MagicDNS resolvable through Tailscale DNS:
+  `*.ts.net = server:100.100.100.100` under `[Host]`.
+- Do not put `100.64.0.0/10` or `fd7a:115c:a1e0::/48` in Surge
+  `tun-excluded-routes` unless a live route test proves it is necessary. On this
+  setup, excluding those ranges can make Surge install competing
+  physical-interface routes and steal traffic from Tailscale. Exclude ordinary
+  LAN ranges there, then use DIRECT rules for Tailscale.
+
+Read-only checks:
+
+```bash
+tailscale status --json
+ssh -G <tailscale-host> | awk '$1 ~ /^(hostname|user)$/ {print}'
+route -n get <tailscale-ipv4>
+netstat -rn -f inet | grep -E '100\.64|100\.100\.100\.100|utun'
+scutil --dns | grep -E '100\.100\.100\.100|ts\.net|utun' -C 3
+```
+
+The healthy shape is that a Tailscale peer route goes through Tailscale's utun
+interface, not Surge's VIF. Surge may still handle non-tailnet traffic in
+Enhanced Mode.
+
 ## Diagnose First
 
 Check current state:

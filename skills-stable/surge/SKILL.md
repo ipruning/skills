@@ -1,6 +1,6 @@
 ---
 name: surge
-description: "Use for read-only Surge CLI lookups, macOS Surge network triage, local policy smoke tests, and Surge/Snell evidence audits. Not for applying network or server changes."
+description: "Use on macOS when Surge may be active, installed, or part of the network path: read-only Surge CLI lookups, Surge profile syntax/output interpretation, macOS Surge Enhanced Mode/System Proxy/DNS/proxy triage, Tailscale coexistence checks, local policy smoke tests, HY2/Snell policy checks, and Surge+Snell evidence audits. Trigger when Codex is running on macOS and the task involves network failures, proxy routing, policy selection, Surge CLI, Snell fallback, Tailscale routes/MagicDNS with Surge, or Surge-managed traffic. Not for applying network or server changes."
 ---
 
 # Surge
@@ -31,6 +31,10 @@ named by the user, or plausibly the local proxy or DNS boundary, read
 [macOS Surge Network Triage](references/macos-network-triage.md) before
 diagnosing or reporting local proxy, DNS, or Enhanced Mode failures.
 
+If Tailscale is also in the path, keep the triage in this skill. Check whether
+Tailscale routes and MagicDNS are preserved while Surge Enhanced Mode is active;
+do not apply Linux sing-box `route_exclude_address` rules to Surge blindly.
+
 If the user asks for a local Surge/macOS toggle or repair, read
 [macOS Surge Operator Actions](references/macos-surge-operator-actions.md) and
 output a manual command plan. This skill does not execute local network-state
@@ -41,6 +45,11 @@ For non-Surge, non-Snell Linux networking, hand off to `$linux-server` or
 changes such as firewall rules, sysctls, systemd restarts, package installs, or
 server tuning, keep only the evidence audit and manual action plan here; hand
 off execution and do not run those server changes from this skill.
+
+For sing-box REALITY + HY2 stack deployment or validation
+(`VLESS REALITY + HY2`, Linux TUN/mixed configs, certbot domain setup), use
+`$sing-box-reality-hy2`. Keep this skill focused on Surge runtime behavior and
+Snell evidence.
 
 ## Snell VPS Evidence Audit
 
