@@ -17,7 +17,7 @@ pnpm --filter web add @cloudflare/kumo lucide-react @workos-inc/authkit-react @c
 cd my-app && pnpm --filter @my-app/backend exec convex ai-files install
 ```
 
-如果用户给了真实项目名，把命令里的 `my-app` 和 `@my-app/backend` 换成生成后的目录名和 backend package 名。先读生成后的 `package.json` 和 `packages/backend/package.json`，再执行 package filter。
+命令里的 `my-app`、`--filter web`、`--filter @my-app/backend` 都是占位。先读生成后的 `package.json` 和 `packages/backend/package.json` 拿到实际的目录名、web package 名和 backend package 名，再执行 package filter，别照抄这里的名字。
 
 `ai-files install` 装出的 guidelines 和 skills 是写 Convex 代码的第一资料源。资料优先级是：本地生成的 guidelines 和 skills，`node_modules` 里包的 README 和 `.d.ts`，再到网络搜索。Convex-managed WorkOS AuthKit 较新，同一问题搜一次没有答案就转本地资料，不要反复搜。
 
