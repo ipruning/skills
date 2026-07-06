@@ -178,33 +178,6 @@
         "references/spiders/sessions.md": "sha256:e5d9736725dc01e72ce55b38bf6f9ce2672d7876d17c23151ee01145bbb489b4"
       }
     },
-    "skills-beta/shadcn": {
-      "source": "https://github.com/shadcn-ui/ui.git/skills/shadcn",
-      "type": "github-subdir",
-      "group": "skills-beta",
-      "installed_at": "2026-07-06T02:28:34.030683+08:00",
-      "repo_url": "https://github.com/shadcn-ui/ui.git",
-      "subdir": "skills/shadcn",
-      "version": "d0fae52",
-      "tree_hash": "962eb7ef77f17e0bce530153d4fec2136c5fa061",
-      "file_hashes": {
-        "SKILL.md": "sha256:a45cddd4511f8262df05b20506f4d52be8210a9ee05a13d9e36d4ee321bab593",
-        "agents/openai.yml": "sha256:35db91b1eef58b2abe01da9b88577de5a44e233b740cd93d692ddeeadd2afe4d",
-        "assets/shadcn-small.png": "sha256:0ecc62d682727f68fc4937eed19960c706714fa084d44f63028d611ae02bf3d7",
-        "assets/shadcn.png": "sha256:7d60ad6fec4d89a0d44ba5a3c9283d2fea0047af5467f9227040e20d927d39b7",
-        "cli.md": "sha256:a381e35bf36fe7bb851952c13707e01e82434fd7a4a4e53f6df26c6370838904",
-        "customization.md": "sha256:84c1d47168c4b8adb5840e4af30a4e373ae3377c1110478c8974f398dd63f5ba",
-        "evals/evals.json": "sha256:58aca2760b0cc5265bb575f76cd8eed344b88544314b8cb2cd53e0b8007dc936",
-        "mcp.md": "sha256:8d696b4e45b7d0e337367248513bd9acebe8f3bcfd7b748c775e5a337c8f38c8",
-        "registry.md": "sha256:4f239be36bd2b58e17047db1ca80ab7da00e15a8b73242e5e4d50d113c4caa05",
-        "rules/base-vs-radix.md": "sha256:2b2deb47d004285220c1fc6b38bb2edc2d0ccbcdafd031b0b189d5d8ed0d1ba8",
-        "rules/chat.md": "sha256:fcbc4eb29a3998fa3e24e9f7f1cbb2b9f33e98cb5b66a153eeccdb74e78f9612",
-        "rules/composition.md": "sha256:012d2a44373766fd9c13059ac1b971581fbe3982f2b1e92186a963c9990cfdcf",
-        "rules/forms.md": "sha256:29593e14381e34626f8e0e9c15c59f3394b92a0623af6a6ec94585400123853c",
-        "rules/icons.md": "sha256:d4a58266648872d9ee07d0c2368843a1cb88b8253b7f528dd7bda9d68b6c2535",
-        "rules/styling.md": "sha256:47bd2c3b6216b96af0ab169063a83dfef7f80c58536cf69445a6f4d22753326c"
-      }
-    },
     "skills-beta/text-to-lottie": {
       "source": "https://github.com/diffusionstudio/lottie.git/skills/text-to-lottie",
       "type": "github-subdir",
