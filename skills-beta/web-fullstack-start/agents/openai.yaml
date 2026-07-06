@@ -1,0 +1,4 @@
+interface:
+  display_name: "Web Full-Stack Start"
+  short_description: "Start a practical React and Convex web app"
+  default_prompt: "Use $web-fullstack-start to start a React full-stack web app with Convex."
