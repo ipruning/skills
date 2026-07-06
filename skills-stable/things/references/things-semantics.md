@@ -4,12 +4,12 @@ Use this reference when a Things result looks surprising or the user asks about 
 
 ## Data Source
 
-`things.py` reads the local Things SQLite database in read-only mode. Default paths are under:
+`things_query.py` reads the local Things SQLite database in read-only mode. Default paths are under:
 
 - `~/Library/Group Containers/JLMPQHK86H.com.culturedcode.ThingsMac/ThingsData-*/Things Database.thingsdatabase/main.sqlite`
 - Older fallback: `~/Library/Group Containers/JLMPQHK86H.com.culturedcode.ThingsMac/Things Database.thingsdatabase/main.sqlite`
 
-If access fails, check whether the Codex process has macOS file permissions for the Group Containers path. If the user provides a copied database, pass it with `--db-path`.
+If access fails, check whether the process running this skill has macOS file permissions for the Group Containers path. If the user provides a copied database, pass it with `--db-path`.
 
 ## Date Fields
 
