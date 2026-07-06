@@ -1,6 +1,6 @@
 ---
 name: surge
-description: "macOS network triage when Surge is installed, active, or plausibly in the network path: Surge CLI usage and output, profile syntax, Enhanced Mode / System Proxy / DNS failures, Tailscale coexistence, local policy smoke tests, and read-only Snell VPS evidence audits with repair plans. Read-only: it never applies local network or server changes. Server-side execution belongs to linux-server; REALITY+HY2 deployment belongs to sing-box-reality-hy2."
+description: "macOS network triage when Surge is installed, active, or plausibly in the network path: Surge CLI, profile syntax, Enhanced Mode / System Proxy / DNS failures, Tailscale coexistence, and read-only Snell VPS evidence audits with repair plans. Read-only: it never applies local network or server changes. Server-side execution belongs to linux-server; REALITY+HY2 deployment belongs to sing-box-reality-hy2."
 metadata:
   version: "2"
 ---

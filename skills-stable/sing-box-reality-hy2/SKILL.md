@@ -1,6 +1,6 @@
 ---
 name: sing-box-reality-hy2
-description: "Deploy, repair, and validate a narrow sing-box stable stack: VLESS REALITY Vision on TCP/443 plus Hysteria2 on UDP/443, with certbot and Cloudflare DNS-only records. Use when the user gives a VPS, SSH host, or domain and wants server setup, client configs on Linux, macOS, Windows, or Android, migration off Clash/Mihomo or shell proxy exports, or REALITY/HY2 testing and performance diagnosis. Standalone Surge triage and Snell audits belong to the surge skill."
+description: "Deploy, repair, and validate a narrow sing-box stable stack: VLESS REALITY Vision on TCP/443 plus Hysteria2 on UDP/443, with certbot and Cloudflare DNS-only records. Use when the user gives a VPS, SSH host, or domain and wants server setup, cross-platform client configs, migration off Clash/Mihomo, or REALITY/HY2 testing and diagnosis. Standalone Surge triage and Snell audits belong to the surge skill."
 metadata:
   version: "2"
 ---

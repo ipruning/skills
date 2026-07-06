@@ -1,6 +1,6 @@
 ---
 name: scheduled-work
-description: "Set up scheduled agent work inside a harness: do something later, or keep checking something until it changes — scheduled checks, monitors, periodic follow-ups, and reminders where the agent itself performs each run. Use when the user asks to schedule, loop, keep watching, periodically verify, or be reminded later. Not for deploying durable monitoring infrastructure such as collectors, probes, and alert backends — that is end-to-end-monitoring."
+description: "Set up scheduled agent work inside a harness: do something later, or keep checking something until it changes, where the agent itself performs each run. Use when the user asks to schedule, loop, keep watching, periodically verify, or be reminded later. Not for deploying durable monitoring infrastructure like collectors, probes, and alert backends — that is end-to-end-monitoring."
 metadata:
   version: "3"
 ---
