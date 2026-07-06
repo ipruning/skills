@@ -123,7 +123,7 @@ class LarkMeetingSttTests(unittest.TestCase):
                 json.dumps({"minute_token": "obc1", "title": "测试会议"}, ensure_ascii=False),
                 encoding="utf-8",
             )
-            (base / "selected-for-summary.txt").write_text("obc1\n", encoding="utf-8")
+            (base / "selected.txt").write_text("obc1\n", encoding="utf-8")
             prompts_dir = base / "prompts"
             prompts_dir.mkdir()
             (prompts_dir / "stale.prompt.md").write_text("old", encoding="utf-8")
@@ -149,7 +149,7 @@ class LarkMeetingSttTests(unittest.TestCase):
     def test_prompts_missing_transcript_removes_stale_index_and_prompts(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
-            (base / "selected-for-summary.txt").write_text("missing\n", encoding="utf-8")
+            (base / "selected.txt").write_text("missing\n", encoding="utf-8")
             (base / "prompt-index.json").write_text('{"ok": true}\n', encoding="utf-8")
             prompts_dir = base / "prompts"
             prompts_dir.mkdir()
@@ -167,7 +167,7 @@ class LarkMeetingSttTests(unittest.TestCase):
     def test_cli_prompts_missing_transcript_json_error_is_parseable(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
-            (base / "selected-for-summary.txt").write_text("missing\n", encoding="utf-8")
+            (base / "selected.txt").write_text("missing\n", encoding="utf-8")
             prompts_dir = base / "prompts"
             prompts_dir.mkdir()
             (prompts_dir / "stale.prompt.md").write_text("old", encoding="utf-8")
@@ -238,7 +238,6 @@ class LarkMeetingSttTests(unittest.TestCase):
     def test_pull_uses_relative_output_dir_for_lark_cli(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
-            (base / "selected-minutes.txt").write_text("obc1\n", encoding="utf-8")
             (base / "minutes-found.json").write_text(
                 json.dumps({"minutes": [{"minute_token": "obc1", "title": "测试会议"}]}, ensure_ascii=False),
                 encoding="utf-8",

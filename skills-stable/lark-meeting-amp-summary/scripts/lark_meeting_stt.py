@@ -36,8 +36,7 @@ DEFAULT_ENCODING = "o200k_base"
 DEFAULT_MAX_PROMPT_TIKTOKEN_COUNT = 100_000
 
 MINUTES_FOUND = "minutes-found.json"
-SELECTED_MINUTES = "selected-minutes.txt"
-SELECTED_FOR_SUMMARY = "selected-for-summary.txt"
+SELECTED = "selected.txt"
 PROMPT_INDEX = "prompt-index.json"
 
 app = typer.Typer(
@@ -591,7 +590,6 @@ def list_minutes(options: ListOptions) -> int:
         },
     }
     write_json(base / MINUTES_FOUND, report)
-    write_text(base / SELECTED_MINUTES, "".join(f"{item['minute_token']}\n" for item in minute_list))
     coverage_md = coverage_markdown(report)
     write_text(base / "coverage.md", coverage_md)
     emit(report, fmt=options.format, md=coverage_md)
@@ -679,8 +677,8 @@ def coverage_markdown(report: dict[str, Any]) -> str:
             "",
             "## 下一步",
             "",
-            f"- 如需排除候选，编辑 `{SELECTED_MINUTES}`。",
-            "- 然后运行 `pull --run <run>`。",
+            "- 运行 `pull --run <run>` 拉取全部妙记，再 `check --run <run>` 看重复证据。",
+            f"- 读完证据后编辑 `{SELECTED}` 跳掉重复，再 `prompts --run <run>`。",
         ]
     )
     return "\n".join(lines).rstrip() + "\n"
@@ -695,13 +693,10 @@ def pull_minutes(options: PullOptions) -> int:
     require_commands(["lark-cli"])
     base = options.run.expanduser().resolve()
     ensure_run_dirs(base)
-    selected_file = base / SELECTED_MINUTES
-    if not selected_file.exists():
-        raise SystemExit(f"缺少 {selected_file}；先运行 list，或创建拉取清单。")
-    selected_tokens = unique(selected_file_values(selected_file))
-    if not selected_tokens:
-        raise SystemExit(f"{selected_file} 为空。")
     lookup = minute_lookup(base)
+    selected_tokens = unique(list(lookup.keys()))
+    if not selected_tokens:
+        raise SystemExit(f"{base / MINUTES_FOUND} 里没有 minute_token；先运行 list。")
     encoding = tiktoken_encoder(options.encoding)
     raw = base / "raw"
     logs = raw / "logs"
@@ -833,7 +828,7 @@ def pull_minutes(options: PullOptions) -> int:
     write_json(base / "pulled.json", report)
     pulled_md = pulled_markdown(report)
     write_text(base / "pulled.md", pulled_md)
-    write_text(base / SELECTED_FOR_SUMMARY, "".join(f"{item['minute_token']}\n" for item in successes))
+    write_text(base / SELECTED, "".join(f"{item['minute_token']}\n" for item in successes))
     emit(report, fmt=options.format, md=pulled_md)
     return 1 if failures else 0
 
@@ -996,7 +991,7 @@ def duplicates_markdown(report: dict[str, Any]) -> str:
     lines = [
         "# 重复检查报告",
         "",
-        f"不要根据本页证据物理删除或合并妙记。跳过妙记前，先读相关 `transcript.txt`，再编辑 `{SELECTED_FOR_SUMMARY}`。",
+        f"不要根据本页证据物理删除或合并妙记。跳过妙记前，先读相关 `transcript.txt`，再编辑 `{SELECTED}`。",
         "",
         f"- 已拉取妙记文字记录：{(report.get('counts') or {}).get('pulled', 0)}",
         f"- 可疑重复组：{len(groups)}",
@@ -1026,7 +1021,7 @@ def duplicates_markdown(report: dict[str, Any]) -> str:
             "## 下一步",
             "",
             "- 强重复也不要物理删除妙记文字记录。",
-            f"- 如需跳过某条，只从 `{SELECTED_FOR_SUMMARY}` 删除对应 minute_token。",
+            f"- 如需跳过某条，只从 `{SELECTED}` 删除对应 minute_token。",
         ]
     )
     return "\n".join(lines).rstrip() + "\n"
@@ -1065,7 +1060,7 @@ def build_prompts(options: PromptsOptions) -> int:
         shutil.rmtree(prompt_dir)
     if not options.template.exists():
         raise SystemExit(f"模板不存在：{options.template}")
-    selected_file = base / SELECTED_FOR_SUMMARY
+    selected_file = base / SELECTED
     if not selected_file.exists():
         raise SystemExit(f"缺少 {selected_file}；先运行 pull，或创建总结清单。")
     selected_tokens = unique(selected_file_values(selected_file))
@@ -1085,9 +1080,7 @@ def build_prompts(options: PromptsOptions) -> int:
         selected_rows.append((minute_token, meta, transcript_path))
 
     if missing:
-        raise SystemExit(
-            f"{SELECTED_FOR_SUMMARY} 中有 minute_token 缺少 transcript.txt；请回到 pull: " + ", ".join(missing)
-        )
+        raise SystemExit(f"{SELECTED} 中有 minute_token 缺少 transcript.txt；请回到 pull: " + ", ".join(missing))
 
     encoding = tiktoken_encoder(options.encoding)
     prompt_dir.mkdir(parents=True, exist_ok=True)
@@ -1326,7 +1319,7 @@ def list_cmd(
     )
 
 
-@app.command("pull", help=f"按 {SELECTED_MINUTES} 拉妙记文字记录。")
+@app.command("pull", help="拉取 minutes-found.json 里的全部妙记文字记录。")
 def pull_cmd(
     run: Annotated[Path, typer.Option("--run", help="运行目录。")],
     batch_size: Annotated[int, typer.Option("--batch-size", min=1, help="每批 minute_token 数量。")] = 50,
@@ -1354,7 +1347,7 @@ def check_cmd(
     run_command(lambda: check_minutes(CheckOptions(run=run, format=output_format)), fmt=output_format)
 
 
-@app.command("prompts", help=f"按 {SELECTED_FOR_SUMMARY} 生成提示词。")
+@app.command("prompts", help=f"按 {SELECTED} 生成提示词。")
 def prompts_cmd(
     run: Annotated[Path, typer.Option("--run", help="运行目录。")],
     template: Annotated[Path, typer.Option("--template", help="Jinja2 提示词模板。")] = DEFAULT_TEMPLATE,

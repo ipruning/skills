@@ -18,12 +18,11 @@ metadata:
 run 根下你要读或改的文件：
 
 - `coverage.md` 给登录用户、日期范围、各源计数、日历和 VC 覆盖证据。`pull` 前必读，它告诉你可能漏了哪些会。
-- `selected-minutes.txt` 由 `pull` 读取。在 `pull` 前编辑，跳掉不想导出的候选，省导出成本。
 - `duplicates.md` 和 `duplicates.json` 是重复证据，脚本从不在这里改选择。
-- `selected-for-summary.txt` 由 `prompts` 读取。在读完 dedup 证据后编辑，跳掉重复。
+- `selected.txt` 由 `pull` 写出全部成功拉取的 token，`prompts` 读取。唯一的编辑点：读完 dedup 证据后编辑它，跳掉重复。
 - `minutes-found.json`、`pulled.md`、`prompt-index.json` 分别是找到的全部 token、导出结果、当前 prompt 列表。
 
-两个选择文件职责不同：`selected-minutes.txt` 管导出，`selected-for-summary.txt` 管总结。跳过一个会靠编辑选择文件，不要删 `minutes/<token>/transcript.txt`。
+跳过一个会靠从 `selected.txt` 删对应 token，不要删 `minutes/<token>/transcript.txt`。
 
 生成目录 `raw/`、`minutes/`、`prompts/`、`summaries/` 是各阶段的产物。
 
@@ -34,15 +33,15 @@ run 根下你要读或改的文件：
 ```bash
 run="$HOME/Downloads/lark-meeting-$(date +%Y%m%d-%H%M%S)"
 uv run --script scripts/lark_meeting_stt.py list --start YYYY-MM-DD --end YYYY-MM-DD --run "$run"
-sed -n '1,220p' "$run/coverage.md"                  # 读覆盖，必要时改 selected-minutes.txt
+sed -n '1,220p' "$run/coverage.md"                  # 读覆盖，确认没漏会
 uv run --script scripts/lark_meeting_stt.py pull --run "$run"
 uv run --script scripts/lark_meeting_stt.py check --run "$run"
-sed -n '1,220p' "$run/duplicates.md"                # 读重复证据，据此改 selected-for-summary.txt
+sed -n '1,220p' "$run/duplicates.md"                # 读重复证据，据此改 selected.txt
 uv run --script scripts/lark_meeting_stt.py prompts --run "$run"
 uv run --script scripts/lark_meeting_stt.py summarize --run "$run"
 ```
 
-两个决策关卡：`list` 后读 coverage、`check` 后读 duplicates，分别决定要不要改对应的选择文件。`prompts` 每次重建并写出 `prompt-index.json`，只有它 `"ok": true` 才跑 `summarize`。导出失败的 token 留在 `pulled.md`，别拿会议纪要或总结顶替失败的 transcript。Amp 慢或限流就调低 `--concurrency`，长会调高 `--timeout-seconds`，细节 flag 看 `--help`。
+`pull` 拉取 `minutes-found.json` 里全部妙记，唯一的决策关卡在 `check` 之后：读 duplicates 证据，从 `selected.txt` 删掉重复。`prompts` 每次重建并写出 `prompt-index.json`，只有它 `"ok": true` 才跑 `summarize`。导出失败的 token 留在 `pulled.md`，别拿会议纪要或总结顶替失败的 transcript。Amp 慢或限流就调低 `--concurrency`，长会调高 `--timeout-seconds`，细节 flag 看 `--help`。
 
 ## 重复证据
 
@@ -63,5 +62,5 @@ uv run --script scripts/lark_meeting_stt.py summarize --run "$run"
 - 所有 raw transcript 都留着。
 - 重复分组是证据，不是删除指令。
 - 跳过会议靠编辑选择文件，不靠删 transcript。
-- 改过 `selected-for-summary.txt` 后重新跑 `prompts`。
+- 改过 `selected.txt` 后重新跑 `prompts`。
 - `prompt-index.json` 缺失或 `"ok": false` 时不要跑 `summarize`。
