@@ -36,7 +36,7 @@ uv run --script "$SKILL_DIR/scripts/things_query.py" --collection todos --search
 
 1. State boundaries plainly:
 
-- `things_query.py` reads the Things SQLite database in read-only mode.
+- The `things.py` library that `things_query.py` wraps reads the Things SQLite database in read-only mode.
 - Things data may reflect the last opened/synced Things database state.
 - `today()` follows Things Today semantics, not only `start_date == <today>`.
 - `today()` predicts scheduled and overdue tasks, but may not include repeating tasks that Things has not generated yet.

@@ -4,7 +4,7 @@ Use this reference when a Things result looks surprising or the user asks about 
 
 ## Data Source
 
-`things_query.py` reads the local Things SQLite database in read-only mode. Default paths are under:
+The `things.py` library reads the local Things SQLite database in read-only mode. Default paths are under:
 
 - `~/Library/Group Containers/JLMPQHK86H.com.culturedcode.ThingsMac/ThingsData-*/Things Database.thingsdatabase/main.sqlite`
 - Older fallback: `~/Library/Group Containers/JLMPQHK86H.com.culturedcode.ThingsMac/Things Database.thingsdatabase/main.sqlite`
