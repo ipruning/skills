@@ -38,10 +38,10 @@ apt-get install -y speedtest
 Run:
 
 ```bash
-speedtest --accept-license --accept-gdpr --progress=no --format=json-pretty --server-id=12191
+speedtest --accept-license --accept-gdpr --progress=no --format=json-pretty --server-id=<server-id>
 ```
 
-Known 2026-07-05 baseline for `203.0.113.10` to Nitel Los Angeles:
+Known baseline for `203.0.113.10` to a nearby speedtest server:
 
 ```text
 download 8425.88 Mbps
@@ -70,26 +70,26 @@ speedtest --accept-license --accept-gdpr -L
 Useful server IDs from the deployment:
 
 ```text
-12191 Nitel Los Angeles
-69322 Race Communications Los Angeles
+<server-id-a>  nearby speedtest server A
+<server-id-b>  nearby speedtest server B
 ```
 
 Before each run, set the desired Surge policy:
 
 ```bash
 surge-cli --raw set ProxyGroupSelection.PROXY=vps-1-hy2
-speedtest --accept-license --accept-gdpr --progress=no --format=json-pretty --server-id=12191
+speedtest --accept-license --accept-gdpr --progress=no --format=json-pretty --server-id=<server-id>
 
 surge-cli --raw set ProxyGroupSelection.PROXY=vps-1
-speedtest --accept-license --accept-gdpr --progress=no --format=json-pretty --server-id=12191
+speedtest --accept-license --accept-gdpr --progress=no --format=json-pretty --server-id=<server-id>
 ```
 
-Known 2026-07-05 results on hotspot:
+Example hotspot results:
 
 ```text
-HY2  -> Nitel: 356.53 down / 75.48 up / 195.71 ms
-Snell -> Nitel: 464.82 down / 67.15 up / 156.72 ms
-Snell -> Race: 465.15 down / 65.49 up / 176.12 ms
+HY2   -> server A: 356.53 down / 75.48 up / 195.71 ms
+Snell -> server A: 464.82 down / 67.15 up / 156.72 ms
+Snell -> server B: 465.15 down / 65.49 up / 176.12 ms
 ```
 
 Interpretation:
@@ -132,7 +132,7 @@ curl --proxy socks5h://127.0.0.1:2080 \
   -o /dev/null \
   -sS \
   -w 'download_mbps=%{speed_download}\n' \
-  http://speedtest.lax1.nitelusa.net/speedtest/random4000x4000.jpg
+  http://<speedtest-mirror>/speedtest/random4000x4000.jpg
 ```
 
 Convert bytes/sec to Mbps:
@@ -224,7 +224,7 @@ jq '{
 }' <client-config.json>
 ```
 
-Expected live shape for the 2026-07-05 deployment:
+Expected live shape for a verified deployment:
 
 ```text
 server: vps-1 / 203.0.113.10
