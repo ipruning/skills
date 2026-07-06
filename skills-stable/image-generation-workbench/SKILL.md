@@ -17,9 +17,10 @@ exact text, layout, measurements, captions, and final document placement.
   repair, multiple input images, or source-image interpretation before generating.
 - Use **Images API** for a simple one-shot generate/edit call where conversation
   state is not needed.
-- The CLI exposes `gpt-image-2` through its profiles. Inspect `profiles --json`
-  before assuming model-specific options. The CLI controls the image model; do
-  not pass a separate image model.
+- The CLI fixes the image model (`gpt-image-2`); there is no model flag, so do
+  not pass a separate image model. Inspect `profiles --json` for the recommended
+  parameter bundles and each subcommand's `--help` for its flags before choosing
+  parameters.
 - Keep long prose, legal/rules wording, Chinese text, bilingual labels, and page
   composition outside the raster image when exact edits matter.
 - Always inspect generated images visually. A successful API response is not QA.
@@ -80,13 +81,21 @@ export PYDANTIC_AI_GATEWAY_API_KEY=...
 export PYDANTIC_AI_GATEWAY_BASE_URL=...
 ```
 
-Follow-up commands add only the issue-specific arguments:
+Each CLI run is independent: `--previous-response-id` carries the API
+conversation, not the CLI parameters, so every generating command still passes
+its own geometry and quality flags. Follow-up commands add the issue-specific
+arguments on top of the same required set:
 
 ```bash
 uv run --script "$SKILL_DIR/scripts/image_workbench.py" repair-image \
   --image path/to/source-screenshot.png \
   --previous-response-id resp_... \
   --issue "Move the label away from the card face and keep the arrow target unchanged." \
+  --aspect-policy match-input \
+  --quality high \
+  --output-format png \
+  --detail high \
+  --background auto \
   --out outputs/visuals/tutorial-figure-v2.png \
   --json
 
@@ -94,6 +103,7 @@ uv run --script "$SKILL_DIR/scripts/image_workbench.py" diagnose-image \
   --source path/to/source-screenshot.png \
   --candidate outputs/visuals/tutorial-figure-v2.png \
   --criteria "The figure teaches the attack lane and preserves the card positions." \
+  --detail high \
   --out outputs/visuals/tutorial-figure-v2.diagnosis.json \
   --json
 
@@ -114,9 +124,9 @@ uv run --script "$SKILL_DIR/scripts/image_workbench.py" contact-sheet \
 match-input` for source-backed screenshots and cards, `portrait` or
    `landscape` for known placements, `square` for icons, `auto` when the model
    should choose, or exact `--size WIDTHxHEIGHT`.
-4. State quality, format, detail, and background explicitly. Recommended
-   source-backed tutorial parameters are `--aspect-policy match-input --quality high
---output-format png --detail high --background auto`.
+4. State quality, format, detail, and background explicitly on every generating
+   command. The `source-final` profile in `profiles --json` carries the
+   recommended source-backed bundle; read it rather than a copy pasted here.
 5. Attach the source images on every repair turn. `previous_response_id`
    preserves conversation state, but source images prevent visual drift.
 6. Ask for short visible labels only. Put exact text in HTML, Typst, slides, or
