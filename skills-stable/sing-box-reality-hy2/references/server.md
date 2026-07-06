@@ -140,7 +140,7 @@ Use TCP/443 VLESS REALITY:
   "listen_port": 443,
   "users": [
     {
-      "name": "alex",
+      "name": "<user>",
       "uuid": "__UUID__",
       "flow": "xtls-rprx-vision"
     }
@@ -172,7 +172,7 @@ Use UDP/443 HY2:
   "listen_port": 443,
   "users": [
     {
-      "name": "alex",
+      "name": "<user>",
       "password": "__HY2_PASSWORD__"
     }
   ],

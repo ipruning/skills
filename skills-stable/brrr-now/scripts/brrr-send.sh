@@ -10,7 +10,7 @@ Options:
   --thread-id TEXT
   --open-url URL
   --sound NAME
-  --interruption-level passive|active|time-sensitive|critical (default: normal)
+  --interruption-level passive|active|time-sensitive|critical (omit for a normal ping)
   --volume 0..1          critical only
   --dry-run
 
