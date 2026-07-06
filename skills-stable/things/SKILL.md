@@ -1,73 +1,44 @@
 ---
 name: things
-description: "Read-only local macOS Things queries and summaries when the user asks about their Things tasks, Today list, Inbox, projects, tags, or task search."
+description: "Read-only local macOS Things queries and summaries when the user asks about their Things tasks, Today list, Inbox, projects, tags, completed or logbook history, or task search. Read-only, never writes."
+metadata:
+  version: "2"
 ---
 
 # Things
 
-## Core Rule
+只读地查本机 macOS Things，把用户的口语问题翻成一次 `things_query.py` 查询。这个 skill 不写入。用户要改 Things 就说明本 skill 只读，问要不要换一个单独的、经批准的写入方式。
 
-Use `scripts/things_query.py` through `uv run --script` for local Things reads. This skill is read-only. If the user asks to modify Things, say this skill does not support writes and ask whether to switch to a separate approved write mechanism.
-
-Set `SKILL_DIR` to the directory containing this `SKILL.md`, then prefer exact local evidence over memory:
+入口是 `scripts/things_query.py`，通过 `uv run --script` 跑，路径按这个 skill 目录的绝对路径解析。collection、filter、flag 的权威清单是 `--help`，正文只教怎么把口语翻成查询，以及 CLI 强制不了的纪律。
 
 ```bash
-SKILL_DIR=/path/to/things
+SKILL_DIR=/absolute/path/to/things
 uv run --script "$SKILL_DIR/scripts/things_query.py" --collection today --format json
-```
-
-## Workflow
-
-1. Confirm the local date when the user says "today", "tomorrow", "yesterday", or Chinese equivalents.
-
-```bash
-date '+%Y-%m-%d %H:%M:%S %Z %z'
-```
-
-1. Query the smallest useful collection.
-
-```bash
-uv run --script "$SKILL_DIR/scripts/things_query.py" --collection today --format json
-uv run --script "$SKILL_DIR/scripts/things_query.py" --collection inbox --format json
-uv run --script "$SKILL_DIR/scripts/things_query.py" --collection todos --search "visa" --format json
-```
-
-1. Do not dump notes, UUIDs, or every task unless the user asks. Titles are acceptable when the user asks to see tasks. Use counts or high-level summaries for exploratory checks.
-
-1. State boundaries plainly:
-
-- The `things.py` library that `things_query.py` wraps reads the Things SQLite database in read-only mode.
-- Things data may reflect the last opened/synced Things database state.
-- `today()` follows Things Today semantics, not only `start_date == <today>`.
-- `today()` predicts scheduled and overdue tasks, but may not include repeating tasks that Things has not generated yet.
-
-Read `references/things-semantics.md` when date semantics, missing recurring tasks, database paths, or permission errors matter.
-
-## Script Usage
-
-Read script options when the request needs filters beyond these examples:
-
-```bash
 uv run --script "$SKILL_DIR/scripts/things_query.py" --help
-uv run --script "$SKILL_DIR/scripts/things_query.py" --collection today --limit 20 --format markdown
-uv run --script "$SKILL_DIR/scripts/things_query.py" --collection todos --search "Korea" --include-notes --format json
 ```
 
-Collections:
+## 把问题翻成查询
 
-- `today`, `inbox`, `anytime`, `upcoming`, `someday`, `deadlines`
-- `todos`, `projects`, `areas`, `tags`
-- `completed`, `canceled`, `logbook`, `trash`
+用户不说 collection 名，也不说 flag。听意图，选最小够用的 collection 加 filter。能猜就猜，查错代价小，再查一次就行，不用停下来问。
 
-Use `--db-path` only when the default Things database path fails or the user supplies an exported database path.
+| 用户会说 | collection + filter |
+|---|---|
+| 今天要干嘛、手头有啥 | `--collection today` |
+| 收件箱里有啥没整理 | `--collection inbox` |
+| 有 deadline 的、快到期 | `--collection deadlines` |
+| 找关于 X 的任务 | `--collection todos --search X` |
+| X 这事办完没、这周做完了啥 | `--collection completed --search X` |
+| 某个项目或 tag 下的 | `--collection projects` 或 `--collection tags` |
+| 最近加的、这周新增 | `--collection todos --last 1w` |
 
-## Response Style
+这张表是常见映射，不是全集。翻不准或用户问了别的，跑 `--help` 看还有哪些 collection 和 filter，比如按状态筛的 `--status`、限量的 `--limit`。用户说「today」「明天」「昨天」这类相对日子时，先跑 `date '+%Y-%m-%d %H:%M:%S %Z %z'` 确认本机日期和时区。Things Today 是预测视图，不是简单的 `start_date == 今天`，语义细节看 reference。
 
-For Chinese user prompts, answer in Chinese and use the local absolute date from `date` for relative-day results, for example: "按本机 <YYYY-MM-DD> <TZ> 的 Today 列表...".
+## 输出纪律
 
-Keep personal task output tight:
+- 探索性地查先用 `--count-only` 给数量，别一上来倒出全部任务。
+- 用户要「看」任务再列 title，按 Things 顺序。默认不带 `notes`、UUID、数据库路径，用户明确要 notes 才加 `--include-notes`。
+- 中文提问用中文答。相对日子用 `date` 拿到的本机绝对日期，比如「按本机 <YYYY-MM-DD> <TZ> 的 Today 列表」。结果是 Things Today 预测视图而非精确日期过滤时，点明这一点。
 
-- Start with count and collection/date.
-- List titles in Things order when asked to "show" or "see" tasks.
-- Include project, heading, deadline, reminder, or tags only when present or relevant.
-- Mention if the result is a Things Today view rather than an exact date filter.
+## reference
+
+日期语义、`today()` 漏算的未生成重复任务、数据库路径、权限报错，读 `references/things-semantics.md`。
