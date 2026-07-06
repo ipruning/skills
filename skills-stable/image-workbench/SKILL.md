@@ -1,5 +1,5 @@
 ---
-name: image-generation-workbench
+name: image-workbench
 description: "Use when a task needs generated or edited bitmap assets, visual QA, screenshot-backed image work, UI annotations, variants, or the local image workbench CLI. Not for abstract diagrams or charts, which belong in vector tools, Typst, SVG/HTML, or Mermaid, and not for images that must carry precise text, labels, code, or tables."
 metadata:
   version: "2.0"
@@ -37,7 +37,7 @@ CLI 管参数，管不了下面这些，这才是这个 skill 存在的理由。
 入口是 `scripts/image_workbench.py`，按这个 skill 目录的绝对路径解析。选参数前先跑发现命令：
 
 ```bash
-SKILL_DIR=/absolute/path/to/image-generation-workbench
+SKILL_DIR=/absolute/path/to/image-workbench
 uv run --script "$SKILL_DIR/scripts/image_workbench.py" profiles --json
 uv run --script "$SKILL_DIR/scripts/image_workbench.py" <subcommand> --help
 ```
@@ -51,7 +51,7 @@ uv run --script "$SKILL_DIR/scripts/image_workbench.py" <subcommand> --help
 一个完整的源图定稿回合，其余子命令的 flag 同样从 `--help` 拿：
 
 ```bash
-SKILL_DIR=/absolute/path/to/image-generation-workbench
+SKILL_DIR=/absolute/path/to/image-workbench
 export OPENAI_API_KEY=...   # OpenAI-compatible 网关改用 PYDANTIC_AI_GATEWAY_API_KEY / _BASE_URL
 uv run --script "$SKILL_DIR/scripts/image_workbench.py" annotate-image \
   --image path/to/source-screenshot.png \

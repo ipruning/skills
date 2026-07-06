@@ -1,5 +1,5 @@
 ---
-name: lark-meeting-amp-summary
+name: lark-meeting-summary
 description: "Use when a user asks for a date-range Feishu/Lark Minutes collection: find minute_tokens, pull transcript files, inspect coverage and duplicate evidence, build Chinese prompts, or run Amp summaries. Do not use for a single minute_token lookup."
 metadata:
   version: "2"

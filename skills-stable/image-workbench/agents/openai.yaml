@@ -1,0 +1,4 @@
+interface:
+  display_name: "图像生成工作台"
+  short_description: "用 gpt-image-2 生成、编辑、修复和质检位图素材"
+  default_prompt: "使用 $image-workbench 选择图像处理方法，仅 source-backed 场景附源图。处理生成、编辑、修复、QA、变体比较或绿幕组件时明确比例、质量、格式、细节和背景策略，并检查输出。"
