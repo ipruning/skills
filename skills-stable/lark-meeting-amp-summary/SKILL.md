@@ -1,159 +1,67 @@
 ---
 name: lark-meeting-amp-summary
 description: "Use when a user asks for a date-range Feishu/Lark Minutes collection: find minute_tokens, pull transcript files, inspect coverage and duplicate evidence, build Chinese prompts, or run Amp summaries. Do not use for a single minute_token lookup."
+metadata:
+  version: "2"
 ---
 
 # Lark Meeting Amp Summary
 
-Use this skill to collect Feishu/Lark Minutes for a date range, export local transcript files, inspect coverage and duplicate evidence, generate Chinese prompts, and run Amp summaries.
+按日期范围收集 Feishu/Lark 妙记、导出 transcript、看覆盖和重复证据、生成中文 prompt、跑 Amp 总结。参数细节看 `<command> --help`，正文只讲管道形状、文件夹接口和 CLI 强制不了的判断。
 
-For one known historical video meeting, use `lark-vc`. For one known `minute_token`, use `lark-minutes`. For future calendar events, use `lark-calendar`.
+单个已知会议用 `lark-vc`，单个已知 `minute_token` 用 `lark-minutes`，未来日历事件用 `lark-calendar`。
 
-## Files
+## 文件夹即接口
 
-The script is `scripts/lark_meeting_stt.py`.
+脚本是 `scripts/lark_meeting_stt.py`。每次运行把状态全物化到一个 run 目录，命令之间靠文件传递，你在阶段之间读证据、改选择。
 
-Each run directory has four generated directories:
+run 根下你要读或改的文件：
 
-- `raw/`: raw `lark-cli` JSON and command logs.
-- `minutes/`: one directory per `minute_token`, with `transcript.txt` and `meta.json`.
-- `prompts/`: prompts generated from transcripts.
-- `summaries/`: Amp outputs and summary indexes.
+- `coverage.md` 给登录用户、日期范围、各源计数、日历和 VC 覆盖证据。`pull` 前必读，它告诉你可能漏了哪些会。
+- `selected-minutes.txt` 由 `pull` 读取。在 `pull` 前编辑，跳掉不想导出的候选，省导出成本。
+- `duplicates.md` 和 `duplicates.json` 是重复证据，脚本从不在这里改选择。
+- `selected-for-summary.txt` 由 `prompts` 读取。在读完 dedup 证据后编辑，跳掉重复。
+- `minutes-found.json`、`pulled.md`、`prompt-index.json` 分别是找到的全部 token、导出结果、当前 prompt 列表。
 
-The run root has readable or editable files:
+两个选择文件职责不同：`selected-minutes.txt` 管导出，`selected-for-summary.txt` 管总结。跳过一个会靠编辑选择文件，不要删 `minutes/<token>/transcript.txt`。
 
-- `minutes-found.json`: all found `minute_token` values and their sources.
-- `coverage.md`: login user, date range, source counts, and calendar/VC coverage evidence.
-- `selected-minutes.txt`: `pull` reads this file. Edit it to skip candidates before export.
-- `pulled.md` and `pulled.json`: export results and failures.
-- `duplicates.md` and `duplicates.json`: duplicate evidence. The script never edits selections here.
-- `selected-for-summary.txt`: `prompts` reads this file. Edit it after reading duplicate evidence.
-- `prompt-index.json`: current prompt list. `summarize` reads this file.
+生成目录 `raw/`、`minutes/`、`prompts/`、`summaries/` 是各阶段的产物。
 
-Do not delete `minutes/<minute_token>/transcript.txt` to skip a meeting. Remove the token from `selected-for-summary.txt`.
+## 流水线
 
-## Workflow
-
-Run commands from this skill directory. Resolve relative dates before calling the script; pass `YYYY-MM-DD`.
+从这个 skill 目录跑。相对日期先解析成 `YYYY-MM-DD` 再传。顺序是硬依赖，每步读上一步的产物。
 
 ```bash
 run="$HOME/Downloads/lark-meeting-$(date +%Y%m%d-%H%M%S)"
-start_date="YYYY-MM-DD"
-end_date="YYYY-MM-DD"
-uv run --script scripts/lark_meeting_stt.py list --start "$start_date" --end "$end_date" --run "$run"
-```
-
-Read coverage before exporting transcripts.
-
-```bash
-sed -n '1,220p' "$run/coverage.md"
-```
-
-If a candidate should not be exported, edit `selected-minutes.txt`. Then export transcripts.
-
-```bash
+uv run --script scripts/lark_meeting_stt.py list --start YYYY-MM-DD --end YYYY-MM-DD --run "$run"
+sed -n '1,220p' "$run/coverage.md"                  # 读覆盖，必要时改 selected-minutes.txt
 uv run --script scripts/lark_meeting_stt.py pull --run "$run"
-sed -n '1,220p' "$run/pulled.md"
-```
-
-Check duplicate evidence.
-
-```bash
 uv run --script scripts/lark_meeting_stt.py check --run "$run"
-sed -n '1,220p' "$run/duplicates.md"
-```
-
-Read `duplicates.md`. When a group needs judgment, open the related `minutes/<minute_token>/transcript.txt` files. Edit `selected-for-summary.txt` only after reading the evidence.
-
-Generate prompts.
-
-```bash
+sed -n '1,220p' "$run/duplicates.md"                # 读重复证据，据此改 selected-for-summary.txt
 uv run --script scripts/lark_meeting_stt.py prompts --run "$run"
+uv run --script scripts/lark_meeting_stt.py summarize --run "$run"
 ```
 
-Run Amp only when `prompt-index.json` has `"ok": true`.
+两个决策关卡：`list` 后读 coverage、`check` 后读 duplicates，分别决定要不要改对应的选择文件。`prompts` 每次重建并写出 `prompt-index.json`，只有它 `"ok": true` 才跑 `summarize`。导出失败的 token 留在 `pulled.md`，别拿会议纪要或总结顶替失败的 transcript。Amp 慢或限流就调低 `--concurrency`，长会调高 `--timeout-seconds`，细节 flag 看 `--help`。
 
-```bash
-uv run --script scripts/lark_meeting_stt.py summarize --run "$run" --concurrency 4 --timeout-seconds 900
-```
+## 重复证据
 
-## Commands
+`check` 把重复分三档，给你判断，不替你删：
 
-### `list --start --end --run`
+- `强重复`：全文 SHA-256 相同。
+- `高度可疑`：前 80 行规范化 hash 相同。
+- `弱可疑`：首行相同，或行数接近且时长、标题证据吻合。
 
-Find accessible Minutes. This command does not export transcripts.
+需要判断时打开相关的 `minutes/<token>/transcript.txt` 再定。
 
-It queries:
+## 输出契约
 
-- `lark-cli vc +search`
-- `lark-cli minutes +search --owner-ids me`
-- `lark-cli minutes +search --participant-ids me`
-- `lark-cli minutes +search --start ... --end ...`
-- `lark-cli calendar +agenda`, then `lark-cli calendar +meeting`
-- `lark-cli vc +notes` for meeting IDs found from VC search and calendar meetings
+自动化用 `--format json`，加在子命令之后。命令进入自身业务逻辑后，stdout 是一个 JSON 对象，进度和依赖命令输出走 stderr。业务错误退出码 1，json 下 stdout 是 `{"ok": false, "error": "...", "exit_code": 1}`。Typer 语法错误，比如缺必填或未知命令，退出码 2、help 走 stderr。冷启动 `uv run --script` 可能装依赖并把日志写 stderr，别把 stderr 当结果解析。
 
-It writes `minutes-found.json`, `coverage.md`, `selected-minutes.txt`, and `raw/`.
+## 规则
 
-`coverage.md` must be read before `pull`. It shows the login user, date range, source counts, calendar events without `meeting_id`, calendar meeting IDs not found by VC search, VC meetings not found in calendar, and tokens found only by time search.
-
-### `pull --run`
-
-Read `selected-minutes.txt` and export transcript files.
-
-It writes:
-
-- `minutes/<minute_token>/transcript.txt`
-- `minutes/<minute_token>/meta.json`
-- `pulled.md`
-- `pulled.json`
-- `selected-for-summary.txt`
-
-Failed exports stay in `pulled.md` and `pulled.json`. Do not replace a failed transcript with meeting notes or an Amp summary.
-
-If any selected token fails to export, `pull` still writes successful transcripts and `selected-for-summary.txt`, but exits with code `1` and sets `"ok": false`. Read `pulled.md` before continuing.
-
-### `check --run`
-
-Read pulled transcripts and write duplicate evidence to `duplicates.md` and `duplicates.json`.
-
-Run `check` only after `pull`. The command fails if `pulled.json` is missing or no transcript was successfully exported.
-
-Evidence types:
-
-- `强重复`: full transcript SHA-256 is the same.
-- `高度可疑`: normalized hash of the first 80 lines is the same.
-- `弱可疑`: first line is the same, or line counts are close and duration/title evidence matches.
-
-The command never edits `selected-for-summary.txt`.
-
-### `prompts --run`
-
-Read `selected-for-summary.txt` and generate `prompts/` plus `prompt-index.json`.
-
-On every run, old `prompts/` and old `prompt-index.json` are removed before writing the current prompt set. If a selected token has no `transcript.txt`, the command fails and reports the missing token; run `pull` again or edit `selected-for-summary.txt`. Do not run `summarize` until `prompt-index.json` exists and has `"ok": true`.
-
-Default prompt limit is `100000` tiktoken. Change it with `--max-prompt-tiktoken-count`.
-
-### `summarize --run`
-
-Read the current `prompt-index.json` and current `prompts/`. Rebuild `summaries/`.
-
-If `summarize` cannot start because Amp, `prompt-index.json`, or prompt files are missing or invalid, it rebuilds `summaries/index.json` with `"ok": false` so old summaries are not mistaken for current output.
-
-Use a lower `--concurrency` if Amp is slow or rate-limited. Use a higher `--timeout-seconds` for long meetings.
-
-## Output Contract
-
-Use `--format json` for automation. When the command reaches its own business logic, stdout contains one JSON object. Progress and dependency command details go to stderr. Syntax errors from Typer, such as missing required options or unknown commands, exit with code `2` and write help text to stderr.
-
-Business errors exit with code `1`. With `--format json`, stdout contains `{"ok": false, "error": "...", "exit_code": 1}`.
-
-Cold `uv run --script` may install Python dependencies and write those install logs to stderr. Do not parse stderr as the command result.
-
-## Rules
-
-- Keep all raw transcripts.
-- Treat duplicate groups as evidence, not deletion instructions.
-- Decide skipped meetings by editing `selected-for-summary.txt`.
-- Regenerate prompts after editing `selected-for-summary.txt`.
-- Do not run `summarize` when `prompt-index.json` is missing or has `"ok": false`.
+- 所有 raw transcript 都留着。
+- 重复分组是证据，不是删除指令。
+- 跳过会议靠编辑选择文件，不靠删 transcript。
+- 改过 `selected-for-summary.txt` 后重新跑 `prompts`。
+- `prompt-index.json` 缺失或 `"ok": false` 时不要跑 `summarize`。

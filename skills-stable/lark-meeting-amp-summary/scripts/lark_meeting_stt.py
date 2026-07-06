@@ -101,14 +101,14 @@ def text_snippet(value: str, *, limit: int = 4000) -> str:
 def require_commands(command_names: list[str]) -> None:
     missing = [command_name for command_name in command_names if shutil.which(command_name) is None]
     if missing:
-        raise SystemExit("缺少命令: " + ", ".join(missing))
+        raise SystemExit("缺少命令：" + ", ".join(missing))
 
 
 def validate_date(value: str) -> None:
     try:
         dt.date.fromisoformat(value)
     except ValueError as exc:
-        raise SystemExit(f"日期无效: {value!r}，需要 YYYY-MM-DD") from exc
+        raise SystemExit(f"日期无效：{value!r}，需要 YYYY-MM-DD") from exc
 
 
 def ensure_run_dirs(base: Path) -> None:
@@ -129,9 +129,9 @@ def load_json(file_path: Path) -> Any:
     try:
         return json.loads(file_path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
-        raise SystemExit(f"缺少文件: {file_path}") from exc
+        raise SystemExit(f"缺少文件：{file_path}") from exc
     except json.JSONDecodeError as exc:
-        raise SystemExit(f"JSON 无效: {file_path}: {exc}") from exc
+        raise SystemExit(f"JSON 无效：{file_path}: {exc}") from exc
 
 
 def append_jsonl(file_path: Path, payload: dict[str, Any]) -> None:
@@ -241,13 +241,13 @@ def run_paginated(base_cmd: list[str], *, cwd: Path, page_dir: Path, log_dir: Pa
         data = payload.get("data") or {}
         page_items = data.get("items") or []
         if not isinstance(page_items, list):
-            raise RuntimeError(f"分页返回 items 不是数组: {' '.join(base_cmd)}")
+            raise RuntimeError(f"分页返回 items 不是数组：{' '.join(base_cmd)}")
         items.extend(page_items)
         if data.get("has_more") is not True:
             return items
         page_token = str(data.get("page_token") or "")
         if not page_token:
-            raise RuntimeError(f"has_more=true 但 page_token 为空: {' '.join(base_cmd)}")
+            raise RuntimeError(f"has_more=true 但 page_token 为空：{' '.join(base_cmd)}")
         page_num += 1
 
 
@@ -608,10 +608,10 @@ def coverage_markdown(report: dict[str, Any]) -> str:
         "",
         "## 查询",
         "",
-        f"- 时间范围: {run.get('start')} 到 {run.get('end')}",
-        f"- 查询时间: {run.get('created_at')}",
-        f"- 登录用户: {identity.get('userName') or 'unknown'} ({identity.get('openId') or 'unknown'})",
-        f"- 用户令牌状态: {identity.get('tokenStatus') or 'unknown'}, verified: {identity.get('verified')}",
+        f"- 时间范围：{run.get('start')} 到 {run.get('end')}",
+        f"- 查询时间：{run.get('created_at')}",
+        f"- 登录用户：{identity.get('userName') or 'unknown'} ({identity.get('openId') or 'unknown'})",
+        f"- 用户令牌状态：{identity.get('tokenStatus') or 'unknown'}, verified: {identity.get('verified')}",
         "",
         "## 来源数量",
         "",
@@ -843,9 +843,9 @@ def pulled_markdown(report: dict[str, Any]) -> str:
     lines = [
         "# 拉取结果",
         "",
-        f"- 已选妙记: {counts.get('selected', 0)}",
-        f"- 成功拉取: {counts.get('pulled', 0)}",
-        f"- 拉取失败: {counts.get('failed', 0)}",
+        f"- 已选妙记：{counts.get('selected', 0)}",
+        f"- 成功拉取：{counts.get('pulled', 0)}",
+        f"- 拉取失败：{counts.get('failed', 0)}",
         "",
         "## 成功",
         "",
@@ -932,13 +932,13 @@ def build_duplicate_groups(metas: list[dict[str, Any]]) -> list[dict[str, Any]]:
     groups: list[dict[str, Any]] = []
     for sha, items in group_by_value(metas, "sha256").items():
         if len(items) > 1:
-            add_group(groups, "强重复", f"全文 hash 相同: {sha}", items)
+            add_group(groups, "强重复", f"全文 hash 相同：{sha}", items)
     for prefix_sha, items in group_by_value(metas, "prefix_sha256").items():
         if len(items) > 1:
-            add_group(groups, "高度可疑", f"前 80 行规范化 hash 相同: {prefix_sha}", items)
+            add_group(groups, "高度可疑", f"前 80 行规范化 hash 相同：{prefix_sha}", items)
     for first_line, items in group_by_value(metas, "first_line").items():
         if len(items) > 1:
-            add_group(groups, "弱可疑", f"首行相同: {first_line}", items)
+            add_group(groups, "弱可疑", f"首行相同：{first_line}", items)
 
     pair_keys = {
         tuple(sorted(group["minute_tokens"])) for group in groups if len(group.get("minute_tokens") or []) == 2
@@ -998,15 +998,15 @@ def duplicates_markdown(report: dict[str, Any]) -> str:
         "",
         f"不要根据本页证据物理删除或合并妙记。跳过妙记前，先读相关 `transcript.txt`，再编辑 `{SELECTED_FOR_SUMMARY}`。",
         "",
-        f"- 已拉取妙记文字记录: {(report.get('counts') or {}).get('pulled', 0)}",
-        f"- 可疑重复组: {len(groups)}",
+        f"- 已拉取妙记文字记录：{(report.get('counts') or {}).get('pulled', 0)}",
+        f"- 可疑重复组：{len(groups)}",
         "",
     ]
     if not groups:
         lines.append("没有发现可疑重复。")
         return "\n".join(lines).rstrip() + "\n"
     for index, group in enumerate(groups, start=1):
-        lines.extend([f"## {index}. {group.get('kind')}", "", f"- 证据: {group.get('evidence')}", ""])
+        lines.extend([f"## {index}. {group.get('kind')}", "", f"- 证据：{group.get('evidence')}", ""])
         for item in group.get("items") or []:
             lines.append(
                 "- `{minute_token}` {title} 行数={line_count} 妙记文字记录 tiktoken 数={tokens} 来源={sources}".format(
@@ -1017,9 +1017,9 @@ def duplicates_markdown(report: dict[str, Any]) -> str:
                     sources=",".join(item.get("sources") or []),
                 )
             )
-            lines.append(f"  - 妙记文字记录路径: `{item.get('transcript_path')}`")
+            lines.append(f"  - 妙记文字记录路径：`{item.get('transcript_path')}`")
             if item.get("first_line"):
-                lines.append(f"  - 首行: `{item.get('first_line')}`")
+                lines.append(f"  - 首行：`{item.get('first_line')}`")
         lines.append("")
     lines.extend(
         [
@@ -1064,7 +1064,7 @@ def build_prompts(options: PromptsOptions) -> int:
     if prompt_dir.exists():
         shutil.rmtree(prompt_dir)
     if not options.template.exists():
-        raise SystemExit(f"模板不存在: {options.template}")
+        raise SystemExit(f"模板不存在：{options.template}")
     selected_file = base / SELECTED_FOR_SUMMARY
     if not selected_file.exists():
         raise SystemExit(f"缺少 {selected_file}；先运行 pull，或创建总结清单。")
@@ -1096,6 +1096,7 @@ def build_prompts(options: PromptsOptions) -> int:
     oversized: list[dict[str, Any]] = []
     for minute_token, meta, transcript_path in selected_rows:
         transcript_text = transcript_path.read_text(encoding="utf-8", errors="replace")
+        meta["rel_transcript_path"] = transcript_path.relative_to(base).as_posix()
         rendered = render_prompt(template_path=options.template, transcript_text=transcript_text, meta=meta)
         token_count = count_tiktoken(rendered, encoding=encoding)
         row = {
@@ -1182,7 +1183,7 @@ def summarize_prompts(options: SummarizeOptions) -> int:
         prompt_rel = str(prompt.get("prompt_path") or "")
         prompt_path = base / prompt_rel
         if not prompt_path.exists() or prompt_path.parent.resolve() != prompt_dir.resolve():
-            message = f"prompt-index.json 指向不存在或非当前 prompts/ 的提示词文件: {prompt_rel}"
+            message = f"prompt-index.json 指向不存在或非当前 prompts/ 的提示词文件：{prompt_rel}"
             write_summaries_error(base, message)
             raise SystemExit(message)
 
@@ -1329,7 +1330,7 @@ def list_cmd(
 def pull_cmd(
     run: Annotated[Path, typer.Option("--run", help="运行目录。")],
     batch_size: Annotated[int, typer.Option("--batch-size", min=1, help="每批 minute_token 数量。")] = 50,
-    encoding: Annotated[str, typer.Option("--encoding", help="tiktoken encoding。")] = DEFAULT_ENCODING,
+    encoding: Annotated[str, typer.Option("--encoding", help="tiktoken encoding.")] = DEFAULT_ENCODING,
     output_format: Annotated[OutputFormat, typer.Option("--format", help="输出格式。")] = OutputFormat.md,
 ) -> None:
     run_command(
@@ -1357,7 +1358,7 @@ def check_cmd(
 def prompts_cmd(
     run: Annotated[Path, typer.Option("--run", help="运行目录。")],
     template: Annotated[Path, typer.Option("--template", help="Jinja2 提示词模板。")] = DEFAULT_TEMPLATE,
-    encoding: Annotated[str, typer.Option("--encoding", help="tiktoken encoding。")] = DEFAULT_ENCODING,
+    encoding: Annotated[str, typer.Option("--encoding", help="tiktoken encoding.")] = DEFAULT_ENCODING,
     max_prompt_tiktoken_count: Annotated[
         int,
         typer.Option("--max-prompt-tiktoken-count", min=1, help="单个提示词 tiktoken 上限。"),
