@@ -25,13 +25,7 @@ dev = [
 
 [tool.ruff]
 exclude = [
-    "skills-beta/actionbook/",
-    "skills-beta/agent-browser/",
-    "skills-beta/autoreview/",
     "skills-beta/frontend-design/",
-    "skills-beta/handoff/",
-    "skills-beta/manim-video/",
-    "skills-beta/thermo-nuclear-code-quality-review/",
     "skills-mattpocock/ask-matt/",
     "skills-mattpocock/code-review/",
     "skills-mattpocock/codebase-design/",
@@ -76,13 +70,7 @@ docstring-code-line-length = "dynamic"
 
 [tool.tombi.files]
 exclude = [
-    "skills-beta/actionbook/**",
-    "skills-beta/agent-browser/**",
-    "skills-beta/autoreview/**",
     "skills-beta/frontend-design/**",
-    "skills-beta/handoff/**",
-    "skills-beta/manim-video/**",
-    "skills-beta/thermo-nuclear-code-quality-review/**",
     "skills-mattpocock/ask-matt/**",
     "skills-mattpocock/code-review/**",
     "skills-mattpocock/codebase-design/**",
@@ -120,13 +108,7 @@ unresolved-import = "warn"
 
 [tool.ty.src]
 exclude = [
-    "skills-beta/actionbook/",
-    "skills-beta/agent-browser/",
-    "skills-beta/autoreview/",
     "skills-beta/frontend-design/",
-    "skills-beta/handoff/",
-    "skills-beta/manim-video/",
-    "skills-beta/thermo-nuclear-code-quality-review/",
     "skills-mattpocock/ask-matt/",
     "skills-mattpocock/code-review/",
     "skills-mattpocock/codebase-design/",

@@ -5,13 +5,7 @@ globs:
 
 ignores:
     - "_convex-skills/"
-    - "skills-beta/actionbook/"
-    - "skills-beta/agent-browser/"
-    - "skills-beta/autoreview/"
     - "skills-beta/frontend-design/"
-    - "skills-beta/handoff/"
-    - "skills-beta/manim-video/"
-    - "skills-beta/thermo-nuclear-code-quality-review/"
     - "skills-mattpocock/ask-matt/"
     - "skills-mattpocock/code-review/"
     - "skills-mattpocock/codebase-design/"
