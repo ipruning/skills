@@ -1,6 +1,6 @@
 ---
 name: end-to-end-monitoring
-description: "Design, deploy, repair, or verify end-to-end monitoring and alerting for a host, service, cron job, crawler, dependency, data pipeline, or AI workflow: signal producer, observability backend, alert rules, notification channel, responder, runbook. Not for the agent itself periodically re-checking something inside a session — that is scheduled-work."
+description: "Design, deploy, repair, or verify standing end-to-end monitoring and alerting infrastructure that runs on its own, independent of any agent session — signal producer, observability backend, alert rules, notification channel, responder, runbook — for a host, service, cron job, crawler, dependency, data pipeline, or AI workflow. Not for the agent itself periodically re-checking something and pinging you — that is scheduled-work."
 metadata:
   version: "3"
 ---
