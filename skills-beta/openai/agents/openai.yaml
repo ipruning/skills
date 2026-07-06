@@ -1,4 +1,0 @@
-interface:
-  display_name: "OpenAI Responses API 开发"
-  short_description: "为 OpenAI Responses API、流式调用和 Python SDK 类型问题编写代码"
-  default_prompt: "使用 $openai 编写 OpenAI Responses API 的类型化 Python 调用、流式处理代码，并诊断 SDK 类型错误。"

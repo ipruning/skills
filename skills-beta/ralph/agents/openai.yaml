@@ -1,4 +1,0 @@
-interface:
-  display_name: "Ralph 深度推理工作流"
-  short_description: "为困难技术问题运行本地取证、Oracle 外部推理和交叉验证流程"
-  default_prompt: "使用 $ralph 处理困难技术问题：先收集本地上下文，再调用 Oracle 获取外部视角，最后用本地证据交叉验证。"
