@@ -28,6 +28,10 @@ sys.modules[SPEC.name] = mod
 SPEC.loader.exec_module(mod)
 
 
+def patch_module_attr(attr_name: str, value: object) -> None:
+    setattr(mod, attr_name, value)
+
+
 def run_cli(args: list[str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [sys.executable, str(SCRIPT), *args],
@@ -266,8 +270,8 @@ class LarkMeetingSttTests(unittest.TestCase):
 
             original_require_commands = mod.require_commands
             original_run_json = mod.run_json
-            mod.require_commands = lambda command_names: None
-            mod.run_json = fake_run_json
+            patch_module_attr("require_commands", lambda command_names: None)
+            patch_module_attr("run_json", fake_run_json)
             try:
                 with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
                     exit_code = mod.pull_minutes(mod.PullOptions(run=base, format=mod.OutputFormat.json))
@@ -278,8 +282,8 @@ class LarkMeetingSttTests(unittest.TestCase):
                 pulled = json.loads((base / "pulled.json").read_text(encoding="utf-8"))
                 self.assertTrue(pulled["ok"])
             finally:
-                mod.require_commands = original_require_commands
-                mod.run_json = original_run_json
+                patch_module_attr("require_commands", original_require_commands)
+                patch_module_attr("run_json", original_run_json)
 
     def test_run_command_nonzero_return_keeps_single_json_report(self) -> None:
         output = io.StringIO()
@@ -302,7 +306,7 @@ class LarkMeetingSttTests(unittest.TestCase):
                 encoding="utf-8",
             )
             original_require_commands = mod.require_commands
-            mod.require_commands = lambda command_names: None
+            patch_module_attr("require_commands", lambda command_names: None)
             try:
                 with self.assertRaises(SystemExit) as raised:
                     mod.summarize_prompts(mod.SummarizeOptions(run=base))
@@ -311,7 +315,7 @@ class LarkMeetingSttTests(unittest.TestCase):
                 self.assertFalse(index["ok"])
                 self.assertIn("prompt-index.json ok=false", index["error"])
             finally:
-                mod.require_commands = original_require_commands
+                patch_module_attr("require_commands", original_require_commands)
 
     @staticmethod
     def meta(
