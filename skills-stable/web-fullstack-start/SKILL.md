@@ -1,6 +1,6 @@
 ---
 name: web-fullstack-start
-description: Start or continue a practical Web full-stack app such as a React dashboard, SaaS, internal tool, or product prototype, where the user needs a coherent stack choice, scaffold command, auth/data boundary, and first usable feature. Not for React Native native apps, static marketing-only pages, or narrow edits inside an already established stack.
+description: Start or continue a practical Web full-stack app such as a React dashboard, SaaS, internal tool, or product prototype, where the user needs a coherent stack choice, scaffold command, auth/data boundary, and first usable feature. Not for narrow edits inside an already established stack.
 metadata:
   version: "1"
 ---
