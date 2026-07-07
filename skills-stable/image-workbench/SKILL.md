@@ -8,7 +8,7 @@ metadata:
 
 # Image Generation Workbench
 
-用 `gpt-image-2` 做视觉整合和风格。精确的文字、排版、测量、说明和最终文档摆放交给确定性工具。这个 skill 包着一个自文档化的 CLI，参数的权威来源是 `profiles --json` 和每个子命令的 `--help`。正文只讲何时用、怎么选，以及 CLI 强制不了的纪律。
+用 `gpt-image-2` 做视觉整合和风格。精确的文字、排版、测量、说明和最终文档摆放交给确定性工具。参数的权威来源是 `profiles --json` 和每个子命令的 `--help`。
 
 抽象、不需要源图保真的概念图，用确定性的矢量绘制、Typst、SVG/HTML 或 Mermaid，不走这个 skill。精确的文字、规则术语、双语标签、代码、表格，留在 Typst、HTML、slides 或宿主文档里，不进光栅图。
 

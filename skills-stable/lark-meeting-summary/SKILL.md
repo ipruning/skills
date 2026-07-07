@@ -7,7 +7,7 @@ metadata:
 
 # Lark Meeting Amp Summary
 
-按日期范围收集 Feishu/Lark 妙记、导出 transcript、看覆盖和重复证据、生成中文 prompt、跑 Amp 总结。参数细节看 `<command> --help`，正文只讲管道形状、文件夹接口和 CLI 强制不了的判断。
+按日期范围收集 Feishu/Lark 妙记、导出 transcript、看覆盖和重复证据、生成中文 prompt、跑 Amp 总结。参数细节看 `<command> --help`。
 
 单个已知会议用 `lark-vc`，单个已知 `minute_token` 用 `lark-minutes`，未来日历事件用 `lark-calendar`。
 

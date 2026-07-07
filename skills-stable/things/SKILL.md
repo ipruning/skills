@@ -7,9 +7,9 @@ metadata:
 
 # Things
 
-只读地查本机 macOS Things，把用户的口语问题翻成一次 `things_query.py` 查询。这个 skill 不写入。用户要改 Things 就说明本 skill 只读，问要不要换一个单独的、经批准的写入方式。
+只读地查本机 macOS Things，把用户的口语问题翻成一次 `things_query.py` 查询，不写入。用户要改 Things 就说明这是只读工具，问要不要换一个单独的、经批准的写入方式。
 
-入口是 `scripts/things_query.py`，通过 `uv run --script` 跑，路径按这个 skill 目录的绝对路径解析。collection、filter、flag 的权威清单是 `--help`，正文只教怎么把口语翻成查询，以及 CLI 强制不了的纪律。
+入口是 `scripts/things_query.py`，通过 `uv run --script` 跑，路径按这个 skill 目录的绝对路径解析。collection、filter、flag 的权威清单是 `--help`。
 
 ```bash
 SKILL_DIR=/absolute/path/to/things
