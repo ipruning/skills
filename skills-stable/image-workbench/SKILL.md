@@ -1,8 +1,8 @@
 ---
 name: image-workbench
-description: "Use when a task needs generated or edited bitmap assets, visual QA, screenshot-backed image work, UI annotations, variants, or the local image workbench CLI. Not for abstract diagrams or charts, which belong in vector tools, Typst, SVG/HTML, or Mermaid, and not for images that must carry precise text, labels, code, or tables."
+description: "Use when a task needs generated or edited bitmap assets, visual QA, screenshot-backed image work, UI annotations, or the local image workbench CLI. Not for diagrams, charts, or images that must carry precise text or code — those belong in vector tools such as SVG/HTML, Typst, or Mermaid."
 metadata:
-  version: "2.0"
+  version: "2.1"
   short-description: gpt-image-2 generation, repair, and visual QA workflow
 ---
 

@@ -1,8 +1,8 @@
 ---
 name: lark-meeting-summary
-description: "Use when a user asks for a date-range Feishu/Lark Minutes collection: find minute_tokens, pull transcript files, inspect coverage and duplicate evidence, build Chinese prompts, or run Amp summaries. Do not use for a single minute_token lookup."
+description: "Use when a user asks for a date-range Feishu/Lark Minutes collection: find minute_tokens, pull transcript files, inspect coverage and duplicate evidence, build Chinese prompts, or run Amp summaries. Do not use for a single minute_token or single-meeting lookup, or for turning chat history into a report corpus — that is lark-chat-corpus."
 metadata:
-  version: "2"
+  version: "3"
 ---
 
 # Lark Meeting Amp Summary

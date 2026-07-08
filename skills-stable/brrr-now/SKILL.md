@@ -1,8 +1,8 @@
 ---
 name: brrr-now
-description: "Send, test, or integrate brrr.now push notifications when the user wants to be pinged, reminded, or woken outside chat: task-complete, failure, and blocker alerts, scheduled reminders, and building or repairing brrr delivery paths. Not for implementing push notifications inside the user's own product."
+description: "Send, test, or integrate brrr.now push notifications when the user wants to be pinged, reminded, or woken outside chat. Not for implementing push notifications inside the user's own product."
 metadata:
-  version: "4"
+  version: "5"
 ---
 
 # brrr Push Notifications
