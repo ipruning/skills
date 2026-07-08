@@ -1,14 +1,14 @@
 {
     "schema_version": "1",
-    "run_id": "<iso8601>/<run-id>",
+    "run_id": "<stable-or-random-run-id>",
     "monitor_id": "<body-mirror-of-monitor.id>",
     "subject_id": "<body-mirror-of-subject.id>",
     "environment": "<body-mirror-of-deployment.environment.name>",
     "status": "ok|warn|error|fatal",
     "checked_at": "<iso8601>",
-    "reason": "short human-readable reason",
+    "reason": "<short human-readable reason>",
     "evidence": {
-        "summary": "minimal evidence for audit",
+        "summary": "<minimal evidence for audit>",
         "url_or_trace": null,
         "raw_artifact_path": null
     }

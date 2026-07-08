@@ -10,6 +10,21 @@ Use a custom binary only when the user wants business-specific checks, non-stand
 
 Hostmetrics does not prove that business timers, crawlers, databases, proxy services, or external dependencies are healthy. Add custom probes for those contracts.
 
+## Cadence And Cost
+
+Choose the collection interval from the monthly bill, not from habit:
+
+```text
+monthly datapoints ~= hosts x 520M / interval_seconds
+520M = ~200 datapoints per scrape x 2.59M seconds per month
+```
+
+- Default 60s (~8.6M/host/month). For fleets of >=5 hosts, or any backend that bills per datapoint or record, use 300s (~1.7M/host/month). Host-level semantics such as host down, disk filling, and service dead survive 300s granularity.
+- Price the estimate against the backend's rate before deploying and state it in the delivery report. Treat the formula as a floor: real fleets run above it in proportion to their device, mount, and interface counts.
+- Freshness thresholds couple to cadence: use >=3x the collection interval (60s -> 3m, 300s -> 15m). Below 3x the alert races the scrape cycle and flaps.
+- When changing cadence on an already-monitored fleet, widen every freshness alert first, then roll the collector interval, then watch one full alert cycle for false fires.
+- Backend UIs may have their own fixed staleness badge (for example the Logfire Hosts panel marks a host stale after ~5 minutes without data). At 300s that badge is cosmetic; the alert threshold, not the badge, defines the contract.
+
 ## Identity And Token
 
 Before creating a token or alert, decide:
@@ -30,7 +45,7 @@ revoke owner / path:
 
 Use `/etc/machine-id` or cloud instance id for `host.id`. Use OS hostname for `host.name` only when it is stable and meaningful.
 
-When deploying more than one host, compare `/etc/machine-id` values before finalizing identity. Cloned VPS images can reuse the same machine id. If two protected hosts share it, do not use that value for `host.id` or `service.instance.id`; use a stable hostname, provider instance id, or IP-derived id and record why.
+When deploying more than one host, compare `/etc/machine-id` values before finalizing identity. Cloned VPS images can reuse the same machine id. If two protected hosts share it, do not use that value for `host.id` or `service.instance.id`. Use a stable hostname, provider instance id, or IP-derived id and record why.
 
 ## Deployment SOP
 
@@ -57,7 +72,7 @@ Example file: [`templates/otel-collector-hostmetrics.example.yaml`](templates/ot
 
 Use current docs and the target collector binary as the source of truth for component names. Always run the collector's own validation command before restart.
 
-`otelcol-contrib` release packages can be large enough to expose weak VPS routes. If `scp`, one-shot `curl`, or provider-to-provider relay is unreliable, use a resumable remote download such as `aria2c -c -x 16 -s 16 -k 1M` or another resumable transfer. Keep the official checksum file with the package and require `sha256sum -c` before installing. Do not install a partially transferred package.
+`otelcol-contrib` release packages can be large enough to expose weak VPS routes. If `scp` or a one-shot `curl` is unreliable, switch to a resumable download such as `aria2c -c`. Keep the official checksum file with the package and require `sha256sum -c` before installing. Do not install a partially transferred package.
 
 ## Standard Alerts
 
@@ -94,7 +109,7 @@ WHERE service_namespace = '<service.namespace>'
   AND otel_resource_attributes->>'host.name' = '<host.name>'
   AND otel_resource_attributes->>'monitor.id' = '<monitor.id>'
   AND otel_resource_attributes->>'deployment.environment.name' = '<deployment.environment.name>'
-HAVING MAX(recorded_timestamp) IS NULL OR MAX(recorded_timestamp) < now() - interval '5 minutes'
+HAVING MAX(recorded_timestamp) IS NULL OR MAX(recorded_timestamp) < now() - interval '<freshness-threshold, >=3x collection interval>'
 LIMIT 10
 ```
 

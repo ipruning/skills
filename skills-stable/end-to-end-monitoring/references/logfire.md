@@ -24,7 +24,7 @@ host.name=<stable-os-hostname>          # for hosts
 host.id=<machine-id-or-cloud-instance>  # for hosts
 subject.id=<stable-domain-subject>      # for non-host subjects
 deployment.environment.name=<production|staging|development|test>
-monitor.id=<producer>/<subject-or-host>
+monitor.id=<producer>/<subject-or-host>  # probes may add a third segment: <system>/<subject>/<check>
 ```
 
 Use `deployment.environment.name` as the canonical OpenTelemetry resource attribute for environment identity. In Logfire SQL, prefer `otel_resource_attributes->>'deployment.environment.name'` unless a metric-shape probe proves that a flat convenience column is populated for the records you are querying.
@@ -34,9 +34,9 @@ Example for one host monitor:
 ```text
 service.namespace=acme
 service.name=hostmetrics
-service.instance.id=hostmetrics-9f2c1a7e8b4d4e6f9a0b1c2d3e4f5a6b
+service.instance.id=hostmetrics-<machine-id>
 host.name=host-alpha-1
-host.id=9f2c1a7e8b4d4e6f9a0b1c2d3e4f5a6b
+host.id=<machine-id>
 deployment.environment.name=production
 monitor.id=hostmetrics/host-alpha-1
 ```
@@ -47,16 +47,16 @@ monitor.id=hostmetrics/host-alpha-1
 - Create one write token per revoke boundary. For one host, name it like `<project>/<service.name>/<host.name>` or `<project>/<monitor.id>`.
 - Use a temporary dev-session token only for bootstrapping. Replace it before calling the monitor durable.
 - Prefer no expiration for infrastructure monitors unless the user has a rotation system. Expiring tokens need an alert and runbook for rotation.
-- If MCP cannot list, rename, create, or revoke write tokens, use the authenticated Logfire UI through Chrome or the official API with the needed scope before falling back to a temporary token or reporting the task blocked.
+- If MCP cannot list, rename, create, or revoke write tokens, use the authenticated Logfire browser UI or the official API with the needed scope before falling back to a temporary token or reporting the task blocked.
 - Confirm the target host can accept the token into its root-owned secret store before creating a one-time visible token.
 - If a token was named wrong, create a new token, update the producer, verify fresh telemetry, then revoke or delete the old token.
 - Put the write token on the target host through a root-owned env file, systemd credential, platform secret, or equivalent secret store.
 - Use separate tokens when monitors need different revoke boundaries; sharing one dedicated host token is acceptable only when the lifecycle and access boundary are the same.
 - Record how to revoke the token.
 
-When the user authorized token creation, an agent may read, copy, paste, and transiently pass the one-time token through Chrome and SSH to finish the deployment. Protect the durable boundary: do not commit the token, leave it in shell history, store it in unit files or config YAML, place it in ordinary user-writable files, or repeat it in the final report.
+When the user authorized token creation, an agent may read, copy, paste, and transiently pass the one-time token through the browser and SSH to finish the deployment. Protect the durable boundary: do not commit the token, leave it in shell history, store it in unit files or config YAML, place it in ordinary user-writable files, or repeat it in the final report.
 
-After installing a one-time token, finish the credential UI path: click Done or otherwise leave the reveal screen, then close or finalize the Chrome tab. Do not leave a one-time token visible in the browser after deployment.
+After installing a one-time token, finish the credential UI path: click Done or otherwise leave the reveal screen, then close or finalize the browser tab. Do not leave a one-time token visible in the browser after deployment.
 
 ## Signal Shape
 

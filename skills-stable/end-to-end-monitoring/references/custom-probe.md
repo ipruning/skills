@@ -61,8 +61,8 @@ Emit one structured span/log per run:
   "reason": "<short human-readable reason>",
   "evidence": {
     "summary": "<minimal evidence>",
-    "url_or_trace": "<optional>",
-    "raw_artifact_path": "<optional>"
+    "url_or_trace": null,
+    "raw_artifact_path": null
   }
 }
 ```
@@ -99,6 +99,7 @@ semantic alert:
 
 freshness alert:
   no probe record for monitor.id within the allowed window.
+  start the window at 2x the probe cadence; cap it at cadence + repair window.
 ```
 
 If the probe exits nonzero after emitting an error record, systemd can show local failure. The backend alert is still the source of notification truth.

@@ -29,8 +29,8 @@ Use stable, grep-able names:
 Examples:
 
 ```text
-acme-delist-probe.service
-acme-delist-probe.timer
+acme-orders-probe.service
+acme-orders-probe.timer
 hostmetrics-logfire-collector.service
 ```
 
