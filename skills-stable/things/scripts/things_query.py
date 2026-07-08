@@ -10,28 +10,30 @@ from __future__ import annotations
 
 import argparse
 import json
+import sqlite3
+import sys
 from collections.abc import Callable
 from datetime import date
 from typing import Any
 
 import things
 
-COLLECTIONS: dict[str, str] = {
-    "today": "today",
-    "inbox": "inbox",
-    "anytime": "anytime",
-    "upcoming": "upcoming",
-    "someday": "someday",
-    "deadlines": "deadlines",
-    "todos": "todos",
-    "projects": "projects",
-    "areas": "areas",
-    "tags": "tags",
-    "completed": "completed",
-    "canceled": "canceled",
-    "logbook": "logbook",
-    "trash": "trash",
-}
+COLLECTIONS = (
+    "today",
+    "inbox",
+    "anytime",
+    "upcoming",
+    "someday",
+    "deadlines",
+    "todos",
+    "projects",
+    "areas",
+    "tags",
+    "completed",
+    "canceled",
+    "logbook",
+    "trash",
+)
 
 DEFAULT_FIELDS = (
     "type",
@@ -96,15 +98,10 @@ def build_kwargs(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def safe_call(func: Callable[..., Any], kwargs: dict[str, Any]) -> Any:
-    try:
-        return func(**kwargs)
-    except TypeError:
-        reduced = {
-            key: value
-            for key, value in kwargs.items()
-            if key not in {"search_query", "status", "last", "include_items"}
-        }
-        return func(**reduced)
+    # things.py is pinned (==1.0.1), so the kwargs are known-good; call directly.
+    # Do not strip filters on TypeError — silently dropping search_query/status
+    # would return the wrong result set (e.g. all todos instead of the matches).
+    return func(**kwargs)
 
 
 def sanitize_item(item: Any, args: argparse.Namespace) -> Any:
@@ -166,8 +163,16 @@ def format_markdown(payload: dict[str, Any]) -> str:
 def main() -> None:
     args = parse_args()
     kwargs = build_kwargs(args)
-    func = getattr(things, COLLECTIONS[args.collection])
-    result = safe_call(func, kwargs)
+    func = getattr(things, args.collection)
+    try:
+        result = safe_call(func, kwargs)
+    except (OSError, sqlite3.Error) as exc:
+        print(f"things-query: cannot read the Things database: {exc}", file=sys.stderr)
+        print(
+            "check that Things is installed and this process has Full Disk Access",
+            file=sys.stderr,
+        )
+        raise SystemExit(1) from exc
 
     if args.count_only:
         count = result if isinstance(result, int) else len(result if isinstance(result, list) else [result])
