@@ -95,3 +95,5 @@ After a skillshare version upgrade or `skillshare update`, directory names may c
 ## Running skillshare
 
 Use supported non-interactive flags such as `--force`, `--yes`, `--no-tui`, explicit selectors, and `--json`; do not start prompt-only workflows. Always run `skillshare sync --all` after any mutation (`install`, `uninstall`, `update`, `collect`, `target`, or extras edits). Use `--json` when you need to parse output.
+
+Sync targets such as `~/.claude/skills` are skillshare projections. Never point a third-party skill installer (for example `npx skills add ... -g`) at a target directory; anything written there directly is untracked shadow state that no audit or prune sees. When a vendor CLI embeds its own skills, prefer a thin first-party router skill that reads them at runtime over installing copies into a source repository.
