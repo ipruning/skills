@@ -10,6 +10,6 @@
 
 权限：服务端通过 `ctx.auth.getUserIdentity()` 推导内部 user。用户只能读写自己的 projects 和 notes。
 
-UI：Kumo 组件加 `lucide-react` 图标。按钮、输入框、列表、空状态保持一套视觉体系。桌面和移动端都可用。空状态引导创建第一个 project 或 note。层级靠间距和字号表达。避免卡片套卡片、badge 堆砌。note 列表默认只读，点击才进入编辑态。
+UI：`packages/ui` 的 shadcn + Base UI 组件加 `lucide-react` 图标。按钮、输入框、列表、空状态保持一套视觉体系。桌面和移动端都可用。空状态引导创建第一个 project 或 note。层级靠间距和字号表达。避免卡片套卡片、badge 堆砌。note 列表默认只读，点击才进入编辑态。只有用户明确要 Cloudflare 风格时才改用 Kumo。
 
 完成后用浏览器走 E2E 通道确认创建、编辑、archive、切换显示流程。控制台没有 app error 或 warning。再跑 `pnpm run check`，简述改了哪些关键文件。
