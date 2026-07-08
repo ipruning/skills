@@ -46,6 +46,16 @@ HARDENING_DIRECTIVES = (
     "PrivateTmp",
 )
 
+# Snell v5 UDP crash fingerprint. The per-needle counters and the
+# since-current-MainPID marker check both derive from this table.
+CRASH_NEEDLE_COUNTERS = {
+    "uv_close": "uv_close_assert_count",
+    "signal 6": "signal6_count",
+    "Main process exited": "systemd_main_exited_count",
+    "Failed with result": "systemd_failed_result_count",
+}
+CRASH_NEEDLES = ("UDP socket send error", *CRASH_NEEDLE_COUNTERS)
+
 
 class CliError(Exception):
     def __init__(self, message: str, exit_code: int = 2) -> None:
@@ -73,15 +83,6 @@ def eprint(message: str) -> None:
 
 def print_json(data: dict[str, Any]) -> None:
     print(json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(",", ":")))
-
-
-def read_json(path: Path) -> dict[str, Any]:
-    try:
-        return json.loads(path.read_text())
-    except FileNotFoundError as exc:
-        raise CliError(f"missing file: {path}") from exc
-    except json.JSONDecodeError as exc:
-        raise CliError(f"invalid JSON in {path}: {exc}") from exc
 
 
 def write_json(path: Path, data: dict[str, Any]) -> None:
@@ -338,32 +339,8 @@ def snell_major_from_text(version_text: str) -> str:
     return match.group(1) if match else ""
 
 
-def parse_ip_local_port_range(value: str) -> tuple[int, int] | None:
-    parts = value.split()
-    if len(parts) != 2:
-        return None
-    start = int_value(parts[0], -1)
-    end = int_value(parts[1], -1)
-    if start < 0 or end < 0:
-        return None
-    return start, end
-
-
-def port_is_reserved(port: int, reserved: str) -> bool:
-    for item in csv_values(reserved):
-        if "-" in item:
-            start_text, end_text = item.split("-", 1)
-            start = int_value(start_text, -1)
-            end = int_value(end_text, -1)
-            if start <= port <= end:
-                return True
-        elif int_value(item, -1) == port:
-            return True
-    return False
-
-
 def parse_journal_counts(journal_text: str, current_main_pid: str) -> dict[str, Any]:
-    counts = {
+    counts: dict[str, Any] = {
         "udp_invalid_argument_count": 0,
         "uv_close_assert_count": 0,
         "signal6_count": 0,
@@ -374,23 +351,14 @@ def parse_journal_counts(journal_text: str, current_main_pid: str) -> dict[str, 
         "last_udp_crash_at": "",
     }
     top_decryption: dict[str, int] = {}
-    crash_needles = ("UDP socket send error", "uv_close", "signal 6", "Main process exited", "Failed with result")
     for line in journal_text.splitlines():
         if "UDP socket send error" in line and "invalid argument" in line.lower():
             counts["udp_invalid_argument_count"] += 1
             counts["last_udp_crash_at"] = line[:80]
-        if "uv_close" in line:
-            counts["uv_close_assert_count"] += 1
-            counts["last_udp_crash_at"] = line[:80]
-        if "signal 6" in line:
-            counts["signal6_count"] += 1
-            counts["last_udp_crash_at"] = line[:80]
-        if "Main process exited" in line:
-            counts["systemd_main_exited_count"] += 1
-            counts["last_udp_crash_at"] = line[:80]
-        if "Failed with result" in line:
-            counts["systemd_failed_result_count"] += 1
-            counts["last_udp_crash_at"] = line[:80]
+        for needle, counter in CRASH_NEEDLE_COUNTERS.items():
+            if needle in line:
+                counts[counter] += 1
+                counts["last_udp_crash_at"] = line[:80]
         if "Decryption failed" in line:
             counts["decryption_failed_count"] += 1
             token = line.rsplit(maxsplit=1)[-1] if line.split() else "-"
@@ -399,7 +367,7 @@ def parse_journal_counts(journal_text: str, current_main_pid: str) -> dict[str, 
             current_main_pid
             and current_main_pid != "0"
             and f"[{current_main_pid}]" in line
-            and any(needle in line for needle in crash_needles)
+            and any(needle in line for needle in CRASH_NEEDLES)
         ):
             counts["markers_since_current_mainpid"] += 1
     if top_decryption:
@@ -511,13 +479,16 @@ def finding(
 
 
 def build_findings(facts: dict[str, Any]) -> list[dict[str, Any]]:
+    """Report structural problems only: crash fingerprints, exposure, hardening, availability.
+
+    Performance and capacity tuning (sysctl, conntrack, swap, LimitNOFILE,
+    MaxAuthTries, decryption noise) stays out of findings; the reader judges
+    those from ``facts``.
+    """
     findings: list[dict[str, Any]] = []
     snell = facts["snell"]
     systemd = facts["systemd"]
-    ssh = facts["ssh"]
     firewall = facts["firewall"]
-    sysctl = facts["sysctl"]
-    swap = facts["swap"]
     logs = facts["logs"]
     port = int(snell["port"])
     major = str(snell["major"])
@@ -626,119 +597,6 @@ def build_findings(facts: dict[str, Any]) -> list[dict[str, Any]]:
                 severity,
                 [f"directives={','.join(systemd['hardening_directives']) or systemd['hardening_mentions']}"],
                 "read systemctl cat output and decide manually; the tool must not remove drop-ins automatically",
-            )
-        )
-    if systemd["limit_nofile"] and systemd["limit_nofile"] < 131072:
-        findings.append(
-            finding(
-                "systemd.limit_nofile_low",
-                "medium",
-                [f"LimitNOFILE={systemd['limit_nofile']}"],
-                "consider a manual systemd override with LimitNOFILE=131072 or higher",
-            )
-        )
-
-    if ssh["max_auth_tries"] and ssh["max_auth_tries"] < 10:
-        findings.append(
-            finding(
-                "ssh.max_auth_tries_may_block_multi_key_agent",
-                "low",
-                [f"MaxAuthTries={ssh['max_auth_tries']}"],
-                (
-                    "if multi-key SSH agent retries are failing, raise MaxAuthTries "
-                    "according to operator policy after keeping a live session open"
-                ),
-            )
-        )
-
-    if sysctl["tcp_congestion_control"] and sysctl["tcp_congestion_control"] != "bbr":
-        findings.append(
-            finding(
-                "sysctl.bbr_not_enabled",
-                "low",
-                [f"tcp_congestion_control={sysctl['tcp_congestion_control']}"],
-                "for proxy/VPN performance work, consider BBR only after confirming kernel support",
-            )
-        )
-    if sysctl["default_qdisc"] and sysctl["default_qdisc"] != "fq":
-        findings.append(
-            finding(
-                "sysctl.fq_not_default_qdisc",
-                "low",
-                [f"default_qdisc={sysctl['default_qdisc']}"],
-                "for BBR pacing workloads, consider fq as a conditional proxy/VPN tuning",
-            )
-        )
-    if 0 < sysctl["somaxconn"] < 8192:
-        findings.append(
-            finding(
-                "sysctl.somaxconn_below_proxy_baseline",
-                "low",
-                [f"somaxconn={sysctl['somaxconn']}"],
-                "if bursty inbound connections are expected, consider somaxconn=8192",
-            )
-        )
-    if 0 < sysctl["tcp_max_syn_backlog"] < 8192:
-        findings.append(
-            finding(
-                "sysctl.tcp_max_syn_backlog_below_proxy_baseline",
-                "medium",
-                [f"tcp_max_syn_backlog={sysctl['tcp_max_syn_backlog']}"],
-                "if scans or burst connects are visible, consider tcp_max_syn_backlog=8192",
-            )
-        )
-    port_range = parse_ip_local_port_range(sysctl["ip_local_port_range"])
-    if port_range:
-        start, end = port_range
-        if end - start + 1 < 50000:
-            findings.append(
-                finding(
-                    "sysctl.ephemeral_port_range_narrow",
-                    "low",
-                    [f"ip_local_port_range={start} {end}"],
-                    "for many short outbound connections, consider a wider range such as 10000 65001 or the fleet baseline",
-                )
-            )
-        if start <= port <= end and not port_is_reserved(port, sysctl["ip_local_reserved_ports"]):
-            findings.append(
-                finding(
-                    "sysctl.snell_port_not_reserved",
-                    "low",
-                    [f"port={port}", f"ip_local_reserved_ports={sysctl['ip_local_reserved_ports'] or '<empty>'}"],
-                    "if widening ephemeral ports, reserve the Snell listen port in ip_local_reserved_ports",
-                )
-            )
-    conntrack_count = sysctl["nf_conntrack_count"]
-    conntrack_max = sysctl["nf_conntrack_max"]
-    if conntrack_count >= 0 and conntrack_max > 0 and conntrack_count / conntrack_max >= 0.8:
-        findings.append(
-            finding(
-                "conntrack.high_utilization",
-                "medium",
-                [f"nf_conntrack_count={conntrack_count}", f"nf_conntrack_max={conntrack_max}"],
-                "inspect Docker/NAT/stateful firewall use before changing conntrack limits",
-            )
-        )
-
-    if swap["mem_total_kib"] and swap["mem_total_kib"] <= 1572864 and swap["swap_total_kib"] == 0:
-        findings.append(
-            finding(
-                "swap.missing_on_small_vps",
-                "low",
-                [f"mem_total_kib={swap['mem_total_kib']}", "swap_total_kib=0"],
-                "consider swap or zram as an OOM cushion; this is stability insurance, not a throughput tuning",
-            )
-        )
-    if logs["decryption_failed_count"] > 0:
-        findings.append(
-            finding(
-                "logs.decryption_failed_seen",
-                "low",
-                [
-                    f"decryption_failed_count={logs['decryption_failed_count']}",
-                    f"top_decryption={logs['top_decryption']}",
-                ],
-                "treat as scanner, stale client, or wrong PSK noise unless paired with load or crashes",
             )
         )
     return findings
@@ -962,34 +820,6 @@ def command_audit_fleet(args: argparse.Namespace) -> int:
     return exit_code
 
 
-def command_render_repair_plan(args: argparse.Namespace) -> int:
-    audit = read_json(args.audit.expanduser())
-    manual_actions = []
-    for item in audit.get("findings", []):
-        manual_actions.append(
-            {
-                "finding_id": item.get("id", ""),
-                "severity": item.get("severity", ""),
-                "evidence": item.get("evidence", []),
-                "action": item.get("suggested_action", ""),
-                "executes": False,
-                "verification": "re-run audit-snell and compare the finding state after any manual change",
-            }
-        )
-    plan = {
-        "schema_version": EVIDENCE_SCHEMA_VERSION,
-        "operation": "render-repair-plan",
-        "target": audit.get("target", ""),
-        "source_audit": str(args.audit.expanduser()),
-        "status": "ok",
-        "executes_remote_changes": False,
-        "manual_actions": manual_actions,
-        "persistent_effects": [],
-    }
-    print_json(plan)
-    return 0
-
-
 def resolve_surge_cli(configured: str) -> str:
     if configured:
         path = Path(configured).expanduser()
@@ -1148,10 +978,6 @@ def build_parser() -> argparse.ArgumentParser:
     fleet.add_argument("--hosts", type=Path, required=True, help="file with one SSH target per line")
     add_audit_common_args(fleet)
     fleet.set_defaults(func=command_audit_fleet)
-
-    repair = subparsers.add_parser("render-repair-plan", help="render manual actions from an audit JSON")
-    repair.add_argument("--audit", type=Path, required=True)
-    repair.set_defaults(func=command_render_repair_plan)
 
     smoke = subparsers.add_parser("smoke-surge", help="local Surge policy smoke checks; does not touch VPSes")
     smoke.add_argument("--policy", required=True)

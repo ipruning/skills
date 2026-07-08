@@ -88,13 +88,6 @@ uv run --script "$SKILL_DIR/scripts/snell_audit.py" audit-fleet \
   --out /tmp/surge-snell-runs
 ```
 
-Render a manual action plan:
-
-```bash
-uv run --script "$SKILL_DIR/scripts/snell_audit.py" render-repair-plan \
-  --audit /tmp/surge-snell-runs/<run_id>/audit.json
-```
-
 `audit-snell` exits non-zero only when SSH, upload, remote execution, or
 collection failed. A completed audit with `status=issue` exits zero unless
 `--fail-on-issue` is set.
@@ -127,8 +120,9 @@ journalctl -u snell-server --since <window> -o short-iso --no-pager
 journalctl --disk-usage
 ```
 
-It also counts readable `/root/.ssh/authorized_keys` entries and reads the Snell
-config path found from `ExecStart -c`.
+It also counts readable `/root/.ssh/authorized_keys` entries, reads the Snell
+config path found from `ExecStart -c`, and reads `/proc/meminfo`, `/etc/fstab`,
+and `/etc/os-release` for the memory, swap, and OS facts.
 
 Always inspect `systemctl cat`. Drop-ins can keep hardening active even when
 the main service file looks clean.
@@ -236,8 +230,10 @@ listener shape, such as both TCP and UDP on the configured Snell port.
 
 For ordinary Snell v6, expect TCP unless the user gives a UDP reason.
 
-If `recommended_manual_actions` is non-empty and a manual action plan is needed,
-read [Snell Operator Action Patterns](snell-operator-action-patterns.md). Do not
+If `recommended_manual_actions` is non-empty, or your reading of `facts` calls
+for a tuning change, read
+[Snell Operator Action Patterns](snell-operator-action-patterns.md) before
+writing the plan. Do not
 treat the baseline as a mandate to rewrite an app or container host. If Docker,
 x-ui, nginx-proxy-manager, web ports, or dashboards are real workloads, preserve
 them and judge Snell separately.
@@ -267,7 +263,7 @@ Start with `audit.json`:
 - `evidence_paths`: local files to inspect
 - `recommended_manual_actions`: actions to consider, not commands to run
 
-Common finding id families:
+Finding ids:
 
 - `snell.service_inactive`
 - `snell.service_not_running`
@@ -278,15 +274,21 @@ Common finding id families:
 - `snell.v6.udp_firewall_exposed`
 - `snell.v6.legacy_config_keys`
 - `systemd.hardening_present`
-- `sysctl.*`
-- `conntrack.*`
-- `swap.*`
-- `logs.decryption_failed_seen`
 - `transport.audit_failed`
 
-`Decryption failed` is not automatically a server failure. It can be scanner
-traffic, a wrong PSK, a stale client, or the operator's own test. Treat it as a
-warning unless load, resource pressure, or crashes point to a real failure.
+Findings stop at structural problems: crash fingerprints, exposure, hardening,
+and availability. Performance and capacity tuning is judged from `facts` by the
+reader. `facts.sysctl`, `facts.swap`, `facts.systemd.limit_nofile`,
+`facts.ssh.max_auth_tries`, and `facts.logs` carry the measured values without
+grading them.
+
+`Decryption failed` counts appear in `facts.logs.decryption_failed_count` with
+the top source in `facts.logs.top_decryption`. All `facts.logs.*` counts come
+from a keyword-filtered journal excerpt capped at 500 lines; treat them as
+lower bounds that saturate on noisy hosts. `Decryption failed` is not
+automatically a server failure. It can be scanner traffic, a wrong PSK, a stale client, or the
+operator's own test. Treat it as noise unless load, resource pressure, or
+crashes point to a real failure.
 
 ## Audit CLI Output Contract
 

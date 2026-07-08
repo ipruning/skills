@@ -47,8 +47,7 @@ test -f /Applications/Surge.app/Contents/Resources/Skills/surge/SKILL.md
      --out /tmp/surge-snell-runs
    ```
 
-3. `audit-snell` 看打印出的 `evidence_paths.audit_json`。`audit-fleet` 读 stdout 的 `results[]`，逐台打开各自的 `audit_json`。每份审计里读 `facts`、`findings`、`evidence_paths` 和 `recommended_manual_actions`。
-4. 需要修复计划时跑 `render-repair-plan --audit <audit.json>`。它只打印 `manual_actions`，不执行任何变更。
-5. 本机 policy 烟测跑 `smoke-surge --policy <policy-name>`，不碰 VPS。顶层 `status=ok` 是全部探测通过，`warn` 是有探测不受支持。逐条看 `results[].status` 和 `results[].parsed` 再判 policy 健康。
+3. `audit-snell` 看打印出的 `evidence_paths.audit_json`。`audit-fleet` 读 stdout 的 `results[]`，逐台打开各自的 `audit_json`。每份审计里读 `facts`、`findings`、`evidence_paths` 和 `recommended_manual_actions`。`findings` 只报结构性问题：crash fingerprint、暴露面、hardening 与可用性。性能与容量调优（sysctl、conntrack、swap、LimitNOFILE、MaxAuthTries、解密噪声）不出 finding，由你读 `facts` 现场判断。修复计划直接从 `facts` 和 `findings` 写给操作员，交给 linux-server skill 执行。
+4. 本机 policy 烟测跑 `smoke-surge --policy <policy-name>`，不碰 VPS。顶层 `status=ok` 是全部探测通过，`warn` 是有探测不受支持。逐条看 `results[].status` 和 `results[].parsed` 再判 policy 健康。
 
 端点 IP、PSK、profile 名和清单留在用户任务或私有配置里。审计输出不保证脱敏，redaction guard 没检查过运行目录之前不要当它已脱敏。Snell v6 部署或迁移请求先审计再写 canary 计划，操作员改完之后重跑 `audit-snell` 和 `smoke-surge` 验证。

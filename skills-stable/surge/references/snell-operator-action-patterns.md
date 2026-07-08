@@ -1,8 +1,9 @@
 # Snell Operator Action Patterns
 
-Use these patterns only after an audit finding includes a
-`recommended_manual_actions` item that needs a human change plan. They are
-examples for the human operator; do not apply them during diagnosis.
+Use these patterns only when the audit evidence calls for a human change plan:
+an item in the audit's `recommended_manual_actions` array, or a tuning judgment
+you made from `facts`. They are examples for the human operator;
+do not apply them during diagnosis.
 
 ## Proxy Sysctl Baseline
 
