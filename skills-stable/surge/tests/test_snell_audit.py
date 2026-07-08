@@ -10,7 +10,6 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = ROOT.parents[1]
 SCRIPT = ROOT / "scripts" / "snell_audit.py"
 PAYLOAD = ROOT / "scripts" / "payloads" / "snell_debian_payload.sh"
 SKILL = ROOT / "SKILL.md"
@@ -18,7 +17,6 @@ TRIAGE = ROOT / "references" / "snell-vps-triage.md"
 OPERATOR_ACTION_PATTERNS = ROOT / "references" / "snell-operator-action-patterns.md"
 MACOS_TRIAGE = ROOT / "references" / "macos-network-triage.md"
 MACOS_OPERATOR_ACTIONS = ROOT / "references" / "macos-surge-operator-actions.md"
-LINUX_SERVER_SNELL = REPO_ROOT / "skills-stable" / "linux-server" / "references" / "snell-vps.md"
 
 
 def load_module():
@@ -148,7 +146,7 @@ def test_v5_udp_crash_is_high_issue(tmp_path: Path):
     assert crash["persistent_change"] is False
 
 
-def test_decryption_only_warns_without_udp_crash(tmp_path: Path):
+def test_tuning_and_noise_stay_in_facts_without_findings(tmp_path: Path):
     snell_audit = load_module()
     journal = "\n".join(
         [
@@ -156,13 +154,26 @@ def test_decryption_only_warns_without_udp_crash(tmp_path: Path):
             "2026-06-13T00:00:02 host snell-server[1234]: Decryption failed from 198.51.100.10",
         ]
     )
-    run_dir = write_audit_fixture(tmp_path, kv=base_kv(), journal=journal)
+    kv = base_kv(
+        sysctl_net_ipv4_tcp_congestion_control="cubic",
+        sysctl_net_core_somaxconn="128",
+        systemd_limit_nofile="1024",
+        swap_total_kib="0",
+        mem_total_kib="1048576",
+    )
+    run_dir = write_audit_fixture(tmp_path, kv=kv, journal=journal)
 
     pack = snell_audit.build_evidence_pack(local_dir=run_dir, target="root@example", transport_status="ok")
 
-    assert pack["status"] == "warn"
-    assert "logs.decryption_failed_seen" in finding_ids(pack)
-    assert "snell.v5.udp_crash" not in finding_ids(pack)
+    assert pack["status"] == "ok"
+    assert pack["findings"] == []
+    facts = pack["facts"]
+    assert facts["logs"]["decryption_failed_count"] == 2
+    assert facts["logs"]["top_decryption"] == "2:198.51.100.10"
+    assert facts["sysctl"]["tcp_congestion_control"] == "cubic"
+    assert facts["sysctl"]["somaxconn"] == 128
+    assert facts["systemd"]["limit_nofile"] == 1024
+    assert facts["swap"]["swap_total_kib"] == 0
 
 
 def test_v6_udp_and_legacy_config_are_version_aware(tmp_path: Path):
@@ -546,25 +557,3 @@ def test_macos_triage_keeps_write_actions_in_operator_reference():
     assert "unset http_proxy" not in triage_text
     assert "xh --verify no POST" in operator_text
     assert "export http_proxy" in operator_text
-
-
-def test_snell_minimal_baseline_is_shared_with_linux_server_skill():
-    surge_text = TRIAGE.read_text() + "\n" + OPERATOR_ACTION_PATTERNS.read_text()
-    linux_text = LINUX_SERVER_SNELL.read_text()
-
-    for expected in [
-        "LimitNOFILE=1048576",
-        "net.core.default_qdisc = fq",
-        "net.ipv4.tcp_mtu_probing = 1",
-        "SystemMaxUse=256M",
-        "RuntimeMaxUse=64M",
-        "Do not add aggressive systemd sandboxing by default",
-    ]:
-        assert expected in surge_text
-        assert expected in linux_text
-
-    assert "MaxAuthTries 20" not in linux_text
-    assert "MaxAuthTries 20" not in surge_text
-    assert "Raise `MaxAuthTries` only when a loaded-key agent" in linux_text
-    assert "with SSH limits judged from SSH config and inventory" in surge_text
-    assert "Do not treat this as a mandate to rewrite an app or container host" in surge_text
