@@ -1,13 +1,13 @@
 ---
 name: surge
-description: "macOS network triage when Surge is installed, active, or plausibly in the network path: Surge CLI, profile syntax, Enhanced Mode / System Proxy / DNS failures, Tailscale coexistence, and read-only Snell VPS evidence audits with repair plans. Read-only: it never applies local network or server changes. Server-side execution belongs to linux-server; REALITY+HY2 deployment belongs to sing-box-reality-hy2."
+description: "macOS network triage when Surge is installed, active, or plausibly in the network path: Surge CLI, profile syntax, Enhanced Mode / System Proxy / DNS failures, Tailscale coexistence, and Snell VPS evidence audits with repair plans. It never changes local network settings or server configuration, but the VPS audit does create and delete a temporary evidence directory over SSH. Server-side execution belongs to linux-server; REALITY+HY2 deployment belongs to sing-box-reality-hy2."
 metadata:
   version: "2"
 ---
 
 # Surge
 
-macOS 网络问题的分诊台。先识别请求类型，再读 reference 或跑命令：Surge CLI 问题、本机 triage、policy 烟测、Snell VPS 审计、Snell v6 canary 规划。只读，只产出证据和手动计划，不执行本机网络切换，也不执行服务器变更。
+macOS 网络问题的分诊台。先识别请求类型，再读 reference 或跑命令：Surge CLI 问题、本机 triage、policy 烟测、Snell VPS 审计、Snell v6 canary 规划。只产出证据和手动计划，不切换本机网络，也不改服务器配置；但 VPS 审计会在服务器上建一个临时证据目录、跑只读采集、再删掉它（`--dry-run` 可先看它要跑哪些命令而不连接）。
 
 ## Surge CLI
 

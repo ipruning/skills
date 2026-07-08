@@ -810,6 +810,27 @@ def build_evidence_pack(
     return pack
 
 
+def audit_plan(args: argparse.Namespace, host: str) -> dict[str, Any]:
+    host = validate_host(host)
+    remote_dir = f"{args.remote_base.rstrip('/')}/<run-id>"
+    ssh_opts = ssh_options(args.ssh_option)
+    return {
+        "operation": "audit-snell",
+        "dry_run": True,
+        "target": host,
+        "port": args.port,
+        "local_out": str(args.out.expanduser()),
+        "server_writes": f"creates and removes a temporary evidence dir under {args.remote_base}",
+        "commands": [
+            " ".join(["ssh", *ssh_opts, host, f"mkdir -m 700 -p {remote_dir}"]),
+            " ".join(["scp", "-r", *ssh_opts, "<local-run>/.", f"{host}:{remote_dir}/"]),
+            " ".join(["ssh", *ssh_opts, host, "bash payloads/snell_debian_payload.sh (read-only collection)"]),
+            " ".join(["scp", "-r", *ssh_opts, f"{host}:{remote_dir}/.", "<local-run>/"]),
+            " ".join(["ssh", *ssh_opts, host, f"rm -rf -- {remote_dir}"]),
+        ],
+    }
+
+
 def run_audit_for_host(args: argparse.Namespace, host: str) -> tuple[dict[str, Any], int]:
     validate_port(args.port)
     host = validate_host(host)
@@ -864,6 +885,10 @@ def run_audit_for_host(args: argparse.Namespace, host: str) -> tuple[dict[str, A
 
 
 def command_audit_snell(args: argparse.Namespace) -> int:
+    if getattr(args, "dry_run", False):
+        validate_port(args.port)
+        print_json(audit_plan(args, args.host))
+        return 0
     pack, exit_code = run_audit_for_host(args, args.host)
     print_json(pack)
     return exit_code
@@ -883,6 +908,10 @@ def read_hosts_file(path: Path) -> list[str]:
 
 def command_audit_fleet(args: argparse.Namespace) -> int:
     hosts = read_hosts_file(args.hosts.expanduser())
+    if getattr(args, "dry_run", False):
+        validate_port(args.port)
+        print_json({"operation": "audit-fleet", "dry_run": True, "hosts": [audit_plan(args, h) for h in hosts]})
+        return 0
     results: list[dict[str, Any]] = []
     exit_code = 0
     for host in hosts:
@@ -1081,15 +1110,26 @@ def command_smoke_surge(args: argparse.Namespace) -> int:
 
 
 def add_audit_common_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--port", type=int, default=DEFAULT_PORT)
-    parser.add_argument("--journal-since", default=DEFAULT_JOURNAL_SINCE)
-    parser.add_argument("--out", type=Path, default=DEFAULT_LOCAL_ROOT)
-    parser.add_argument("--run-id")
-    parser.add_argument("--remote-base", default=DEFAULT_REMOTE_BASE)
-    parser.add_argument("--overwrite", action="store_true")
-    parser.add_argument("--timeout", type=int, default=900)
-    parser.add_argument("--ssh-option", action="append", default=[])
-    parser.add_argument("--fail-on-issue", action="store_true")
+    parser.add_argument("--port", type=int, default=DEFAULT_PORT, help=f"Snell port to probe (default {DEFAULT_PORT})")
+    parser.add_argument(
+        "--journal-since", default=DEFAULT_JOURNAL_SINCE, help="journalctl --since window for the remote log scan"
+    )
+    parser.add_argument("--out", type=Path, default=DEFAULT_LOCAL_ROOT, help="local directory for evidence run dirs")
+    parser.add_argument("--run-id", help="fixed run id instead of a generated one")
+    parser.add_argument(
+        "--remote-base", default=DEFAULT_REMOTE_BASE, help="parent dir on the server for the temporary evidence dir"
+    )
+    parser.add_argument("--overwrite", action="store_true", help="overwrite an existing local run dir")
+    parser.add_argument("--timeout", type=int, default=900, help="per-SSH-step timeout in seconds (default 900)")
+    parser.add_argument("--ssh-option", action="append", default=[], help="extra ssh -o option, repeatable")
+    parser.add_argument(
+        "--fail-on-issue", action="store_true", help="exit 1 when findings report an issue (for CI gating)"
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="print the plan (host, remote dir, ssh/scp/rm commands) and exit without connecting",
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
