@@ -174,6 +174,7 @@ class DirectImageMetadata(WorkbenchModel):
     moderation: str | None = None
     images: list[str] | None = None
     mask: str | None = None
+    output_paths: list[str] | None = None
 
 
 class DiagnoseImageMetadata(WorkbenchModel):
@@ -294,6 +295,10 @@ def read_prompt(value: str | Path) -> str:
         path = skill_candidate if skill_candidate.exists() else work_candidate
     if path.exists():
         return path.read_text(encoding="utf-8")
+    if isinstance(value, Path):
+        # Built-in prompt templates are passed as Path; a missing one is a
+        # broken install, not literal prompt text.
+        fail(f"built-in prompt template is missing: {value}")
     return str(value)
 
 
@@ -525,17 +530,22 @@ def extract_response_images(data: dict[str, Any]) -> list[str]:
     return images
 
 
-def first_image_b64(data: dict[str, Any]) -> str:
+def write_images_api_outputs(data: dict[str, Any], output_path: Path) -> list[str]:
+    """Write every returned image; data[0] keeps output_path, the rest get -2, -3... suffixes."""
     items = data.get("data")
     if not isinstance(items, list) or not items:
         fail("Images API response did not include data[0].")
-    first = items[0]
-    if not isinstance(first, dict):
-        fail("Images API response data[0] is not an object.")
-    b64_json = first.get("b64_json")
-    if not isinstance(b64_json, str):
-        fail("Images API response did not include b64_json.")
-    return b64_json
+    written: list[str] = []
+    for index, item in enumerate(items):
+        b64_json = item.get("b64_json") if isinstance(item, dict) else None
+        if not isinstance(b64_json, str):
+            fail(f"Images API response data[{index}] did not include b64_json.")
+        target = (
+            output_path if index == 0 else output_path.with_name(f"{output_path.stem}-{index + 1}{output_path.suffix}")
+        )
+        write_b64_image(b64_json, target)
+        written.append(str(target))
+    return written
 
 
 def extract_response_text(data: dict[str, Any]) -> str:
@@ -1291,12 +1301,13 @@ def image_generate(
     )
     output_path = work_path(out)
     data = model_dict(response)
-    write_b64_image(first_image_b64(data), output_path)
+    output_paths = write_images_api_outputs(data, output_path)
     response_path = output_path.with_suffix(output_path.suffix + ".response.json")
     metadata_path = output_path.with_suffix(output_path.suffix + ".json")
     write_json(response_path, data)
     metadata = DirectImageMetadata(
         kind="image-generate",
+        output_paths=output_paths,
         output_path=str(output_path),
         metadata_path=str(metadata_path),
         response_path=str(response_path),
@@ -1407,12 +1418,13 @@ def image_edit(
             mask_file.close()
 
     data = model_dict(response)
-    write_b64_image(first_image_b64(data), output_path)
+    output_paths = write_images_api_outputs(data, output_path)
     response_path = output_path.with_suffix(output_path.suffix + ".response.json")
     metadata_path = output_path.with_suffix(output_path.suffix + ".json")
     write_json(response_path, data)
     metadata = DirectImageMetadata(
         kind="image-edit",
+        output_paths=output_paths,
         output_path=str(output_path),
         metadata_path=str(metadata_path),
         response_path=str(response_path),
@@ -1449,7 +1461,10 @@ def contact_sheet(
     pad = 18
     thumbs: list[tuple[Path, Image.Image]] = []
     for path in images:
-        loaded_image = Image.open(path).convert("RGB")
+        try:
+            loaded_image = Image.open(path).convert("RGB")
+        except OSError as exc:
+            fail(f"cannot open --image {path}: {exc}")
         height = int(loaded_image.height * thumb_width / loaded_image.width)
         thumbs.append((path, loaded_image.resize((thumb_width, height), Image.Resampling.LANCZOS)))
 
@@ -1497,7 +1512,12 @@ def chroma_alpha(
     feather: Annotated[int, typer.Option("--feather")] = 24,
     json_output: Annotated[bool, typer.Option("--json", help="Print result metadata as JSON")] = False,
 ) -> None:
-    src = Image.open(work_path(image)).convert("RGBA")
+    if not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
+        fail(f"--color must be #rrggbb, got: {color}")
+    try:
+        src = Image.open(work_path(image)).convert("RGBA")
+    except OSError as exc:
+        fail(f"cannot open --image {image}: {exc}")
     target = tuple(int(color[index : index + 2], 16) for index in (1, 3, 5))
     source = src.tobytes()
     output = bytearray()
