@@ -285,6 +285,61 @@ class LarkMeetingSttTests(unittest.TestCase):
                 patch_module_attr("require_commands", original_require_commands)
                 patch_module_attr("run_json", original_run_json)
 
+    def test_pull_rerun_preserves_edited_selected_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            (base / "minutes-found.json").write_text(
+                json.dumps(
+                    {
+                        "minutes": [
+                            {"minute_token": "obc1", "title": "会议一"},
+                            {"minute_token": "obc2", "title": "会议二"},
+                        ]
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+
+            def fake_run_json(cmd, *, cwd, log, require_ok=True):
+                output_dir = cmd[cmd.index("--output-dir") + 1]
+                notes = []
+                for token in ("obc1", "obc2"):
+                    transcript = Path(cwd) / output_dir / f"{token}.txt"
+                    transcript.parent.mkdir(parents=True, exist_ok=True)
+                    transcript.write_text("说话人 00:00\n内容", encoding="utf-8")
+                    notes.append(
+                        {
+                            "minute_token": token,
+                            "title": "会议",
+                            "artifacts": {"transcript_file": str(transcript.relative_to(cwd))},
+                        }
+                    )
+                return {"ok": True, "data": {"notes": notes}}
+
+            original_require_commands = mod.require_commands
+            original_run_json = mod.run_json
+            patch_module_attr("require_commands", lambda command_names: None)
+            patch_module_attr("run_json", fake_run_json)
+            try:
+                with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    self.assertEqual(mod.pull_minutes(mod.PullOptions(run=base, format=mod.OutputFormat.json)), 0)
+                selected = base / "selected.txt"
+                self.assertEqual(selected.read_text(encoding="utf-8"), "obc1\nobc2\n")
+                selected.write_text("obc1\n", encoding="utf-8")
+                with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    self.assertEqual(mod.pull_minutes(mod.PullOptions(run=base, format=mod.OutputFormat.json)), 0)
+                self.assertEqual(selected.read_text(encoding="utf-8"), "obc1\n")
+                self.assertEqual(
+                    (base / "selected.txt.new").read_text(encoding="utf-8"),
+                    "obc1\nobc2\n",
+                )
+                pulled = json.loads((base / "pulled.json").read_text(encoding="utf-8"))
+                self.assertTrue(pulled["selected_preserved"])
+            finally:
+                patch_module_attr("require_commands", original_require_commands)
+                patch_module_attr("run_json", original_run_json)
+
     def test_run_command_nonzero_return_keeps_single_json_report(self) -> None:
         output = io.StringIO()
 

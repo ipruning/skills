@@ -815,6 +815,16 @@ def pull_minutes(options: PullOptions) -> int:
     if pull_output_root.exists():
         shutil.rmtree(pull_output_root)
 
+    selected_path = base / SELECTED
+    selected_content = "".join(f"{item['minute_token']}\n" for item in successes)
+    # A previous pull may have written selected.txt and the model may have
+    # edited it to skip duplicates; a re-run must not clobber those edits.
+    selected_preserved = selected_path.exists() and selected_path.read_text(encoding="utf-8") != selected_content
+    if selected_preserved:
+        write_text(base / f"{SELECTED}.new", selected_content)
+    else:
+        write_text(selected_path, selected_content)
+
     report = {
         "ok": not failures,
         "counts": {
@@ -822,13 +832,13 @@ def pull_minutes(options: PullOptions) -> int:
             "pulled": len(successes),
             "failed": len(failures),
         },
+        "selected_preserved": selected_preserved,
         "pulled": successes,
         "failed": failures,
     }
     write_json(base / "pulled.json", report)
     pulled_md = pulled_markdown(report)
     write_text(base / "pulled.md", pulled_md)
-    write_text(base / SELECTED, "".join(f"{item['minute_token']}\n" for item in successes))
     emit(report, fmt=options.format, md=pulled_md)
     return 1 if failures else 0
 
@@ -841,6 +851,10 @@ def pulled_markdown(report: dict[str, Any]) -> str:
         f"- 已选妙记：{counts.get('selected', 0)}",
         f"- 成功拉取：{counts.get('pulled', 0)}",
         f"- 拉取失败：{counts.get('failed', 0)}",
+    ]
+    if report.get("selected_preserved"):
+        lines.append(f"- `{SELECTED}` 带有先前的编辑，已保留原样；本次全量清单写在 `{SELECTED}.new`。")
+    lines += [
         "",
         "## 成功",
         "",

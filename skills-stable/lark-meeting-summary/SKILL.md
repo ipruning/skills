@@ -19,7 +19,7 @@ run 根下你要读或改的文件：
 
 - `coverage.md` 给登录用户、日期范围、各源计数、日历和 VC 覆盖证据。`pull` 前必读，它告诉你可能漏了哪些会。
 - `duplicates.md` 和 `duplicates.json` 是重复证据，脚本从不在这里改选择。
-- `selected.txt` 由 `pull` 写出全部成功拉取的 token，`prompts` 读取。唯一的编辑点：读完 dedup 证据后编辑它，跳掉重复。
+- `selected.txt` 由 `pull` 写出全部成功拉取的 token，`prompts` 读取。唯一的编辑点：读完 dedup 证据后编辑它，跳掉重复。重跑 `pull` 不会覆写编辑过的 `selected.txt`，新的全量清单落在 `selected.txt.new`。
 - `minutes-found.json`、`pulled.md`、`prompt-index.json` 分别是找到的全部 token、导出结果、当前 prompt 列表。
 
 跳过一个会靠从 `selected.txt` 删对应 token，不要删 `minutes/<token>/transcript.txt`。
