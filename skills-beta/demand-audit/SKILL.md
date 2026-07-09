@@ -1,8 +1,8 @@
 ---
 name: demand-audit
-description: Audit product ideas, feature requests, startup directions, MVPs, and demand claims for real user demand, adoption risk, evidence quality, delivery feasibility, and concrete validation steps.
+description: Audit product ideas, feature requests, startup directions, MVPs, and demand claims for real user demand, adoption risk, evidence quality, delivery feasibility, and concrete validation steps, including designing non-leading user interviews. Delivers a go/no-go verdict, not a cited research report. Not for stress-testing how to execute a plan the user has already committed to.
 metadata:
-  version: "2"
+  version: "3"
 ---
 
 # Demand Audit
@@ -11,7 +11,7 @@ metadata:
 
 ## AI 的边界
 
-你能从商业模式、用户行为、市场案例和类比推理，但不能亲自验证真实行为，问不了真实用户「上次这事发生是什么时候」。所以始终把两类分开：**AI 推断**是模型先验、类比、角色模拟、未验证的假设。**现实证据**是用户给的事实、观察到的行为、现有 workaround、一手公开数据、竞品使用、评价、付费、留存、时长。结论一旦依赖未知的真实行为，直说光靠推理还不可知。
+你能从商业模式、用户行为、市场案例和类比推理，但不能亲自验证真实行为，问不了真实用户「上次这事发生是什么时候」。所以始终把两类分开：**AI 推断**是模型先验、类比、角色模拟、未验证的假设。**现实证据**是用户给的事实、观察到的行为、现有 workaround、一手公开事实、竞品使用、评价、付费、留存、时长。结论一旦依赖未知的真实行为，直说光靠推理还不可知。用户能当场回答的行为回溯问题先问再判：他自己有没有 workaround、有没有为此花过钱、上次发生是什么时候。给 kill 或假需求的结论之前，这些问题必须先问掉。
 
 ## 先把需求拆三层
 
@@ -33,30 +33,30 @@ metadata:
 - 把产品放进用户真实的一天。每个具体时刻它是帮助、打扰、复杂、焦虑还是无关，数一数价值时刻和摩擦时刻。抽象价值敌不过具体摩擦。
 - 最小充分版本有多小。真需要实时，还是每小时、每天、按事件更新就够。真需要全覆盖，还是头部源就够。真需要一套系统，还是表格、bot、人工代办就够。最小充分版本远小于提议时，差异化多半是过度建构。
 - 用户拿它跟什么比。竞品不只是同类产品，还包括「什么都不做」「将就」「固定渠道」「表格」「朋友」「人工」，一切在抢同一份时间、注意力、信任或钱的东西。
-- 深度乘广度。深度是痛、频率、紧迫、不解决的损失、付费意愿、改习惯的意愿。广度是用户数、场景、频次、可重复性、分发潜力。
-- 竞品信号。竞品好，需求可能被验证，但你的差异化要真。竞品差，分清是执行失败还是需求本身弱。别既拿竞品存在证明需求、又拿竞品失败证明你的机会，挑一个站得住的解释。
+- 需求强度按深度乘广度衡量。深度是痛、紧迫、不解决的损失、付费意愿、改习惯的意愿。广度是用户数、场景、频次、可重复性、分发潜力。两侧各下一个判断并各给一条证据：深还是浅，宽还是窄。
+- 竞品信号要挑一个站得住的解释。竞品好，需求可能被验证，但你的差异化要真。竞品差，分清是执行失败还是需求本身弱。别既拿竞品存在证明需求、又拿竞品失败证明你的机会。
 
-**交付真伪**回到现实，问价值能不能可靠交付。数据、渠道、分发、合规、维护、供给侧激励会不会吃掉价值。用户感知的收益是否大于不准、延迟、学习、信任、配置带来的新摩擦。很多机会死在这里：需求是真的，但产品无法在可接受成本下可靠交付足够价值。
+**交付真伪**回到现实，问价值能不能可靠交付。数据、渠道、分发、合规、维护、供给侧激励会不会吃掉价值。用户感知的收益是否大于不准、延迟、学习、信任、配置带来的新摩擦。
 
 ## 按赌注定深浅
 
-赌注和不确定性决定要不要开 sub-agent 对抗。角色的详细职责和必填输出在 `references/audit-protocol.md`。
+赌注决定档位。消息里读不出赌注就默认 Standard，用户明说随便看看、或想法显然是一个下午就能试错的低成本实验才降到 Light。给 kill 级结论之前赌注仍不明，先问一句用户打算投入什么。用户只要访谈设计时不走档位，直接用访谈问题库出问题稿。角色职责、必填输出、合成顺序、访谈问题库和高危信号都在 `references/audit-protocol.md`。
 
-- **Light**：用户只要粗判断、或只要访谈设计、试错成本低。不开 sub-agent，顺序过 Bull、Bear、User Reality、Audit，标注这是单 agent 顺序模拟。
-- **Standard**：用户要投 roadmap、预算、创业资源或前途，或想法可信却缺行为证据，或需要改习惯、迁移平台。开四个独立 sub-agent：Bull、Bear、User Reality、Audit。
-- **Deep**：方案依赖第三方平台、API、爬取、外部数据源、网络效应或供给侧，或价值高度依赖数据的可得、准确、新鲜、合规。在 Standard 上加 Source Feasibility。
+- **Light**：粗判断、低赌注。「随便帮我看看这个点子」。不开 sub-agent，顺序过 Bull、Bear、User Reality、Validation Design，标注为低置信的单 agent 模拟。
+- **Standard**：用户要投 roadmap、预算、创业资源或前途，或方案要求用户改习惯、迁移平台。「我准备辞职做这个」。开四个独立 sub-agent。
+- 方案依赖第三方平台、API、爬取、外部数据源、网络效应或供给侧，或价值高度依赖数据的可得、准确、新鲜、合规时，任一档位都加开 Source Feasibility 角色。
 
-sub-agent 不可用就顺序跑同样的角色，标注为低置信的单 agent 模拟。
+sub-agent 不可用就顺序跑同样的角色，同样标注为低置信的单 agent 模拟。
 
 ## 证据分级
 
-按可信度排序：观察到的用户行为，高于现有 workaround、付费、时长、重复投入，高于一手公开事实，比如应用商店评价、使用信号、changelog、行业报告、定价、竞品痕迹，再高于角色模拟，最后才是模型先验。引用与判断相关的事实，别堆 TAM。市场、价格、监管、平台、竞品这类事实不稳定，重要就去核。最终答案里给关键证据标级别，永远别让市场规模叙事替代需求证据。
+证据只用四个级别，与 sub-agent 的必填输出同一套词。`user-provided fact` 是用户报告的自身行为与花费。`public fact` 是一手公开事实，比如应用商店评价、使用信号、changelog、行业报告、定价、竞品痕迹。这两级是现实证据，高于 `role simulation`，`role simulation` 又高于 `model prior`。同级之内，实际发生过的行为压过观点和兴趣：付费、workaround、留存、重复投入都算行为。引用与判断相关的事实，别堆 TAM。市场、价格、监管、平台、竞品这类事实不稳定，重要就去核。最终答案里给关键证据标级别，永远别让市场规模叙事替代需求证据。
 
 ## 输出纪律
 
 不填固定表格，但每次审计都要交付这些，按问题的赌注决定各自展开多少：
 
-- 先给一句话信号，`continue`、`narrow`、`pause for validation` 或 `kill`，再给需求标签，真需求、有条件真需求、窄场景真需求、宽而浅、假需求、或证据不足。
+- 先给一句话信号，`continue`、`narrow`、`pause for validation` 或 `kill`，再给需求标签，真需求、有条件真需求、宽而浅、假需求、或证据不足。有条件真需求要写明成立的条件或场景。
 - 关键证据分三组并标级别：支持需求、支持否定或收窄、仍未知。
 - 分开写 Dream Case 下的需求强度和现实交付会不会吃掉价值。
 - 给一到三个最小验证动作，每个说清做什么、时间成本、测哪个假设、什么结果算继续、什么结果算停。
