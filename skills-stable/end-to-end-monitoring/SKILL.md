@@ -2,7 +2,7 @@
 name: end-to-end-monitoring
 description: "Design, deploy, repair, or verify standing monitoring and alerting infrastructure that runs on its own, independent of any agent session, for a host, service, cron job, crawler, dependency, data pipeline, or AI workflow. Not for the agent itself periodically re-checking something and pinging you — that is scheduled-work."
 metadata:
-  version: "5"
+  version: "6"
 ---
 
 # End-to-End Monitoring
@@ -81,7 +81,7 @@ not verified yet:
 
 ## 工具边界
 
-只读遥测查询、dashboard、告警定义和运行历史，用 observability backend 的 MCP 工具。创建或改动告警、渠道、凭据，只在用户要求部署、配置、轮换、修复或验证时做。主机事实、运行时状态、systemd、日志和权限走 SSH。MCP 完不成的凭据操作，用已认证的浏览器 UI 完成，不碰 cookies、local storage 和密码。provider 端点、token 行为、collector 配置或告警语法可能已变化时，查当前官方文档。secret 不进聊天摘要、shell history、进程 argv、unit 文件、git 和普通用户可写文件。
+只读遥测查询、dashboard、告警定义和运行历史，优先用 observability backend 的 MCP 工具。MCP 不可用时，可用已认证的浏览器 UI 做同等范围的只读查询和告警检查；仍只运行有边界、有 `LIMIT` 的查询，不碰 cookies、local storage 和密码。创建或改动告警、渠道、凭据，只在用户要求部署、配置、轮换、修复或验证时做。主机事实、运行时状态、systemd、日志和权限走 SSH。MCP 完不成的凭据操作，也用已认证的浏览器 UI 完成。provider 端点、token 行为、collector 配置或告警语法可能已变化时，查当前官方文档。secret 不进聊天摘要、shell history、进程 argv、unit 文件、git 和普通用户可写文件。
 
 ## 按需读的 reference
 
