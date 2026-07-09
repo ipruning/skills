@@ -2,7 +2,7 @@
 name: image-workbench
 description: "Use when a task needs AI-generated or AI-edited bitmap assets, visual QA of generated images, screenshot-backed image work, UI annotations, or the local image workbench CLI. Not for deterministic local edits such as crop, resize, or compress, and not for diagrams, charts, or images that must carry precise text or code — those belong in vector tools such as SVG/HTML, Typst, or Mermaid."
 metadata:
-  version: "3"
+  version: "3.1"
   short-description: gpt-image-2 generation, editing, repair, and visual QA of generated images
 ---
 
@@ -13,12 +13,12 @@ metadata:
 ## 选方法
 
 - 源状态、对象身份、UI 状态、卡面或截图内容要保真：附原图出首版，目视 PNG，再 `repair-image` 带 `--previous-response-id` 并重新附上原图。
-- 保真首版按任务选命令。标注和教程叠加用 `annotate-image`，它不传 `--prompt` 时默认注入教程叠加模板。调亮、去元素这类非标注编辑，迭代用 `response-image`，一次性用 `image-edit`，硬要用 `annotate-image` 就必须传 `--prompt` 覆盖默认模板。
+- 保真首版按任务选命令。往图上加 spotlight、dim、arrow 这类标记的都算标注，用 `annotate-image`，不传 `--prompt` 时它默认注入教程叠加模板。要指明圈哪个元素，就把模板文本复制进自己的 prompt 文件、追加一句目标描述后传 `--prompt`。调亮、去元素这类非标注编辑，迭代用 `response-image`，一次性用 `image-edit`。
 - 需要多轮迭代、多张输入图、或生成前先解读源图：走 Responses API，即 `annotate-image`、`repair-image`、`response-image`。打算迭代就用 `annotate-image` 或 `response-image` 起手，它们返回可链的 `response_id`，`repair-image` 靠 `--previous-response-id` 接上一轮。
 - 只做一次性、确定不迭代的生成或编辑：走 Images API，即 `image-generate`、`image-edit`。它们不返回 `response_id`，`repair-image` 接不上，所以要迭代别拿它们起手。
-- 可复用的 icon、token、贴纸、组件、绿幕素材：`image-generate` 或 `response-image` 生成在不透明或绿幕背景上，绿幕用 `--prompt assets/prompts/greenscreen-component.txt` 起手，抠图用 `chroma-alpha`，变体比较用 `contact-sheet`。从零生成带文字的 logo 或 wordmark 归矢量工具，无文字的图形 mark 可以走 `image-generate`。
+- 可复用的 icon、token、贴纸、组件、绿幕素材：`image-generate` 或 `response-image` 配 `--background opaque` 生成在绿幕上，prompt 拿 `assets/prompts/greenscreen-component.txt` 做骨架加对象描述，抠图用 `chroma-alpha`，变体比较用 `contact-sheet`。抠图产物先合成到对比色背景再目视 QA，直接看透明 PNG 和绿幕原图一个样，alpha 要用本地命令验证。从零生成带文字的 logo 或 wordmark 归矢量工具，无文字的图形 mark 可以走 `image-generate`。
 - 从零生成又想延续风格时，把上一版 PNG 当 `--image` 喂给 `response-image`，作用和 source-backed 每轮重附源图一样，防止风格漂移。
-- model 由 CLI 写死，图像生成用 `gpt-image-2`，`diagnose-image` 的解读用 reasoning model，都没有 model flag，实际值以输出 metadata 的 `image_model` 和 `reasoning_model` 字段为准。
+- model 由 CLI 写死，图像生成用 `gpt-image-2`，`diagnose-image` 的解读用 reasoning model，都没有 model flag。实际值看输出 metadata：Responses API 命令记在 `image_model` 和 `reasoning_model`，`image-generate` 和 `image-edit` 记在 `model`。
 
 ## 纪律
 
@@ -29,7 +29,7 @@ CLI 管参数，管不了下面这些。
 - 目视 QA 是必须的，API 成功响应不算 QA。每次生成都自己看 PNG，拒绝裁切、扭曲源事实、看不清的标记、假文字或风格漂移的输出。需要结构化视觉证据时跑 `diagnose-image`，但把它的 `next_repair_issue` 当 `repair-image` 输入之前，先确认它和你看到的一致。
 - `repair-image` 每轮只修一个具体 issue，并重新附上源图。`--previous-response-id` 保住对话状态，源图防止视觉漂移。
 - 每个 CLI 调用都是独立的：`--previous-response-id` 携带的是 API 对话，不是 CLI 参数，所以每条生成命令都要自己带全 geometry 和 quality flag，必填项从 `<subcommand> --help` 拿。
-- aspect ratio 在命令和 prompt 里都要写。别把竖屏或移动 UI 重构成横板，除非用户要求。
+- aspect ratio 在命令和 prompt 里都要写。别把竖屏或移动 UI 重构成横板，除非用户要求。match-input 保的是比例不是像素尺寸，输出落在模型的合法尺寸档上。
 
 ## CLI 契约
 
@@ -61,7 +61,7 @@ uv run --script "$SKILL_DIR/scripts/image_workbench.py" annotate-image \
 
 ## 配套文件
 
-`assets/prompts/` 的模板除绿幕模板外由子命令默认注入，只在改 prompt 文本或调试生成的 prompt 行为时读。`references/` 的两个 case 是改脚本后的回归检查，按任务干活不读。
+`assets/prompts/` 的模板是骨架，没有对象占位。除绿幕模板外由子命令默认注入，只在改 prompt 文本、调试 prompt 行为或复制骨架加目标描述时读原文。`references/` 的两个 case 是改脚本后的回归检查，按任务干活不读。
 
 ## 改脚本后的收尾
 
