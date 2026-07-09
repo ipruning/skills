@@ -10,7 +10,7 @@ Logfire is the observability backend and alerting surface. It is not the contrac
 
 Confirm the project that will receive data before creating alerts. Alerts must live in the same project as the telemetry they query.
 
-Confirm the OTLP endpoint from current docs or a working setup. The endpoint must match the project and write-token region. Do not keep using an endpoint that fails DNS or export checks, and do not hard-code a region in copyable templates.
+Confirm the OTLP endpoint from current docs or a working setup. The endpoint selects the Logfire region/data plane; the write token supplies authorization and project routing. Do not infer a project from the endpoint hostname. The endpoint and token region must agree. Do not keep using an endpoint that fails DNS or export checks, and do not hard-code a region in copyable templates.
 
 ## Identity
 
@@ -99,9 +99,12 @@ Before creating or updating an alert:
 - Inspect metric shape when using metrics: `metric_type`, `is_monotonic`, `aggregation_temporality`, value columns, and resource identity.
 - Query the backend for the exact resource identity that actually arrived, then generate alert SQL from those values. Intended names can differ from stored `service_instance_id` when host detectors or cloned machine ids are involved.
 - Validate SQL over the same effective window.
+- Inspect the alert schedule and server-side scan window separately from the SQL. The scan window must cover the freshness threshold plus producer cadence and ingestion slack; it must never be shorter than a freshness threshold used with `MAX(...) IS NULL`.
 - Use exact resource filters, especially `service.namespace`, `service.name`, `service.instance.id`, `monitor.id`, and `deployment.environment.name`.
 - Avoid relying on SQL aliases in `GROUP BY`; repeat the expression when the query engine requires it.
 - Include `LIMIT`, even for aggregate alerts.
+
+After an incident, use the latest run result and run history as the current alert evidence. A page-level `Firing` badge can remain sticky after later runs return no matches; do not treat that badge alone as proof that the condition is still active. Check for evaluator lag and duplicate runs when timestamps or results cluster unexpectedly.
 
 ## Verification Checklist
 

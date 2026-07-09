@@ -96,6 +96,8 @@ sudo systemctl list-timers --all --no-pager
 
 For a continuous daemon, also verify restart behavior if the contract depends on it.
 
+A collector reload or `SIGHUP` can rebuild internal components without changing the main PID or incrementing systemd's `NRestarts`. Collector self-metrics may reset during that rebuild. Take a fresh post-reload baseline and prove counters increase from it; do not compare absolute self-metric counters across the reload boundary.
+
 Check runtime, not only files:
 
 ```bash

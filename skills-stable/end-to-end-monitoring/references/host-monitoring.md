@@ -22,6 +22,7 @@ monthly datapoints ~= hosts x 520M / interval_seconds
 - Default 60s (~8.6M/host/month). For fleets of >=5 hosts, or any backend that bills per datapoint or record, use 300s (~1.7M/host/month). Host-level semantics such as host down, disk filling, and service dead survive 300s granularity.
 - Price the estimate against the backend's rate before deploying and state it in the delivery report. Treat the formula as a floor: real fleets run above it in proportion to their device, mount, and interface counts.
 - Freshness thresholds couple to cadence: use >=3x the collection interval (60s -> 3m, 300s -> 15m). Below 3x the alert races the scrape cycle and flaps.
+- The alert evaluator's scan window must cover the freshness threshold plus at least one collection interval and ingestion slack. For a 300s cadence and 15m freshness threshold, use a 30m scan window. Never make the scan window shorter than the SQL freshness threshold when the query uses `MAX(...) IS NULL`: an empty scan then fires at the scan-window boundary instead of the stated freshness threshold.
 - When changing cadence on an already-monitored fleet, widen every freshness alert first, then roll the collector interval, then watch one full alert cycle for false fires.
 - Backend UIs may have their own fixed staleness badge (for example the Logfire Hosts panel marks a host stale after ~5 minutes without data). At 300s that badge is cosmetic; the alert threshold, not the badge, defines the contract.
 
@@ -137,6 +138,17 @@ LIMIT 10
 ```
 
 Use `starts_having_matches` / onset-only notification by default.
+
+## Fleet-Wide Stale Alert Triage
+
+When several independent hosts become stale in the same minute, test the shared path before treating them as separate host failures:
+
+1. Query `MAX(recorded_timestamp)` per monitor over a window longer than the freshness threshold and calculate the observed gaps.
+2. Inspect alert run history, query errors, duplicates, and the exact server-side scan window. Do not infer the effective window from the SQL alone.
+3. SSH to a representative host and verify collector state, exporter errors, queue health, and recent logs.
+4. Fan out to every host only when backend evidence or the representative host points to producer-side failure.
+
+If stored metrics remain on cadence while many alerts fire together, report a backend query/evaluator visibility incident rather than a fleet-wide token or host outage.
 
 ## Verification
 
