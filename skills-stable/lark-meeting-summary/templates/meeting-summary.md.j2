@@ -9,7 +9,7 @@
 
 - 标题: {{ meeting.title or "未知" }}
 - minute_token: {{ minute.get("minute_token", "") }}
-{% set transcript_path = minute.get("rel_transcript_path") or minute.get("source_transcript_path") or "" %}
+{% set transcript_path = minute.get("rel_transcript_path") or "" %}
 {% if transcript_path %}- 文字记录路径: {{ transcript_path }}{% endif %}
 
 ## 输出格式

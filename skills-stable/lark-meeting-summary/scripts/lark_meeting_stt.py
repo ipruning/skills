@@ -1,6 +1,6 @@
 #!/usr/bin/env -S uv run --script
 # /// script
-# requires-python = ">=3.12"
+# requires-python = ">=3.14"
 # dependencies = [
 #   "jinja2>=3.1.6",
 #   "pydantic>=2.13.0",
@@ -81,9 +81,10 @@ class PromptsOptions(CommandOptions):
 
 class SummarizeOptions(CommandOptions):
     timeout_seconds: int = Field(default=900, ge=1)
-    concurrency: int = Field(default=4, ge=1)
-    amp_mode: str = "deep"
-    amp_effort: str = "xhigh"
+    concurrency: int = Field(default=2, ge=1)
+    amp_attempts: int = Field(default=3, ge=1)
+    amp_mode: str | None = None
+    amp_effort: str | None = None
     amp_visibility: str = "private"
 
 
@@ -167,6 +168,9 @@ COUNT_LABELS = {
     "summaries": "会议总结",
     "failures": "失败",
     "concurrency": "并发数",
+    "concurrency_effective": "实际并发数",
+    "retries": "重试次数",
+    "reused": "复用已有总结",
     "duplicate_groups": "可疑重复组",
 }
 
@@ -836,6 +840,9 @@ def pull_minutes(options: PullOptions) -> int:
         "pulled": successes,
         "failed": failures,
     }
+    if failures:
+        report["error"] = f"{len(failures)} minute(s) failed to pull; see 'failed' entries and pulled.md"
+        report["exit_code"] = 1
     write_json(base / "pulled.json", report)
     pulled_md = pulled_markdown(report)
     write_text(base / "pulled.md", pulled_md)
@@ -1111,6 +1118,7 @@ def build_prompts(options: PromptsOptions) -> int:
             "title": meta.get("title") or "",
             "source_transcript_path": transcript_path.relative_to(base).as_posix(),
             "prompt_tiktoken_count": token_count,
+            "prompt_sha256": sha256_text(rendered),
             "max_prompt_tiktoken_count": options.max_prompt_tiktoken_count,
         }
         if token_count > options.max_prompt_tiktoken_count:
@@ -1138,6 +1146,9 @@ def build_prompts(options: PromptsOptions) -> int:
         "prompts": prompts,
         "oversized": oversized,
     }
+    if oversized:
+        report["error"] = f"{len(oversized)} prompt(s) exceed the size limit; see 'oversized' entries"
+        report["exit_code"] = 1
     write_json(prompt_index_path, report)
     emit(report, fmt=options.format)
     return 1 if oversized else 0
@@ -1145,22 +1156,48 @@ def build_prompts(options: PromptsOptions) -> int:
 
 def write_summaries_error(base: Path, message: str) -> None:
     summaries_dir = base / "summaries"
-    if summaries_dir.exists():
-        shutil.rmtree(summaries_dir)
     summaries_dir.mkdir(parents=True, exist_ok=True)
-    write_json(
-        summaries_dir / "index.json",
-        {
-            "ok": False,
-            "error": message,
-            "counts": {
-                "prompts": 0,
-                "summaries": 0,
-                "failures": 0,
-            },
-            "results": [],
+    index_path = summaries_dir / "index.json"
+    if index_path.exists():
+        try:
+            previous_report = json.loads(index_path.read_text(encoding="utf-8"))
+        except OSError, json.JSONDecodeError:
+            previous_report = {}
+        if previous_report.get("results"):
+            write_json(summaries_dir / "resume-index.json", previous_report)
+    report = {
+        "ok": False,
+        "error": message,
+        "exit_code": 1,
+        "counts": {
+            "prompts": 0,
+            "summaries": 0,
+            "failures": 0,
         },
-    )
+        "results": [],
+    }
+    write_json(summaries_dir / "last-error.json", report)
+    write_json(index_path, report)
+
+
+def build_amp_command(options: SummarizeOptions) -> list[str]:
+    cmd = [
+        "amp",
+        "--execute",
+        "--visibility",
+        options.amp_visibility,
+    ]
+    if options.amp_mode:
+        cmd.extend(["--mode", options.amp_mode])
+    if options.amp_effort:
+        cmd.extend(["--effort", options.amp_effort])
+    cmd.extend(["--no-ide", "--no-color"])
+    return cmd
+
+
+def is_retryable_amp_failure(stderr: str) -> bool:
+    # Bun keyring native-module load flake; the platform suffix varies by machine.
+    return "ERR_DLOPEN_FAILED" in stderr and "keyring." in stderr
 
 
 def summarize_prompts(options: SummarizeOptions) -> int:
@@ -1195,10 +1232,32 @@ def summarize_prompts(options: SummarizeOptions) -> int:
             raise SystemExit(message)
 
     summaries_dir = base / "summaries"
-    if summaries_dir.exists():
-        shutil.rmtree(summaries_dir)
     summaries_dir.mkdir(parents=True, exist_ok=True)
+    previous_results: dict[str, dict[str, Any]] = {}
+    for previous_index_path in (summaries_dir / "index.json", summaries_dir / "resume-index.json"):
+        if not previous_index_path.exists():
+            continue
+        try:
+            previous_report = json.loads(previous_index_path.read_text(encoding="utf-8"))
+        except OSError, json.JSONDecodeError:
+            continue
+        if previous_report.get("results"):
+            previous_results = {
+                str(result.get("prompt_path") or ""): result
+                for result in previous_report["results"]
+                if isinstance(result, dict) and result.get("prompt_path")
+            }
+            break
+    expected_summary_paths = {
+        "summaries/" + Path(str(prompt["prompt_path"])).name.removesuffix(".prompt.md") + ".summary.md"
+        for prompt in prompts
+    }
+    for summary_path in summaries_dir.glob("*.summary.md"):
+        if summary_path.relative_to(base).as_posix() not in expected_summary_paths:
+            summary_path.unlink()
     index_path = summaries_dir / "index.jsonl"
+    if index_path.exists():
+        index_path.unlink()
     jsonl_lock = threading.Lock()
 
     def append_event(payload: dict[str, Any]) -> None:
@@ -1210,6 +1269,31 @@ def summarize_prompts(options: SummarizeOptions) -> int:
         summary_path = summaries_dir / (prompt_path.name.removesuffix(".prompt.md") + ".summary.md")
         started_at = dt.datetime.now().isoformat(timespec="seconds")
         started = time.time()
+        try:
+            prompt_text = prompt_path.read_text(encoding="utf-8")
+        except OSError as exc:
+            completed = {
+                "event": "completed",
+                "started_at": started_at,
+                "completed_at": dt.datetime.now().isoformat(timespec="seconds"),
+                "duration_seconds": round(time.time() - started, 3),
+                "prompt_path": prompt_path.relative_to(base).as_posix(),
+                "summary_path": summary_path.relative_to(base).as_posix(),
+                "minute_token": prompt["minute_token"],
+                "title": prompt.get("title") or "",
+                "prompt_tiktoken_count": prompt["prompt_tiktoken_count"],
+                "prompt_sha256": "",
+                "exit_code": 1,
+                "timed_out": False,
+                "output_bytes": 0,
+                "stderr": f"读取 prompt 失败：{exc}",
+                "attempts": 0,
+                "retry_failures": [],
+                "reused": False,
+            }
+            append_event(completed)
+            return completed
+        prompt_sha256 = sha256_text(prompt_text)
         start_event = {
             "event": "started",
             "started_at": started_at,
@@ -1218,43 +1302,93 @@ def summarize_prompts(options: SummarizeOptions) -> int:
             "minute_token": prompt["minute_token"],
             "title": prompt.get("title") or "",
             "prompt_tiktoken_count": prompt["prompt_tiktoken_count"],
+            "prompt_sha256": prompt_sha256,
         }
+        previous = previous_results.get(start_event["prompt_path"]) or {}
+        if (
+            previous.get("exit_code") == 0
+            and previous.get("prompt_sha256") == prompt_sha256
+            and summary_path.exists()
+            and summary_path.stat().st_size > 0
+        ):
+            reused = {
+                **start_event,
+                "event": "reused",
+                "completed_at": dt.datetime.now().isoformat(timespec="seconds"),
+                "duration_seconds": round(time.time() - started, 3),
+                "exit_code": 0,
+                "timed_out": False,
+                "output_bytes": summary_path.stat().st_size,
+                "stderr": "",
+                "attempts": 0,
+                "retry_failures": [],
+                "reused": True,
+            }
+            append_event(reused)
+            eprint(f"Amp 复用 {summary_path.name}")
+            return reused
+        if summary_path.exists():
+            summary_path.unlink()
         append_event(start_event)
         eprint(f"Amp 处理 {prompt_path.name} prompt_tiktoken_count={prompt['prompt_tiktoken_count']}")
-        cmd = [
-            "amp",
-            "--execute",
-            "--visibility",
-            options.amp_visibility,
-            "--mode",
-            options.amp_mode,
-            "--effort",
-            options.amp_effort,
-            "--no-ide",
-            "--no-color",
-        ]
-        try:
-            proc = subprocess.run(
-                cmd,
-                input=prompt_path.read_text(encoding="utf-8"),
-                text=True,
-                capture_output=True,
-                timeout=options.timeout_seconds,
-                check=False,
-                cwd=base,
-            )
-            exit_code = proc.returncode
-            timed_out = False
-            stderr = proc.stderr
-            if exit_code == 0 and not proc.stdout.strip():
+        cmd = build_amp_command(options)
+        exit_code = 1
+        timed_out = False
+        stderr = ""
+        retry_failures: list[dict[str, Any]] = []
+        attempt = 0
+        for attempt in range(1, options.amp_attempts + 1):
+            try:
+                proc = subprocess.run(
+                    cmd,
+                    input=prompt_text,
+                    text=True,
+                    capture_output=True,
+                    timeout=options.timeout_seconds,
+                    check=False,
+                    cwd=base,
+                )
+                exit_code = proc.returncode
+                stderr = proc.stderr
+                if exit_code == 0 and not proc.stdout.strip():
+                    exit_code = 1
+                    stderr = (stderr.strip() + "\n" if stderr.strip() else "") + "amp returned empty output"
+                elif exit_code == 0:
+                    try:
+                        write_text(summary_path, proc.stdout)
+                    except OSError as exc:
+                        exit_code = 1
+                        stderr = f"写入总结失败：{exc}"
+                    else:
+                        break
+            except subprocess.TimeoutExpired:
+                exit_code = 124
+                timed_out = True
+                stderr = f"amp timed out after {options.timeout_seconds}s"
+            except OSError as exc:
                 exit_code = 1
-                stderr = (stderr.strip() + "\n" if stderr.strip() else "") + "amp returned empty output"
-            elif exit_code == 0:
-                write_text(summary_path, proc.stdout)
-        except subprocess.TimeoutExpired:
-            exit_code = 124
-            timed_out = True
-            stderr = f"amp timed out after {options.timeout_seconds}s"
+                stderr = f"启动 Amp 失败：{exc}"
+
+            if attempt >= options.amp_attempts or not is_retryable_amp_failure(stderr):
+                break
+            retry_failure = {
+                "attempt": attempt,
+                "exit_code": exit_code,
+                "stderr": text_snippet(stderr),
+            }
+            retry_failures.append(retry_failure)
+            append_event(
+                {
+                    **start_event,
+                    "event": "retrying",
+                    "attempt": attempt,
+                    "next_attempt": attempt + 1,
+                    "exit_code": exit_code,
+                    "stderr": text_snippet(stderr),
+                }
+            )
+            eprint(f"Amp 重试 {prompt_path.name} attempt={attempt + 1}/{options.amp_attempts}")
+            time.sleep(attempt)
         completed = {
             **start_event,
             "event": "completed",
@@ -1264,6 +1398,9 @@ def summarize_prompts(options: SummarizeOptions) -> int:
             "timed_out": timed_out,
             "output_bytes": summary_path.stat().st_size if summary_path.exists() else 0,
             "stderr": stderr.strip(),
+            "attempts": attempt,
+            "retry_failures": retry_failures,
+            "reused": False,
         }
         append_event(completed)
         return completed
@@ -1276,6 +1413,8 @@ def summarize_prompts(options: SummarizeOptions) -> int:
             for future in concurrent.futures.as_completed(future_to_prompt):
                 results.append(future.result())
 
+    prompt_order = {str(prompt["prompt_path"]): index for index, prompt in enumerate(prompts)}
+    results.sort(key=lambda result: prompt_order.get(str(result.get("prompt_path") or ""), len(prompts)))
     failures = [result for result in results if result["exit_code"] != 0]
     report = {
         "ok": not failures,
@@ -1284,9 +1423,15 @@ def summarize_prompts(options: SummarizeOptions) -> int:
             "summaries": len(results) - len(failures),
             "failures": len(failures),
             "concurrency": options.concurrency,
+            "concurrency_effective": workers,
+            "retries": sum(max(0, int(result["attempts"]) - 1) for result in results),
+            "reused": sum(bool(result.get("reused")) for result in results),
         },
         "results": results,
     }
+    if failures:
+        report["error"] = f"{len(failures)} 个 Amp 总结失败；详见 results。"
+        report["exit_code"] = 1
     write_json(summaries_dir / "index.json", report)
     emit(report, fmt=options.format)
     return 1 if failures else 0
@@ -1390,9 +1535,19 @@ def prompts_cmd(
 def summarize_cmd(
     run: Annotated[Path, typer.Option("--run", help="运行目录。")],
     timeout_seconds: Annotated[int, typer.Option("--timeout-seconds", min=1, help="单个 Amp 超时。")] = 900,
-    concurrency: Annotated[int, typer.Option("--concurrency", min=1, help="Amp 并发数。")] = 4,
-    amp_mode: Annotated[str, typer.Option("--amp-mode")] = "deep",
-    amp_effort: Annotated[str, typer.Option("--amp-effort")] = "xhigh",
+    concurrency: Annotated[int, typer.Option("--concurrency", min=1, help="Amp 并发数。")] = 2,
+    amp_attempts: Annotated[
+        int,
+        typer.Option("--amp-attempts", min=1, help="已知 Bun keyring 瞬时加载失败的最多尝试次数。"),
+    ] = 3,
+    amp_mode: Annotated[
+        str | None,
+        typer.Option("--amp-mode", help="Amp mode；默认不传，由当前 Amp 决定。"),
+    ] = None,
+    amp_effort: Annotated[
+        str | None,
+        typer.Option("--amp-effort", help="Amp reasoning effort；默认不传，由当前 Amp 决定。"),
+    ] = None,
     amp_visibility: Annotated[str, typer.Option("--amp-visibility")] = "private",
     output_format: Annotated[OutputFormat, typer.Option("--format", help="输出格式。")] = OutputFormat.md,
 ) -> None:
@@ -1402,6 +1557,7 @@ def summarize_cmd(
                 run=run,
                 timeout_seconds=timeout_seconds,
                 concurrency=concurrency,
+                amp_attempts=amp_attempts,
                 amp_mode=amp_mode,
                 amp_effort=amp_effort,
                 amp_visibility=amp_visibility,

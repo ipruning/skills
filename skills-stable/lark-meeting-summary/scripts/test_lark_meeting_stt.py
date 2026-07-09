@@ -1,6 +1,6 @@
 #!/usr/bin/env -S uv run --script
 # /// script
-# requires-python = ">=3.12"
+# requires-python = ">=3.14"
 # dependencies = [
 #   "jinja2>=3.1.6",
 #   "pydantic>=2.13.0",
@@ -19,6 +19,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 SCRIPT = Path(__file__).with_name("lark_meeting_stt.py")
 SPEC = importlib.util.spec_from_file_location("lark_meeting_stt", SCRIPT)
@@ -77,8 +78,8 @@ class LarkMeetingSttTests(unittest.TestCase):
             self.meta("b", "会议 B", sha="same", prefix="p2", first="u|11min", lines=101),
             self.meta("c", "会议 C", sha="c", prefix="same-prefix", first="v|12min", lines=120),
             self.meta("d", "会议 D", sha="d", prefix="same-prefix", first="w|13min", lines=121),
-            self.meta("e", "小程序 AI 能力初始化", sha="e", prefix="e-prefix", first="x|13min 53s", lines=146),
-            self.meta("f", "小程序功能开发方案讨论", sha="f", prefix="f-prefix", first="x|13min 53s", lines=146),
+            self.meta("e", "合成会议 E 方案评审", sha="e", prefix="e-prefix", first="x|14min", lines=146),
+            self.meta("f", "合成会议 F 方案讨论", sha="f", prefix="f-prefix", first="x|14min", lines=146),
         ]
         groups = mod.build_duplicate_groups(metas)
         kinds = [group["kind"] for group in groups]
@@ -356,6 +357,25 @@ class LarkMeetingSttTests(unittest.TestCase):
     def test_summarize_rejects_prompt_index_with_oversized_items(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
+            summaries_dir = base / "summaries"
+            summaries_dir.mkdir()
+            preserved_summary = summaries_dir / "obc1.summary.md"
+            preserved_summary.write_text("已完成的总结", encoding="utf-8")
+            (summaries_dir / "index.json").write_text(
+                json.dumps(
+                    {
+                        "ok": True,
+                        "results": [
+                            {
+                                "prompt_path": "prompts/obc1.prompt.md",
+                                "summary_path": "summaries/obc1.summary.md",
+                                "exit_code": 0,
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
             (base / "prompt-index.json").write_text(
                 json.dumps({"ok": False, "prompts": [], "oversized": [{"minute_token": "obc1"}]}),
                 encoding="utf-8",
@@ -369,8 +389,159 @@ class LarkMeetingSttTests(unittest.TestCase):
                 index = json.loads((base / "summaries" / "index.json").read_text(encoding="utf-8"))
                 self.assertFalse(index["ok"])
                 self.assertIn("prompt-index.json ok=false", index["error"])
+                resume_index = json.loads((base / "summaries" / "resume-index.json").read_text(encoding="utf-8"))
+                self.assertTrue(resume_index["ok"])
+                self.assertTrue(preserved_summary.exists())
             finally:
                 patch_module_attr("require_commands", original_require_commands)
+
+    def test_amp_command_uses_installed_amp_defaults_unless_overridden(self) -> None:
+        default_cmd = mod.build_amp_command(mod.SummarizeOptions(run=Path("/tmp/run")))
+        self.assertNotIn("--mode", default_cmd)
+        self.assertNotIn("--effort", default_cmd)
+
+        explicit_cmd = mod.build_amp_command(
+            mod.SummarizeOptions(run=Path("/tmp/run"), amp_mode="high", amp_effort="xhigh")
+        )
+        self.assertEqual(explicit_cmd[explicit_cmd.index("--mode") + 1], "high")
+        self.assertEqual(explicit_cmd[explicit_cmd.index("--effort") + 1], "xhigh")
+
+    def test_summarize_retries_bun_keyring_failure_and_then_succeeds(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            self.prepare_prompt_run(base)
+            keyring_error = 'error: dlopen(/$bunfs/root/keyring.darwin-arm64-test.node) code: "ERR_DLOPEN_FAILED"'
+            amp_results = [
+                subprocess.CompletedProcess(args=["amp"], returncode=1, stdout="", stderr=keyring_error),
+                subprocess.CompletedProcess(args=["amp"], returncode=0, stdout="# 测试会议\n\n完成。\n", stderr=""),
+            ]
+
+            with (
+                mock.patch.object(mod, "require_commands"),
+                mock.patch.object(mod.subprocess, "run", side_effect=amp_results) as run_amp,
+                mock.patch.object(mod.time, "sleep") as sleep,
+                contextlib.redirect_stdout(io.StringIO()),
+                contextlib.redirect_stderr(io.StringIO()),
+            ):
+                exit_code = mod.summarize_prompts(
+                    mod.SummarizeOptions(run=base, concurrency=1, format=mod.OutputFormat.json)
+                )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(run_amp.call_count, 2)
+            sleep.assert_called_once_with(1)
+            first_cmd = run_amp.call_args_list[0].args[0]
+            self.assertNotIn("--mode", first_cmd)
+            self.assertNotIn("--effort", first_cmd)
+            report = json.loads((base / "summaries" / "index.json").read_text(encoding="utf-8"))
+            self.assertTrue(report["ok"])
+            self.assertEqual(report["counts"]["retries"], 1)
+            self.assertEqual(report["results"][0]["attempts"], 2)
+            self.assertEqual(len(report["results"][0]["retry_failures"]), 1)
+            self.assertTrue((base / "summaries" / "obc1.summary.md").exists())
+
+    def test_summarize_does_not_retry_non_transient_amp_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            self.prepare_prompt_run(base)
+            stale_summary = base / "summaries" / "obc1.summary.md"
+            stale_summary.parent.mkdir()
+            stale_summary.write_text("旧总结", encoding="utf-8")
+            amp_error = subprocess.CompletedProcess(
+                args=["amp"],
+                returncode=1,
+                stdout="",
+                stderr='Error: Reasoning effort "xhigh" is not available for medium mode.',
+            )
+
+            with (
+                mock.patch.object(mod, "require_commands"),
+                mock.patch.object(mod.subprocess, "run", return_value=amp_error) as run_amp,
+                mock.patch.object(mod.time, "sleep") as sleep,
+                contextlib.redirect_stdout(io.StringIO()),
+                contextlib.redirect_stderr(io.StringIO()),
+            ):
+                exit_code = mod.summarize_prompts(
+                    mod.SummarizeOptions(
+                        run=base,
+                        concurrency=1,
+                        amp_mode="medium",
+                        amp_effort="xhigh",
+                        format=mod.OutputFormat.json,
+                    )
+                )
+
+            self.assertEqual(exit_code, 1)
+            run_amp.assert_called_once()
+            sleep.assert_not_called()
+            report = json.loads((base / "summaries" / "index.json").read_text(encoding="utf-8"))
+            self.assertFalse(report["ok"])
+            self.assertEqual(report["exit_code"], 1)
+            self.assertIn("Amp 总结失败", report["error"])
+            self.assertEqual(report["counts"]["retries"], 0)
+            self.assertEqual(report["results"][0]["attempts"], 1)
+            self.assertFalse(stale_summary.exists())
+
+    def test_summarize_reuses_success_when_prompt_is_unchanged(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            self.prepare_prompt_run(base)
+            amp_success = subprocess.CompletedProcess(
+                args=["amp"],
+                returncode=0,
+                stdout="# 测试会议\n\n完成。\n",
+                stderr="",
+            )
+            with (
+                mock.patch.object(mod, "require_commands"),
+                mock.patch.object(mod.subprocess, "run", return_value=amp_success),
+                contextlib.redirect_stdout(io.StringIO()),
+                contextlib.redirect_stderr(io.StringIO()),
+            ):
+                self.assertEqual(
+                    mod.summarize_prompts(mod.SummarizeOptions(run=base, concurrency=1, format=mod.OutputFormat.json)),
+                    0,
+                )
+
+            with (
+                mock.patch.object(mod, "require_commands"),
+                mock.patch.object(mod.subprocess, "run") as run_amp,
+                contextlib.redirect_stdout(io.StringIO()),
+                contextlib.redirect_stderr(io.StringIO()),
+            ):
+                self.assertEqual(
+                    mod.summarize_prompts(mod.SummarizeOptions(run=base, concurrency=1, format=mod.OutputFormat.json)),
+                    0,
+                )
+
+            run_amp.assert_not_called()
+            report = json.loads((base / "summaries" / "index.json").read_text(encoding="utf-8"))
+            self.assertEqual(report["counts"]["reused"], 1)
+            self.assertTrue(report["results"][0]["reused"])
+            self.assertEqual(report["results"][0]["attempts"], 0)
+
+    @staticmethod
+    def prepare_prompt_run(base: Path) -> None:
+        prompt_dir = base / "prompts"
+        prompt_dir.mkdir(parents=True)
+        (prompt_dir / "obc1.prompt.md").write_text("总结这场会议。", encoding="utf-8")
+        (base / "prompt-index.json").write_text(
+            json.dumps(
+                {
+                    "ok": True,
+                    "prompts": [
+                        {
+                            "minute_token": "obc1",
+                            "title": "测试会议",
+                            "prompt_tiktoken_count": 10,
+                            "prompt_path": "prompts/obc1.prompt.md",
+                        }
+                    ],
+                },
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
 
     @staticmethod
     def meta(
