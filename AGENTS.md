@@ -4,9 +4,9 @@
 
 This repo is the source of truth for AI-tool skills and Skillshare extras. A skill is any directory that contains a `SKILL.md`, plus optional supporting files such as scripts, references, or assets. Skills may live at the repo root or inside grouping directories such as `skills-stable/` and `skills-beta/`.
 
-`skillshare` syncs non-ignored skills to configured AI tool targets. Target configuration decides whether sync uses symlinks or copies. `skillshare` also syncs non-skill resources from `extras/` to configured target directories. Run `skillshare sync --all` after mutating synced skills or extras so configured tools see the latest content. `.skillignore` controls which source skills are skipped.
+`skillshare` syncs non-ignored skills to configured AI tool targets. Target configuration decides whether sync uses symlinks or copies. `skillshare` also syncs non-skill resources from `extras/` to configured target directories. `.skillignore` controls which source skills are skipped.
 
-The current source checkout owns its first-party skills. A nested source checkout owns its own first-party skills. The leading underscore does not decide edit ownership. The source checkout's `.metadata.json` decides the boundary: entries in `.metadata.json` are upstream Track-managed; skill directories outside those entries are first-party.
+Each source checkout owns its first-party skills; the leading underscore does not decide edit ownership. The source checkout's `.metadata.json` decides the boundary: entries in `.metadata.json` are upstream Track-managed; skill directories outside those entries are first-party.
 
 `CLAUDE.md` at the repo root is a symlink to `AGENTS.md` so Claude Code loads the same guidelines. Edit `AGENTS.md` only; never replace the symlink with a copy. Nested source checkouts use the same arrangement.
 
@@ -36,7 +36,6 @@ skills/
 - Before adding or heavily revising a first-party skill, review it against the five-layer checklist in `_jihuanshe-skills/skills-stable/skill-roast/SKILL.md`. The checklist also covers drafting a new skill from scratch: run its layers in reverse to outline the first draft.
 - Write first-party `SKILL.md` bodies in Chinese classic prose with complete sentences. Keep the frontmatter description, key terms, code, code comments, and tables in English. Supporting references may stay in English.
 - Do not edit generated, vendored, or upstream Track-managed content.
-- After adding, deleting, moving, installing, uninstalling, updating, or collecting synced skills or extras, run `skillshare sync --all`. Changes under paths listed in `.skillignore` are not exposed to targets unless the ignore or target configuration changes; check the file rather than assuming a whole collection is ignored.
 
 ## Branch and sync policy
 
@@ -60,7 +59,7 @@ Source checkouts can have different merge rules. Do not infer one checkout's pol
 
 Use 4-space indentation by default and 2-space indentation in Markdown files. Use LF line endings and final newlines. Follow the formatter/config for file-type exceptions.
 
-- **Python** — Ruff selects E/W/F/UP/B/SIM/I/TID plus BLE001, ignores E501/TID252, line-length 120, target py314. Format: `uv run ruff format --check .`. Lint: `uv run ruff check .`. Type-check: `uv run ty check .`.
+- **Python** — Ruff follows `pyproject.toml` (line-length 120, target py314). Format: `uv run ruff format --check .`. Lint: `uv run ruff check .`. Type-check: `uv run ty check .`.
 - **JS / JSON / JSONC** — Biome-managed files use double quotes and 4-space indent. Generated or excluded files such as `.metadata.json` may differ; do not reformat them unless the owning tool expects it. Lint: `biome ci .`.
 - **TOML** — `uvx tombi lint .`; format config uses 4-space indent.
 - **Markdown** — `markdownlint-cli2`.
@@ -69,31 +68,21 @@ Use 4-space indentation by default and 2-space indentation in Markdown files. Us
 
 ## Excluding external skills from linting
 
-Some external skills are checked into this repo under non-`_` paths and are tracked in `.metadata.json`. Treat those paths as vendored content: do not lint or reformat them, and keep all lint exclude configs in sync with `.metadata.json`.
+Some external skills are checked into this repo under non-`_` paths and are tracked in `.metadata.json`. Treat those paths as vendored content: do not lint or reformat them. Every non-`_` `.metadata.json` entry must be excluded in six config files (eight places total — `pyproject.toml` has three sections):
 
-Find the checked-in external paths with:
+- `.typos.toml` — `[files].extend-exclude`, `"dir/"`
+- `.markdownlint-cli2.yaml` — `ignores`, `"dir/"`
+- `biome.jsonc` — `files.includes`, `"!!dir"` (no trailing `/`)
+- `pyproject.toml` — `[tool.ruff].exclude` and `[tool.ty.src].exclude` use `"dir/"`; `[tool.tombi.files].exclude` uses `"dir/**"`
+- `prek.toml` — top-level `exclude` regex, `^dir/`
+- `.autocorrectignore` — `dir/`
 
-```bash
-jq -r '.entries | keys[] | select(startswith("_") | not)' .metadata.json | sort
-```
+`mise run check-lint-excludes` verifies both directions — metadata entries missing from a config, and stale excludes whose entry is gone — and reports the exact literal to add or remove. The pre-commit hook runs it on every commit; run it manually after `skillshare install`, `uninstall`, or `update`, since updates can rename directories. Keep unrelated tool-specific excludes unchanged; `_`-prefixed directories are gitignored and need no excludes.
 
-Add each path to these six config files (eight places total — `pyproject.toml` has three sections):
-
-- `.typos.toml` — `[files].extend-exclude`
-- `.markdownlint-cli2.yaml` — `ignores`
-- `biome.jsonc` — `files.includes` with `!!dir` force-ignore (no trailing `/`)
-- `pyproject.toml` — `[tool.ruff].exclude` and `[tool.ty.src].exclude` use trailing-slash directory paths (`dir/`); `[tool.tombi.files].exclude` uses `dir/**` globs
-- `prek.toml` — top-level `exclude` regex
-- `.autocorrectignore`
-
-`_`-prefixed directories are gitignored and never checked in, so they do not need lint excludes. Only non-`_` directories listed in `.metadata.json` need excludes.
-
-When deleting a checked-in external skill, remove its directory **and** remove its entries from all six config files listed above. Use `skillshare uninstall` when possible; if you `rm -rf` manually, you must clean the configs yourself.
-
-After a skillshare version upgrade or `skillshare update`, directory names may change or entries may disappear. Always verify that the external-skill exclude entries in all six config files match the non-`_` `.metadata.json` entries exactly. Keep unrelated tool-specific excludes unchanged.
+When deleting a checked-in external skill, use `skillshare uninstall` when possible; if you `rm -rf` manually, remove the directory's entries from all six config files — the checker lists the leftovers.
 
 ## Running skillshare
 
-Use supported non-interactive flags such as `--force`, `--yes`, `--no-tui`, explicit selectors, and `--json`; do not start prompt-only workflows. Always run `skillshare sync --all` after any mutation (`install`, `uninstall`, `update`, `collect`, `target`, or extras edits). Use `--json` when you need to parse output.
+Use supported non-interactive flags such as `--force`, `--yes`, `--no-tui`, explicit selectors, and `--json`; do not start prompt-only workflows. Always run `skillshare sync --all` after any mutation (adding, deleting, or moving synced skills, `install`, `uninstall`, `update`, `collect`, `target`, or extras edits). Use `--json` when you need to parse output. Changes under paths listed in `.skillignore` are not exposed to targets unless the ignore or target configuration changes; check the file rather than assuming a whole collection is ignored.
 
 Sync targets such as `~/.claude/skills` are skillshare projections. Never point a third-party skill installer (for example `npx skills add ... -g`) at a target directory; anything written there directly is untracked shadow state that no audit or prune sees. When a vendor CLI embeds its own skills, prefer a thin first-party router skill that reads them at runtime over installing copies into a source repository.

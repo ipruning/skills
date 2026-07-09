@@ -190,6 +190,16 @@ hooks = [
 repo = "local"
 hooks = [
     {
+        id = "check-lint-excludes",
+        name = "lint excludes match .metadata.json",
+        entry = "mise exec -- ./.mise/tasks/check-lint-excludes.sh",
+        language = "system",
+        pass_filenames = false,
+        always_run = true,
+        stages = ["pre-commit", "pre-push"],
+        priority = 0
+    },
+    {
         id = "shellcheck",
         name = "shellcheck",
         entry = "mise exec -- shellcheck",
