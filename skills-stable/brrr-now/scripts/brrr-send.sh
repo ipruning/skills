@@ -12,7 +12,7 @@ Options:
   --sound NAME
   --interruption-level passive|active|time-sensitive|critical (omit for a normal ping)
   --volume 0..1          critical only
-  --dry-run
+  --dry-run              print auth_mode and payload without sending; exit 3 if unconfigured
 
 Environment:
   exe.dev: detected automatically; sends to https://brrr.int.exe.xyz/v1/send
@@ -48,6 +48,19 @@ load_brrr_env() {
             return
         fi
     done
+}
+
+config_error() {
+    cat >&2 <<'EOF'
+brrr is not configured.
+
+Configure one of:
+  - exe.dev brrr HTTP Proxy integration, if running on exe.dev
+  - BRRR_SECRET, the public API bearer token
+  - BRRR_ENV_FILE, ~/.config/brrr/env, or ~/.config/notify/brrr.env with BRRR_SECRET='<secret>'
+
+Do not paste secrets into chat or commit them to a repo.
+EOF
 }
 
 find_python() {
@@ -131,6 +144,7 @@ timeout="${BRRR_TIMEOUT:-10}"
 endpoint=
 auth_mode=
 
+# every exe.dev VM ships /exe.dev/shelley.json; it marks the proxy runtime
 if [ -f /exe.dev/shelley.json ]; then
     endpoint="https://brrr.int.exe.xyz/v1/send"
     auth_mode="exe.dev-proxy"
@@ -140,16 +154,7 @@ elif [ -n "${BRRR_SECRET:-}" ]; then
 elif [ "$dry_run" -eq 1 ]; then
     auth_mode="unconfigured"
 else
-    cat >&2 <<'EOF'
-brrr is not configured.
-
-Configure one of:
-  - exe.dev brrr HTTP Proxy integration, if running on exe.dev
-  - BRRR_SECRET, the public API bearer token
-  - BRRR_ENV_FILE, or ~/.config/brrr/env with BRRR_SECRET='<secret>'
-
-Do not paste secrets into chat or commit them to a repo.
-EOF
+    config_error
     exit 3
 fi
 
@@ -215,6 +220,10 @@ PY
 if [ "$dry_run" -eq 1 ]; then
     echo "auth_mode=$auth_mode"
     printf '%s\n' "$payload"
+    if [ "$auth_mode" = "unconfigured" ]; then
+        config_error
+        exit 3
+    fi
     exit 0
 fi
 

@@ -7,7 +7,7 @@ Real-work notifications need a hook that observes completion, failure, liveness,
 | Situation                                | Hook                                     | Sender script location                   |
 | ---------------------------------------- | ---------------------------------------- | ---------------------------------------- |
 | One command in the current agent session | Wrap the command and notify success/fail | Skill dir (copy first if absent on host) |
-| Script in a repo                         | Call the sender script or a wrapper      | `scripts/` or `ops/notify/`              |
+| Script in a repo                         | Call the sender script or a repo-local wrapper      | `scripts/` or `ops/notify/`              |
 | systemd service                          | `OnFailure=notify-brrr@%p.service`       | Stable absolute path                     |
 | Cron replacement                         | systemd timer plus `OnFailure`           | Stable absolute path                     |
 | Long-running daemon                      | systemd `Restart=` plus `OnFailure`      | Stable absolute path                     |
@@ -18,7 +18,7 @@ The hook must observe the real event. A launcher process succeeding does not pro
 
 ## One-off commands
 
-Call the sender script through `/bin/bash` by absolute path. If the skill directory is not present on the target host, copy the script over first; one-off copies stay off `PATH`.
+Call the sender script through `/bin/bash` by absolute path. One-off copies stay off `PATH`. Durable copies drop the `.sh` suffix and install executable, e.g. `install -m 755 brrr-send.sh /usr/local/libexec/brrr-send`.
 
 ```bash
 BRRR_SENDER="<brrr-now skill dir>/scripts/brrr-send.sh"
@@ -27,12 +27,12 @@ if long_running_command; then
   /bin/bash "$BRRR_SENDER" --title "Task complete" --message "long_running_command finished" --thread-id "agent-task"
 else
   rc=$?
-  /bin/bash "$BRRR_SENDER" --title "Task failed" --message "long_running_command failed with rc=$rc" --thread-id "agent-task" --interruption-level active || true
+  /bin/bash "$BRRR_SENDER" --title "Task failed" --message "long_running_command failed with rc=$rc" --thread-id "agent-task" || true
   exit "$rc"
 fi
 ```
 
-Delayed one-off notifications dry-run the exact final command before waiting, so payload and credentials are validated while the failure is still visible.
+Delayed one-off notifications dry-run the exact final command before waiting, so payload errors and missing configuration fail while someone can still fix them. A live secret is only proven by a real send.
 
 ## Bash scripts
 
@@ -49,8 +49,7 @@ notify_failure() {
   /absolute/path/to/brrr-send \
     --title "Script failed" \
     --message "$(basename "$0") failed rc=$rc line=$line on $(hostname)" \
-    --thread-id "script-$(basename "$0")" \
-    --interruption-level active || true
+    --thread-id "script-$(basename "$0")" || true
   exit "$rc"
 }
 
@@ -93,4 +92,4 @@ Failure notifications do not cover host outages, scheduler failure, broken netwo
   --interruption-level passive
 ```
 
-The missing heartbeat is the alert. Keep heartbeat messages quiet. Use a separate monitor if absence must trigger a page; brrr only delivers messages it receives.
+The missing heartbeat is the alert. Keep heartbeat messages quiet. brrr only delivers messages it receives; detecting absence needs a standing monitor, and that deployment belongs to the `end-to-end-monitoring` skill.

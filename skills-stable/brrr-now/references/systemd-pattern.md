@@ -1,6 +1,10 @@
 # brrr systemd Pattern
 
-Long-running Linux hosts, daemons, and cron replacements need explicit absolute paths and systemd-owned environment files. A user shell `PATH` is not part of the service contract.
+Long-running Linux hosts, daemons, and cron replacements need explicit absolute paths and systemd-owned environment files. A user shell `PATH` is not part of the service contract. Install the sender script once at a stable path; the units below assume it:
+
+```bash
+install -m 755 brrr-send.sh /usr/local/libexec/brrr-send
+```
 
 ## Environment file
 
@@ -21,7 +25,7 @@ BRRR_SECRET='<brrr-secret>'
 
 ## Failure wrapper service
 
-Template unit:
+Template unit, saved as `/etc/systemd/system/notify-brrr@.service`:
 
 ```ini
 [Unit]
@@ -33,7 +37,7 @@ EnvironmentFile=/root/.config/notify/brrr.env
 ExecStart=/usr/local/libexec/notify-brrr-unit "%i"
 ```
 
-Wrapper script:
+Wrapper script, installed executable at `/usr/local/libexec/notify-brrr-unit`:
 
 ```bash
 #!/usr/bin/env bash
@@ -56,8 +60,7 @@ ${context}"
 /usr/local/libexec/brrr-send \
   --title "systemd failed: ${unit}" \
   --message "$message" \
-  --thread-id "systemd-${unit_short}" \
-  --interruption-level active
+  --thread-id "systemd-${unit_short}"
 ```
 
 `notify-brrr-unit` is the systemd wrapper. `/usr/local/libexec/brrr-send` is the sender script. Keep unit name, journal, and host context in the wrapper.
@@ -77,7 +80,7 @@ StandardError=journal
 
 ## Heartbeat
 
-Heartbeat service:
+Heartbeat service, saved as `/etc/systemd/system/heartbeat.service`:
 
 ```ini
 [Unit]
@@ -91,7 +94,7 @@ EnvironmentFile=/root/.config/notify/brrr.env
 ExecStart=/usr/local/libexec/brrr-send --title "heartbeat" --message "host=%H daily heartbeat" --thread-id "heartbeat-%H" --interruption-level passive
 ```
 
-Heartbeat timer:
+Heartbeat timer, saved as `/etc/systemd/system/heartbeat.timer`:
 
 ```ini
 [Unit]
