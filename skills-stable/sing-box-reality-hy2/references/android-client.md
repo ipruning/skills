@@ -8,6 +8,10 @@ Android should import the same sing-box outbounds as Linux:
 
 - Selector default: `vless-reality-out`.
 - HY2 available as `hy2-h3-out`.
+- Keep `direct` outside the selector; use it only in explicit routing rules.
+- Omit VLESS `network` so the `v1.13.14` outbound keeps both TCP and UDP.
+- Omit HY2 `up_mbps` / `down_mbps` unless the current fixed device network has
+  its own repeated measurement.
 - DNS strategy: `ipv4_only` unless IPv6 is verified on the device network.
 - Remove Linux-only `auto_redirect`.
 

@@ -1,8 +1,10 @@
 # Linux / VPS Client Reference
 
 Use this for Linux clients, Linux workstations, and VPS-to-VPS testing.
-The durable Linux target is system-level TUN. Mixed mode is only for protocol
-smoke tests or temporary access without elevated privileges.
+The durable target for a workstation or dedicated client is system-level TUN.
+Mixed mode is the default for a business VPS or multi-service host because TUN
+changes every service's DNS, egress, and return path. Use TUN on those hosts only
+after the user approves that blast radius.
 
 ## Install
 
@@ -21,7 +23,10 @@ Enabled: yes
 Signed-By: /etc/apt/keyrings/sagernet.asc
 EOF
 apt-get update
-apt-get install -y sing-box curl jq
+package_version="$(apt-cache madison sing-box | awk '$3 == "1.13.14" { print $3; exit }')"
+test -n "$package_version"
+apt-get install -y "sing-box=$package_version" curl jq
+apt-mark hold sing-box
 sing-box version
 ```
 
@@ -34,8 +39,15 @@ sing-box version
 systemctl cat sing-box@.service
 ```
 
-If `sing-box version` lacks `with_utls`, REALITY client checks will fail. Install
-or build a package with uTLS support before continuing.
+The Arch package must report `v1.13.14` before this template is applied. If the
+distribution package has crossed a stable major version, stop and refresh the
+template against that version instead of forcing old JSON into the new core.
+
+For `v1.13.14`, REALITY client code explicitly requires `with_utls` and
+`utls.enabled=true`; a build without it fails initialization. This is a
+REALITY implementation requirement for this version even though current
+sing-box documentation discourages generic uTLS fingerprinting. Recheck this
+constraint when crossing stable versions.
 
 ## Mixed Smoke Test Config
 
@@ -52,8 +64,14 @@ Important client rules:
 - VLESS TLS uses `server_name = REALITY_SNI`.
 - VLESS REALITY uses `public_key` and `short_id`.
 - Include `tls.utls` with Chrome fingerprint.
+- Omit VLESS `network`; `v1.13.14` enables TCP and UDP by default. `"network":
+  "tcp"` disables UDP.
 - HY2 outbound dials `SERVER_IP`.
 - HY2 TLS uses `server_name = HY2_DOMAIN`.
+- Omit HY2 `up_mbps` and `down_mbps` by default. This selects automatic BBR
+  instead of a guessed Brutal rate.
+- Keep `direct` as a routing outbound, but do not include it in the user-facing
+  selector.
 - Include `route.default_domain_resolver`.
 
 Skeleton:
@@ -61,7 +79,7 @@ Skeleton:
 ```json
 {
   "log": {
-    "level": "info",
+    "level": "warn",
     "timestamp": true
   },
   "dns": {
@@ -86,7 +104,7 @@ Skeleton:
     {
       "type": "selector",
       "tag": "proxy",
-      "outbounds": ["vless-reality-out", "hy2-h3-out", "direct"],
+      "outbounds": ["vless-reality-out", "hy2-h3-out"],
       "default": "vless-reality-out",
       "interrupt_exist_connections": true
     },
@@ -97,7 +115,6 @@ Skeleton:
       "server_port": 443,
       "uuid": "__UUID__",
       "flow": "xtls-rprx-vision",
-      "network": "tcp",
       "tls": {
         "enabled": true,
         "server_name": "__REALITY_SNI__",
@@ -171,17 +188,27 @@ Use IPv4-only DNS by default for Linux workstation TUN:
 Do not use `prefer_ipv4` as the durable default unless IPv6 is verified across
 DNS, routing, package mirrors, and curl. `prefer_ipv4` still returns AAAA
 answers, so tools such as pacman/libcurl can choose IPv6 and fail even when IPv4
-works. Known symptom: Arch/Omarchy mirrors such as
-`stable-mirror.omarchy.org`, `pkgs.omarchy.org`, or
-`geo.mirror.pkgbuild.com` fail with TLS EOF by default, while `curl -4` to the
-same URL succeeds. Treat this like Surge `ipv6 = false`: disable IPv6 answers at
-DNS until the host has proven IPv6 routing.
+works. Known symptom on Arch-family hosts: mirrors that publish AAAA records fail with
+TLS EOF by default while `curl -4` to the same URL succeeds (a concrete
+reproducer is `stable-mirror.omarchy.org` on an Omarchy box). Treat this like
+Surge `ipv6 = false`: disable IPv6 answers at DNS until the host has proven IPv6
+routing.
 
 ```json
 "route": {
   "auto_detect_interface": true,
   "default_domain_resolver": "dns-local",
   "rules": [
+    {
+      "network": "icmp",
+      "action": "route",
+      "outbound": "direct"
+    },
+    {
+      "process_name": "tailscaled",
+      "action": "route",
+      "outbound": "direct"
+    },
     {
       "action": "sniff"
     },
@@ -198,6 +225,11 @@ DNS until the host has proven IPv6 routing.
   "final": "proxy"
 }
 ```
+
+Omit the `tailscaled` rule when Tailscale is absent. ICMP cannot use VLESS or
+HY2 in this stack. Route it direct for normal `ping` behavior, or replace that
+rule with an explicit reject policy when revealing the workstation's direct
+ICMP path is unacceptable.
 
 TUN inbound:
 
@@ -220,8 +252,8 @@ TUN inbound:
 }
 ```
 
-If SSH reaches the host through Tailscale, add both Tailscale ranges before
-starting TUN:
+The skeleton above already carries the `tailscaled` direct rule (omit it when
+Tailscale is absent). Also exclude the tailnet routes before starting TUN:
 
 ```json
 "route_exclude_address": [
@@ -231,7 +263,19 @@ starting TUN:
 ]
 ```
 
-When testing TUN over SSH, add the SSH client IP to `route_exclude_address` and run with a timeout:
+The fixed tailnet ranges are not a complete management-path inventory. Before
+starting TUN over Tailscale, inspect accepted subnet routes, exit-node state,
+MagicDNS, current SSH source, and the physical underlay:
+
+```bash
+tailscale status --json | jq '{Self, Peer}'
+ip rule
+ip route show table 52
+ss -tnp | grep -E '(:22\b|sshd)'
+```
+
+Protect every route used by the current management path. When testing TUN over
+SSH, add the SSH client address if it is not already protected and use a timeout:
 
 ```bash
 timeout 60s sing-box run -c tun-test.json
@@ -244,7 +288,14 @@ packaged systemd template so `CAP_NET_ADMIN` is handled by systemd:
 sudo install -d -m 755 /etc/sing-box
 sudo install -m 600 -o sing-box -g sing-box client-tun.json /etc/sing-box/<name>.json
 sudo sing-box check -c /etc/sing-box/<name>.json
-sudo systemctl enable --now sing-box@<name>.service
+sudo systemctl enable sing-box@<name>.service
+sudo systemctl restart sing-box@<name>.service
+
+for _ in {1..20}; do
+  ip link show singtun0 >/dev/null 2>&1 && break
+  sleep 0.25
+done
+ip -brief addr show singtun0
 ```
 
 TUN validation:
@@ -257,14 +308,30 @@ env -u http_proxy -u https_proxy -u all_proxy -u no_proxy \
   -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u NO_PROXY \
   curl -fsSIL4 --noproxy "*" https://www.google.com | sed -n '1,5p'
 getent ahostsv4 openai.com | head
-getent ahosts stable-mirror.omarchy.org | awk '{print $1}' | sort -u
-getent ahosts pkgs.omarchy.org | awk '{print $1}' | sort -u
-curl -fsSIL --noproxy "*" https://stable-mirror.omarchy.org/core/os/x86_64/core.db | sed -n '1p'
-curl -fsSIL --noproxy "*" https://pkgs.omarchy.org/stable/x86_64/omarchy.db | sed -n '1p'
+resolvectl query --type=AAAA openai.com || true
+curl -6 -m 10 --noproxy "*" https://openai.com || true
+# On Arch-family hosts, repeat the getent/curl check against the actual package
+# mirrors in use to confirm they resolve and fetch IPv4-only, e.g.:
+#   getent ahosts <mirror-host> | awk '{print $1}' | sort -u
+#   curl -fsSIL --noproxy "*" https://<mirror-host>/<db-path> | sed -n '1p'
 ip addr show singtun0
 systemctl is-active sing-box@<name>.service
 systemctl is-enabled sing-box@<name>.service
+ping -n -c 3 1.1.1.1
+
+curl --http3-only -m 25 -fsS -o /dev/null \
+  -w 'http3=%{http_code} remote=%{remote_ip}\n' \
+  --noproxy "*" https://cloudflare-quic.com/
 ```
+
+With `ipv4_only`, `resolvectl query --type=AAAA` should report no RR and
+`curl -6` should fail to resolve. `getent ahostsv6` is not a valid assertion
+because glibc may print IPv4-mapped `::ffff:` addresses even when DNS returned no
+AAAA record.
+
+With selector default `vless-reality-out`, the HTTP/3 request must succeed and
+the journal must show VLESS packet traffic. If curl lacks HTTP/3 support, use
+another UDP-aware client and retain the same log assertion.
 
 If the current SSH path or peer access uses Tailscale, also verify the tailnet
 route after enabling TUN:
@@ -272,22 +339,87 @@ route after enabling TUN:
 ```bash
 ip route get <tailscale-peer-ipv4>
 ip -6 route get <tailscale-peer-ipv6>
+tailscale ping <tailscale-peer-ipv4>
+getent hosts <tailnet-host>.ts.net
+tailscale netcheck
 ```
 
-The healthy Linux shape is `dev tailscale0`. If the route points to the
-sing-box TUN interface, add `100.64.0.0/10` and `fd7a:115c:a1e0::/48` to
-`route_exclude_address`, run `sing-box check`, and restart the service.
+The healthy Linux shape keeps peer routes on `tailscale0`, preserves MagicDNS,
+and leaves every accepted subnet route usable. A successful peer ping alone is
+not enough when subnet routes or an exit node are configured.
+
+Run initial validation with `log.level = info` so the selected outbound is
+visible. Restore `warn` after the route and protocol assertions pass. A
+long-running `info` service logs every connection and can produce tens of
+thousands of journal lines during probes or builds.
 
 Good logs include:
 
 ```text
 inbound/tun[tun-in]: started at singtun0
 dns: exchanged A api.ipify.org
-outbound/vless[...] or outbound/hysteria2[...]
+outbound/vless[...]: outbound connection
+outbound/vless[...]: outbound packet connection
 ```
+
+`UDP is not supported by outbound: proxy` with VLESS selected means the VLESS
+outbound was restricted to `"network": "tcp"`. Remove that restriction, run
+`sing-box check`, restart, and repeat the HTTP/3 test. Do not silently route all
+UDP to HY2 unless the user explicitly asks for protocol-based splitting.
 
 If `curl -I` shows `HTTP/1.1 200 Connection established`, the test is still
 going through an env proxy. Clear proxy env and retest with `--noproxy "*"`.
+
+Repeating `icmp is not supported by default outbound: proxy` means the explicit
+ICMP direct or reject rule is missing. Do not route ICMP to VLESS or HY2.
+
+## Performance Decisions
+
+Keep the upstream TUN stack default. In `v1.13.14`, a build with gVisor defaults
+to the mixed stack: system TCP plus gVisor UDP. Set `stack` only to diagnose a
+reproducible compatibility problem. For a workstation whose physical underlay
+MTU is `1500`, use this conservative baseline:
+
+```json
+{
+  "mtu": 1500,
+  "auto_route": true,
+  "auto_redirect": true,
+  "strict_route": true
+}
+```
+
+Start with the physical underlay MTU, usually `1500`. `auto_redirect` handles
+the main Linux forwarding path, so increasing the virtual TUN MTU is not a
+free throughput upgrade. Test HTTP/3, Docker, Tailscale, packet loss, and the
+same fixed download before keeping a larger value.
+
+HY2 without `up_mbps` / `down_mbps` uses automatic BBR and is the portable
+default. A fixed workstation may use Brutal only after at least three
+same-endpoint runs establish sustainable upload and download rates. Set each
+direction no higher than the lower sustained result, then repeat the test while
+measuring gateway latency. Remove both values when the link changes, becomes
+lossy, or latency under load regresses materially.
+
+Do not apply a generic UDP sysctl block solely because `net.core.rmem_max` looks
+small. Inspect the live sing-box socket and kernel drop counters while HY2 is
+active:
+
+```bash
+ss -u -a -m -p | grep -A2 -B1 sing-box
+nstat -az | grep -E 'Udp(InErrors|RcvbufErrors|SndbufErrors)'
+```
+
+If the sing-box socket already reports receive/send buffers near `16 MiB` and
+the UDP error counters do not increase during a transfer, leave sysctl alone.
+Only when the actual socket remains smaller and the transfer shows buffer
+warnings, drops, or a reproducible throughput ceiling should the host set both
+maxima to `16777216` in a dedicated `/etc/sysctl.d/` file and repeat the test.
+
+Kernel TCP BBR affects the outer VLESS TCP sender; it does not tune HY2's
+userspace QUIC congestion controller. Do not change every client from Cubic as
+a ritual. Verify the active sender, qdisc, and an upload/download comparison
+before retaining a host-level congestion-control change.
 
 ## Old Proxy Cleanup
 
@@ -301,9 +433,12 @@ ps -eo pid,ppid,user,comm,args | grep -Ei 'clash|mihomo' | grep -v grep || true
 ss -lntup | grep -E ':(7890|7891|7892|7893|9090|9097|2080)\b' || true
 ```
 
-Quarantine old daemon state only after TUN is proven. Prefer moving old files
-to a dated root-owned backup first; delete later only when the user explicitly
-asks for irreversible cleanup:
+Quarantine old daemon state only after TUN is proven and each path has been
+traced to the old process or unit. Do not assume every `/opt/clash`,
+`~/.config/sing-box`, or systemd path belongs to the migration. Record the
+source, owner, consumer, backup path, and restore command before moving it.
+
+After that inventory, move only the confirmed old unit and daemon directory:
 
 ```bash
 sudo systemctl disable --now mihomo.service 2>/dev/null || true
@@ -321,14 +456,12 @@ Clean shell hooks and stale user-level configs:
 rg -n -i 'clash|mihomo|watch_proxy|HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|http_proxy|https_proxy|all_proxy' \
   ~/.bashrc ~/.bash_profile ~/.profile ~/.zshrc ~/.zprofile ~/.zshenv /etc/profile /etc/bash.bashrc /etc/zsh/zshrc 2>/dev/null || true
 mkdir -p ~/.local/share/proxy-cleanup
-for old_proxy_path in ~/.config/sing-box ~/.config/clash ~/.config/mihomo ~/.local/share/clash ~/.local/share/mihomo; do
-  [ -e "$old_proxy_path" ] && mv "$old_proxy_path" ~/.local/share/proxy-cleanup/"$(basename "$old_proxy_path").$(date +%Y%m%d-%H%M%S)"
-done
 ```
 
-If stale files under the user's home are root-owned, ask the user to run the
-specific root-owned quarantine command. Do not silently leave old dashboard,
-cache, or subscription configs that can confuse future audits.
+Show the candidate file list and obtain confirmation before moving user-level
+directories. Keep the active sing-box client config. If stale files under the
+user's home are root-owned, ask the user to run the specific root-owned
+quarantine command.
 
 ## Linux Recommendation
 
@@ -338,6 +471,8 @@ Default Linux self-use mode:
 systemd sing-box TUN service
 no persistent proxy env exports
 selector default vless-reality-out
+VLESS carries both TCP and UDP
+HY2 remains a manually selected high-speed fallback
 ```
 
 Default selector:
@@ -346,4 +481,5 @@ Default selector:
 "default": "vless-reality-out"
 ```
 
-Use HY2 only when UDP is clean and local tests prove it is faster. On hotspot or lossy paths, REALITY is usually more stable.
+Use HY2 when UDP is clean and a same-path comparison proves it is better. On a
+hotspot or lossy path, keep REALITY as the stable default.

@@ -2,6 +2,6 @@ interface:
   display_name: "sing-box REALITY HY2"
   short_description: "部署 REALITY+HY2 窄栈，Linux 客户端收敛到系统级 TUN"
   default_prompt: >-
-    使用 $sing-box-reality-hy2 部署或修复 VLESS REALITY + HY2 窄栈：先服务器，
-    再 Linux mixed 烟测和 systemd TUN，最后其他平台客户端和测速。按验收标准
-    逐项核对，缺输入只问阻塞项。
+    使用 $sing-box-reality-hy2 处理 VLESS REALITY + HY2 窄栈。先识别用户点名的
+    服务器、Linux TUN、其他平台客户端或测试请求面，只读对应 reference 并应用
+    该请求面的验收标准。完整 rollout 才执行全部顺序，缺输入只问阻塞项。

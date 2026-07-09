@@ -30,21 +30,15 @@ server repair planning, use the `surge` skill.
 Policy shape:
 
 ```ini
-vps-1-hy2 = hysteria2, vps-1.example.com, 443, password=<HY2_PASSWORD>, sni=vps-1.example.com, download-bandwidth=600
+vps-1-hy2 = hysteria2, vps-1.example.com, 443, password=<HY2_PASSWORD>, sni=vps-1.example.com
 ```
 
 Do not print the password. Redact it in chat and logs.
 
-`download-bandwidth` lessons:
-
-```text
-100   caps near 100 Mbps
-500   reasonable for current hotspot class links
-600   current balanced value after tests
-1000  can overdrive lossy hotspot paths
-```
-
-For this user, use `600` unless a fresh Speedtest proves another value is better.
+`download-bandwidth` is optional in Surge and measured in Mbps. Omit it when
+there is no measurement. When setting it, use a sustainable value measured on
+the current client network with at least three same-endpoint runs; never copy a
+value from another hotspot or VPS.
 
 ## surge.conf Integration
 
@@ -56,11 +50,10 @@ skip-proxy = ..., 100.64.0.0/10, 203.0.113.10
 tun-excluded-routes = 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12
 
 [Proxy]
-vps-1 = snell, 203.0.113.10, 14180, psk=<redacted>, version=6, block-quic=on
-vps-1-hy2 = hysteria2, vps-1.example.com, 443, password=<redacted>, sni=vps-1.example.com, download-bandwidth=600
+vps-1-hy2 = hysteria2, vps-1.example.com, 443, password=<redacted>, sni=vps-1.example.com
 
 [Proxy Group]
-PROXY = select, vps-1-hy2, vps-1
+PROXY = select, vps-1-hy2
 
 [Rule]
 IP-CIDR,203.0.113.10/32,DIRECT,no-resolve
@@ -74,6 +67,11 @@ PROCESS-NAME,Tailscale,DIRECT
 [Host]
 *.ts.net = server:100.100.100.100
 ```
+
+Only when a working Snell policy already exists and the user asks to retain it,
+append that existing policy to `[Proxy]` and the group. Preserve its actual
+port, version, and options instead of generating new Snell defaults. Snell
+health and repair remain owned by the `surge` skill.
 
 Do not copy Linux sing-box Tailscale exclusions into Surge
 `tun-excluded-routes`. On macOS Surge, keep ordinary LAN ranges excluded from

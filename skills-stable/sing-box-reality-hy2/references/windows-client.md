@@ -20,9 +20,12 @@ Use the Linux mixed config as the source of truth:
 - VLESS TLS `server_name` is `REALITY_SNI`.
 - VLESS REALITY uses `public_key` and `short_id`.
 - Include `tls.utls` with Chrome fingerprint.
+- Omit VLESS `network`; `v1.13.14` enables TCP and UDP by default.
 - HY2 dials `SERVER_IP`.
 - HY2 TLS `server_name` is `HY2_DOMAIN`.
+- Omit HY2 `up_mbps` / `down_mbps` by default.
 - Keep selector default as `vless-reality-out`.
+- Keep `direct` outside the selector and reserve it for explicit rules.
 
 Mixed mode is also the safest Tailscale-compatible default on Windows because
 it does not install system routes or compete with the Tailscale adapter.
