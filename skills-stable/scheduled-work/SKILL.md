@@ -1,17 +1,17 @@
 ---
 name: scheduled-work
-description: "Set up scheduled agent work where the agent itself runs each check and nothing is deployed: do something later, keep checking until something changes, or follow up periodically. Use when the user asks to schedule, loop, keep watching, verify each run, or be reminded later. Not for deploying durable monitoring infrastructure — that is end-to-end-monitoring."
+description: "Set up scheduled agent work where the agent itself runs each check and nothing is deployed: do something later, keep checking until something changes, watch for something to finish and report it, or follow up periodically. Use when the user asks to schedule, loop, keep watching, or be reminded later — decide the scheduling shape first, then create it with the harness's own scheduling mechanism. Not for deploying durable monitoring infrastructure — that is end-to-end-monitoring."
 metadata:
-  version: "4"
+  version: "5"
 ---
 
 # Scheduled Work
 
-用户说「盯着这个」「每天查一次」「到点提醒我」时，用这个 skill 决定调度形态并创建它。执行每次运行的是 agent 本人。要交付无人值守的常驻监控链路，如 collector、探针和告警后端，用 `$end-to-end-monitoring`。运行结果要推送到聊天之外时，用 `$brrr-now` 发送。
+决定调度形态并创建它，执行每次运行的是 agent 本人。要交付无人值守的常驻监控链路，如 collector、探针和告警后端，用 `$end-to-end-monitoring`。运行结果要推送到聊天之外时，用 `$brrr-now` 发送。
 
 ## 核心决策
 
-听起来是一个功能，实际是两种工作。每种 harness 的调度原语都分两类：一类每次运行都开全新线程，Codex 叫 Scheduled Task，Claude Code 用 CronCreate。另一类每次都回到同一个线程，Codex 叫 Scheduled Message，Claude Code 用 ScheduleWakeup。先决定要全新线程还是同一线程，再找当前 harness 的对应原语，Codex 里两类都通过 `automation_update` 创建。
+听起来是一个功能，实际是两种工作。每种 harness 的调度原语都分两类：一类每次运行都开全新线程，一类每次都回到同一个线程。先用下面的判断选形态、写好 prompt，再交给当前 harness 自带的调度机制创建。找机制看本机的工具和内建 skill 清单，不要按记忆里的名字找：描述里写「新会话」「cloud agent」「routine」「cron」的归全新线程类，写「唤醒当前线程」「回到本会话」「loop」的归同一线程类。截至 2026-07，Claude Code 的两类入口是内建 skill `schedule` 和 `loop`，Codex 是 Scheduled Task 和 Scheduled Message，与本机清单冲突时以清单为准。
 
 选全新线程，当每次运行脱离创建它的对话也说得通：任务能写成自包含指令，所需状态都在可重新获取的地方，比如文件、URL、ticket 和 API。「每天早上九点汇总我该跟进的邮件、日历和团队消息」就是这类：明天的汇总不需要记得今天的汇总，只需要同一份指令、当天的信息和一个新的汇报位置。
 
@@ -33,17 +33,19 @@ metadata:
 
 写一份耐久的 prompt：以后的某次运行读到它，仍然说得通。
 
-全新线程的 prompt 自包含：
+全新线程的 prompt 自包含，汇报去向必须显式，脱离原对话的运行推断不出它：
 
 ```text
-Every run, start fresh. Read [sources]. Check [condition]. Report only if [threshold].
+Every run, start fresh. Read [sources]. Check [condition].
+Report to [destination] only if [threshold].
 Stop when [condition]. Ask the user only if [input condition].
 ```
 
 同一线程的 prompt 面向延续：
 
 ```text
-Continue this thread's active loop. Re-read [durable state]. Preserve the current gate/goal.
+Continue this thread's active loop. Re-read [durable state].
+Preserve the loop's goal and stop condition.
 Check [condition]. Report only if [threshold]. Stop when [condition].
 Ask the user only if [input condition].
 ```
