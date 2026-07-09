@@ -43,7 +43,9 @@ Source checkouts can have different merge rules. Do not infer one checkout's pol
 
 - This source checkout is the user's personal skill source. Direct `main` updates are allowed unless the user asks for a branch, PR, or separate commit shape.
 - `_jihuanshe-skills/` is a separate nested source repo. Follow its own `AGENTS.md`: do not commit or push directly to `main`; use a branch and PR for mergeable work.
-- Before starting new work in a source checkout, if the worktree is clean or can be safely paused, switch to `main` and pull the upstream state first. If the worktree has uncommitted work, do not force a branch switch; inspect the state and preserve the work.
+- Before starting new work in a source checkout, if the worktree is clean or can be safely paused, switch to `main` and pull the upstream state first. If the worktree has uncommitted work, do not force a branch switch; inspect the state and preserve the work, or leave it untouched and start from a fresh git worktree.
+- Multiple agent sessions may work in a checkout concurrently. When the worktree is dirty with changes you did not make, or your work needs a branch switch that would move files under another session, create a git worktree instead of switching branches in place: `git worktree add ../skills-worktrees/<topic> -b <branch>`. Remove it after the branch lands (`git worktree remove <path>`).
+- Place worktrees outside every skillshare source checkout; a worktree created inside one would be scanned as skill directories. `skillshare` syncs the configured `source.path` checkout, not your cwd, so worktree edits reach synced targets only after they land in the primary checkout. A worktree of this repo also lacks the gitignored nested checkouts (`_<source>-skills/`); read those through the primary checkout.
 - After a PR is squash-merged upstream, treat the local feature branch as stale. Switch to `main`, pull, and branch again before continuing related work. Do not stack new edits on an old branch whose commits no longer match upstream history.
 
 ## Working on Skillshare extras
