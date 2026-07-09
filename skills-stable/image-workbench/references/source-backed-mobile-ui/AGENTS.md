@@ -10,6 +10,6 @@ uv run --script case.py
 ```
 
 The script creates a deterministic portrait fixture under `/tmp`, prints the
-recommended `annotate-image` command, and explains the expected `1024x1536`
-output geometry. It does not call the OpenAI API unless you pass `--run-cli` and
+recommended `annotate-image` command, and explains the expected ratio-preserving
+output geometry (`976x1616` for the 768x1280 fixture). It does not call the OpenAI API unless you pass `--run-cli` and
 provide credentials in the environment.

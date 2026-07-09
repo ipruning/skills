@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import base64
 import json
+import math
 import mimetypes
 import re
 from enum import StrEnum
@@ -53,7 +54,11 @@ SIZE_PATTERN = re.compile(r"^(?P<width>[1-9][0-9]*)x(?P<height>[1-9][0-9]*)$")
 ALLOWED_BACKGROUNDS = {"auto", "opaque"}
 
 app = typer.Typer(
-    help="General image generation workbench",
+    help=(
+        "General image generation workbench. Relative --image/--out paths resolve "
+        "against the nearest ancestor directory containing .git or pyproject.toml, "
+        "falling back to the current directory."
+    ),
     no_args_is_help=True,
 )
 
@@ -299,7 +304,11 @@ def read_prompt(value: str | Path) -> str:
         # Built-in prompt templates are passed as Path; a missing one is a
         # broken install, not literal prompt text.
         fail(f"built-in prompt template is missing: {value}")
-    return str(value)
+    text = str(value)
+    if text.endswith((".txt", ".md")):
+        # A mistyped template path must not become a billed literal prompt.
+        fail(f"--prompt looks like a prompt file path but no such file exists: {text}")
+    return text
 
 
 def image_data_url(path: str) -> str:
@@ -646,6 +655,24 @@ def image_info(path: str) -> ImageInfo:
         fail(f"Could not read image metadata for {resolved}: {exc}")
 
 
+MATCH_INPUT_TARGET_PIXELS = 1_572_864  # same canvas budget as the fixed 1536x1024 preset
+
+
+def snap_match_input(width: int, height: int) -> str:
+    # match-input must preserve the input ratio instead of requantizing it into
+    # landscape/portrait/square buckets; gpt-image-2 accepts custom sizes in 16px steps.
+    ratio = width / height
+    raw_height = math.sqrt(MATCH_INPUT_TARGET_PIXELS / ratio)
+    out_width = max(16, round(raw_height * ratio / 16) * 16)
+    out_height = max(16, round(raw_height / 16) * 16)
+    # 16px rounding can nudge the ratio past the 3:1 API limit at the extremes.
+    while out_width > out_height * 3:
+        out_width -= 16
+    while out_height > out_width * 3:
+        out_height -= 16
+    return f"{out_width}x{out_height}"
+
+
 def resolve_size(
     *,
     size: str | None,
@@ -686,11 +713,7 @@ def resolve_size(
         fail(
             f"The first input image is {width}x{height} ({ratio:.2f}:1). gpt-image-2 cannot preserve that extreme ratio directly; crop, slice, or compose the long page outside the raster image."
         )
-    if ratio >= 1.2:
-        return "1536x1024", policy.value
-    if ratio <= 0.83:
-        return "1024x1536", policy.value
-    return "1024x1024", policy.value
+    return snap_match_input(width, height), policy.value
 
 
 def resolve_detail(detail: ImageDetail | None, reference_images: list[str] | None) -> str:
@@ -906,11 +929,14 @@ def call_response_image(
 @app.command("response-image", help="Generate or edit via Responses API image_generation")
 def response_image(
     prompt: Annotated[str, typer.Option("--prompt", help="Prompt text or prompt file")],
-    out: Annotated[str, typer.Option("--out")],
+    out: Annotated[str, typer.Option("--out", help="Output image path")],
     image: Annotated[
         list[str] | None, typer.Option("--image", help="Reference image path; pass once per image")
     ] = None,
-    previous_response_id: Annotated[str | None, typer.Option("--previous-response-id")] = None,
+    previous_response_id: Annotated[
+        str | None,
+        typer.Option("--previous-response-id", help="Continue a prior Responses API turn from its response_id"),
+    ] = None,
     aspect_policy: Annotated[
         AspectPolicy | None,
         typer.Option(
@@ -935,13 +961,18 @@ def response_image(
             "--action", help="Required: edit source pixels, generate new pixels, or auto when deliberately delegating"
         ),
     ] = None,
-    detail: Annotated[ImageDetail | None, typer.Option("--detail")] = None,
+    detail: Annotated[
+        ImageDetail | None,
+        typer.Option("--detail", help="Required for reference images; recommended: high"),
+    ] = None,
     background: Annotated[
         str | None,
         typer.Option("--background", help="Required: auto or opaque. Transparent is rejected for gpt-image-2."),
     ] = None,
     mask: Annotated[str | None, typer.Option("--mask", help="Image mask for edit operations")] = None,
-    moderation: Annotated[Moderation | None, typer.Option("--moderation")] = None,
+    moderation: Annotated[
+        Moderation | None, typer.Option("--moderation", help="Moderation strictness passed to the API")
+    ] = None,
     output_compression: Annotated[
         int | None,
         typer.Option("--output-compression", min=0, max=100, help="Required with jpeg or webp; rejected with png"),
@@ -951,7 +982,7 @@ def response_image(
         int | None,
         typer.Option("--partial-images", min=0, max=3, help="Enable streaming and save partial image frames"),
     ] = None,
-    timeout: Annotated[float, typer.Option("--timeout")] = 1200,
+    timeout: Annotated[float, typer.Option("--timeout", help="API request timeout in seconds")] = 1200,
 ) -> None:
     resolved_size, resolved_aspect_policy = resolve_size(size=size, aspect_policy=aspect_policy, reference_images=image)
     resolved_quality = require_choice(
@@ -1030,7 +1061,7 @@ def annotate_image(
         int | None,
         typer.Option("--output-compression", min=0, max=100, help="Required with jpeg or webp; rejected with png"),
     ] = None,
-    timeout: Annotated[float, typer.Option("--timeout")] = 1200,
+    timeout: Annotated[float, typer.Option("--timeout", help="API request timeout in seconds")] = 1200,
 ) -> None:
     resolved_size, resolved_aspect_policy = resolve_size(size=size, aspect_policy=aspect_policy, reference_images=image)
     resolved_quality = require_choice(
@@ -1105,7 +1136,7 @@ def repair_image(
         int | None,
         typer.Option("--output-compression", min=0, max=100, help="Required with jpeg or webp; rejected with png"),
     ] = None,
-    timeout: Annotated[float, typer.Option("--timeout")] = 1200,
+    timeout: Annotated[float, typer.Option("--timeout", help="API request timeout in seconds")] = 1200,
 ) -> None:
     resolved_size, resolved_aspect_policy = resolve_size(size=size, aspect_policy=aspect_policy, reference_images=image)
     resolved_quality = require_choice(
@@ -1165,7 +1196,7 @@ def diagnose_image(
     prompt: Annotated[str | None, typer.Option("--prompt", help="Override the default diagnosis prompt")] = None,
     json_output: Annotated[bool, typer.Option("--json", help="Print result metadata as JSON")] = False,
     detail: Annotated[ImageDetail | None, typer.Option("--detail", help="Required: high, auto, or low")] = None,
-    timeout: Annotated[float, typer.Option("--timeout")] = 1200,
+    timeout: Annotated[float, typer.Option("--timeout", help="API request timeout in seconds")] = 1200,
 ) -> None:
     require_key()
     criteria_text = read_prompt(criteria)
@@ -1259,7 +1290,7 @@ def image_generate(
     moderation: Annotated[Moderation | None, typer.Option("--moderation")] = None,
     n: Annotated[int, typer.Option("--n", min=1, max=10)] = 1,
     json_output: Annotated[bool, typer.Option("--json", help="Print result metadata as JSON")] = False,
-    timeout: Annotated[float, typer.Option("--timeout")] = 1200,
+    timeout: Annotated[float, typer.Option("--timeout", help="API request timeout in seconds")] = 1200,
 ) -> None:
     resolved_size, resolved_aspect_policy = resolve_size(size=size, aspect_policy=aspect_policy, reference_images=None)
     resolved_quality = require_choice(
@@ -1358,7 +1389,7 @@ def image_edit(
     moderation: Annotated[Moderation | None, typer.Option("--moderation")] = None,
     n: Annotated[int, typer.Option("--n", min=1, max=10)] = 1,
     json_output: Annotated[bool, typer.Option("--json", help="Print result metadata as JSON")] = False,
-    timeout: Annotated[float, typer.Option("--timeout")] = 1200,
+    timeout: Annotated[float, typer.Option("--timeout", help="API request timeout in seconds")] = 1200,
 ) -> None:
     resolved_size, resolved_aspect_policy = resolve_size(size=size, aspect_policy=aspect_policy, reference_images=image)
     resolved_quality = require_choice(

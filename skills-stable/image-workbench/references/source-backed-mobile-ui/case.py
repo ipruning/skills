@@ -81,7 +81,7 @@ def main() -> None:
     draw_fixture(SOURCE)
     print(f"source={SOURCE}")
     print("expected_aspect_policy=match-input")
-    print("expected_resolved_size=1024x1536")
+    print("expected_resolved_size=976x1616")
     print("command=" + " ".join(command()))
 
     if not args.run_cli:

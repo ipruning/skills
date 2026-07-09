@@ -7,6 +7,7 @@
 # ///
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -63,7 +64,9 @@ def command() -> list[str]:
 
 def main() -> None:
     draw_fixture(SOURCE)
-    completed = subprocess.run(command(), check=False, text=True, capture_output=True)
+    # This regression case must never spend money, even if the guardrail regresses.
+    env = {k: v for k, v in os.environ.items() if k not in {"OPENAI_API_KEY", "PYDANTIC_AI_GATEWAY_API_KEY"}}
+    completed = subprocess.run(command(), check=False, text=True, capture_output=True, env=env)
     print(f"source={SOURCE}")
     print(f"status={completed.returncode}")
     if completed.stdout:
