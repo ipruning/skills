@@ -2,12 +2,12 @@
 name: things
 description: "Read-only local macOS Things queries and summaries when the user asks about their Things tasks, Today list, Inbox, projects, tags, completed or logbook history, or task search. Read-only, never writes."
 metadata:
-  version: "2"
+  version: "3"
 ---
 
 # Things
 
-只读地查本机 macOS Things，把用户的口语问题翻成一次 `things_query.py` 查询，不写入。用户要改 Things 就说明这是只读工具，问要不要换一个单独的、经批准的写入方式。
+把用户的口语问题翻成一次 `things_query.py` 查询。用户要改 Things，说明这是只读工具，问他要不要另开一个写入动作，得到明确同意后再走这个 skill 之外的写入方式，不在这里替他改。
 
 入口是 `scripts/things_query.py`，通过 `uv run --script` 跑，路径按这个 skill 目录的绝对路径解析。collection、filter、flag 的权威清单是 `--help`。
 
@@ -28,10 +28,12 @@ uv run --script "$SKILL_DIR/scripts/things_query.py" --help
 | 有 deadline 的、快到期 | `--collection deadlines` |
 | 找关于 X 的任务 | `--collection todos --search X` |
 | X 这事办完没、这周做完了啥 | `--collection completed --search X` |
+| 翻旧账、历史归档流水 | `--collection logbook` |
 | 某个项目或 tag 下的 | `--collection projects` 或 `--collection tags` |
+| 接下来排期、明天要做的 | `--collection upcoming` |
 | 最近加的、这周新增 | `--collection todos --last 1w` |
 
-这张表是常见映射，不是全集。翻不准或用户问了别的，跑 `--help` 看还有哪些 collection 和 filter，比如按状态筛的 `--status`、限量的 `--limit`。用户说「today」「明天」「昨天」这类相对日子时，先跑 `date '+%Y-%m-%d %H:%M:%S %Z %z'` 确认本机日期和时区。Things Today 是预测视图，不是简单的 `start_date == 今天`，语义细节看 reference。
+这张表是常见映射，不是全集。翻不准或用户问了别的，跑 `--help` 看还有哪些 collection 和 filter，比如按状态筛的 `--status`、限量的 `--limit`、带 UUID 的 `--include-uuid`。用户说「today」「明天」「昨天」这类相对日子时，先跑 `date '+%Y-%m-%d %H:%M:%S %Z %z'` 确认本机日期和时区。本工具按 collection 取，没有任意某一天的精确过滤，「明天」落到 `upcoming`，「昨天完成的」落到 `completed`。Things Today 是预测视图，不是简单的 `start_date == 今天`，语义细节看 reference。
 
 ## 输出纪律
 
