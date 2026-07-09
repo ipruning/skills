@@ -157,8 +157,6 @@ A host monitoring delivery is only fully verified when:
 1. Collector service is running on the target host.
 2. Metrics appear in Logfire with the expected host identity.
 3. CPU / memory / disk / network are visible in dashboard or query.
-4. If freshness alert is part of the contract, the absence rule exists.
-5. The alert has evaluated without errors after creation or update.
-6. If notification is part of the contract, the intended alert rule produced a safe match and the real responder confirmed receipt. A generic channel test alone is not enough.
+4. If freshness alerting or notification is part of the contract, walk the alert-to-responder steps of the verification checklist in [`logfire.md`](logfire.md), or the selected backend's equivalent.
 
 If only metrics appear but alert/channel is not verified, report "host metrics signal path verified; notification path not verified".

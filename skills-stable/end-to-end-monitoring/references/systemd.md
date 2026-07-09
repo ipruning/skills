@@ -34,8 +34,6 @@ acme-orders-probe.timer
 hostmetrics-logfire-collector.service
 ```
 
-Avoid `agent` unless the program really has autonomous decision/action behavior.
-
 ## Secrets
 
 Do not put tokens in unit files or command-line arguments. Prefer:
@@ -58,7 +56,7 @@ Use these rules when rotating a secret:
 
 For SSH automation, pass the secret over stdin or a secret manager when that
 fits the available transport. Do not let secret-hiding mechanics prevent an
-authorized rotation from completing; protect the durable boundary and verify the
+authorized rotation from completing; protect the secrets boundary and verify the
 runtime.
 
 ## Hardening

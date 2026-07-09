@@ -10,7 +10,7 @@
 receivers:
   hostmetrics:
     # 60s to start; 300s for fleets of >=5 hosts or per-datapoint billing.
-    # Keep freshness alerts at >=3x this interval. See references/host-monitoring.md "Cadence And Cost".
+    # Keep freshness alerts at >=3x this interval. See ../host-monitoring.md "Cadence And Cost".
     collection_interval: 60s
     scrapers:
       cpu:

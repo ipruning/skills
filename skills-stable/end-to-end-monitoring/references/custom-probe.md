@@ -29,7 +29,7 @@ subject.id=<domain-subject-id>
 deployment.environment.name=<production|staging|development|test>
 ```
 
-Create a dedicated write token when the probe has a different revoke boundary from hostmetrics or app telemetry.
+Create a dedicated write token when the probe has a different revocation boundary from hostmetrics or app telemetry.
 
 Use one source of truth for identity. The probe should read identity from environment or platform metadata, set the dotted OpenTelemetry resource attributes above, and only mirror those values into the event body for human readability. Alert filters should use the resource attributes, not body mirrors, unless the backend cannot query resource attributes.
 
@@ -100,6 +100,8 @@ semantic alert:
 freshness alert:
   no probe record for monitor.id within the allowed window.
   start the window at 2x the probe cadence; cap it at cadence + repair window.
+  a cap below 2x cadence means the cadence is too slow for the promise:
+  shorten the cadence or declare the contract unsatisfiable at that cadence.
 ```
 
 If the probe exits nonzero after emitting an error record, systemd can show local failure. The backend alert is still the source of notification truth.
@@ -118,6 +120,6 @@ If the probe exits nonzero after emitting an error record, systemd can show loca
 3. Verify the semantic alert matches a `status` or domain-condition failure.
 4. Verify the freshness alert matches when the expected record is absent.
 5. Trigger a safe test failure if possible.
-6. Confirm the intended alert rule reaches the notification channel and real responder.
+6. Walk the alert-to-responder steps of the verification checklist in [`logfire.md`](logfire.md), or the selected backend's equivalent.
 
 A probe that runs locally but has no backend record is not delivered. A probe with backend records but no alert/channel test is only a signal path, not a verified notification system.
