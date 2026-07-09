@@ -85,7 +85,7 @@ Treat these as management ports:
 - monitoring dashboards
 - container registries
 
-Expose a management port publicly only when the user confirms the public client set. Otherwise bind it to localhost, put it behind a reverse proxy with authentication, or restrict it by VPN/source range.
+Expose a management port publicly only when the user confirms the public client set. Otherwise bind it to localhost, put it behind a reverse proxy with authentication, or restrict it by VPN/source range. Closing an already-exposed management port follows the Port And Rule Match rules in [firewall.md](firewall.md).
 
 ## Docker Group Risk
 

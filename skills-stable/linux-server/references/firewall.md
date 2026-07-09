@@ -36,7 +36,7 @@ Use one firewall manager per host.
 - If nftables is already configured and persistent, continue with nftables.
 - If UFW is already in use, manage rules through UFW.
 - Do not install UFW on a host that already has a clear nftables policy unless the user explicitly wants migration.
-- If Docker is present, inspect Docker rules and published ports before trusting UFW output.
+- If Docker is present, inspect Docker rules and published ports per [containers.md](containers.md) before trusting UFW output.
 
 ## Small VPS With UFW
 
@@ -111,12 +111,12 @@ table inet filter {
 
 ## Rollback For Risky Rule Changes
 
-Schedule rollback before replacing nftables rules over SSH.
+Schedule rollback before replacing nftables rules over SSH. `nft -f` applies incrementally: both the backup and the candidate rules file must start with `flush ruleset` (Debian's `/etc/nftables.conf` does), or the load merges into the current ruleset instead of replacing it.
 
 Runtime impact: creates a transient `nft-rollback` systemd unit and timer until it fires or is stopped.
 
 ```bash
-nft list ruleset > /tmp/nft-backup.conf
+{ printf 'flush ruleset\n'; nft list ruleset; } > /tmp/nft-backup.conf
 nft -c -f /path/to/new-rules.conf
 systemd-run --on-active=120 --unit=nft-rollback nft -f /tmp/nft-backup.conf
 systemctl list-timers --no-pager 'nft-rollback*'
@@ -146,7 +146,9 @@ Record one explanation for every allow rule:
 
 Every public listener must have a matching allow path unless the user confirms it is intentionally blocked at the OS firewall or there is a verified provider firewall rule for it.
 
-Flag open management surfaces such as dashboards, `x-ui`, nginx-proxy-manager admin ports, database admin ports, or Docker-published admin ports. Close them only when the current user request explicitly includes removal or the user confirms the closure.
+Flag open management surfaces (the management-port list lives in [containers.md](containers.md)). Close them only when the current user request explicitly includes removal or the user confirms the closure.
+
+On a public web host, keep 80 and 443 only while a listener or a service planned in the current task needs them; panels and admin UIs count as management ports, not public services.
 
 ## UDP
 

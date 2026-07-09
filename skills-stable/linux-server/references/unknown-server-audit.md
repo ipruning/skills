@@ -63,7 +63,7 @@ done
 Read effective SSH config:
 
 ```bash
-sshd -T | awk '$1 ~ /^(port|listenaddress|permitrootlogin|passwordauthentication|pubkeyauthentication|kbdinteractiveauthentication|allowusers|allowgroups|authenticationmethods|permituserrc|x11forwarding|maxauthtries)$/ { print }'
+sshd -T | awk '$1 ~ /^(port|listenaddress|permitrootlogin|passwordauthentication|kbdinteractiveauthentication|pubkeyauthentication|maxauthtries|maxsessions|logingracetime|allowusers|allowgroups|authenticationmethods|permituserrc|x11forwarding)$/ { print }'
 grep -i '^Match' /etc/ssh/sshd_config /etc/ssh/sshd_config.d/*.conf 2>/dev/null
 sshd -T -C user=root,addr=0.0.0.0,host= | awk '$1 ~ /^(permitrootlogin|passwordauthentication|permituserrc)$/ { print }'
 ls -la /etc/ssh/sshd_config.d/ 2>/dev/null
@@ -72,8 +72,7 @@ ls -la /etc/ssh/sshd_config.d/ 2>/dev/null
 ## Network Exposure
 
 ```bash
-ss -tlnp
-ss -ulnp
+ss -tulpen
 ip addr
 ip route
 ip -6 addr

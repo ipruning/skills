@@ -1,13 +1,13 @@
 ---
 name: linux-server
-description: "Operate Debian/Ubuntu servers over SSH: setup, hardening, audits, firewall and container port exposure, package maintenance, swap, and proxy/VPN server tuning. Not for macOS network problems — that is the surge skill. Snell evidence audits belong to surge; this skill executes the repairs surge plans. The REALITY+HY2 stack has its own skill, sing-box-reality-hy2."
+description: "Operate Linux servers over SSH, deepest on Debian/Ubuntu (apt, ufw) with distro-independent safety rules: setup, hardening, intrusion triage and audits of unclear or possibly compromised hosts, firewall and container port exposure, package maintenance, swap, and proxy/VPN server setup and tuning including Snell deploy/repair. Not for macOS network problems — that is the surge skill. Snell evidence audits belong to surge; this skill executes the repairs that surge plans. The REALITY+HY2 stack has its own skill, sing-box-reality-hy2."
 metadata:
-  version: "2"
+  version: "3"
 ---
 
 # Linux Server
 
-主机角色、风险状态和任务模式决定读什么证据、允许改什么状态。只在会改变这些决定时做分类。
+主机角色和任务模式决定读什么证据、允许改什么状态。只在会改变这些决定时做分类。
 
 ## 保命规则
 
@@ -45,15 +45,14 @@ ip6tables -S 2>/dev/null
 
 ## 任务模式
 
-- 维护窗口：noninteractive 命令用 `apt-get` 不用 `apt`，改包之前查磁盘、失败单元、listener、apt 模拟和重启需求。看 [references/maintenance.md](references/maintenance.md)。
+- 维护窗口：脚本里用 `apt-get` 不用 `apt`，apt 不保证脚本接口稳定。改包之前查磁盘、失败单元、listener、apt 模拟和重启需求。看 [references/maintenance.md](references/maintenance.md)。
 - Swap：改之前查 RAM、现有 swap 设备、根盘空间和 `/etc/fstab`，扩容优先沿用现有路径，用户明确要多设备才建第二块。看 [references/swap.md](references/swap.md)。
-- 性能调优：先有可测量的目标再写 sysctl，不往普通的 SSH 或防火墙变更里塞抄来的调优清单，用户没要求就不动 SSH 算法。看 [references/performance-tuning.md](references/performance-tuning.md)。
+- 性能调优：机器变慢先量化瓶颈，有可测量的目标再写 sysctl，不往普通的 SSH 或防火墙变更里塞抄来的调优清单，用户没要求就不动 SSH 算法。看 [references/performance-tuning.md](references/performance-tuning.md)。
 
-## 改文件六步
+## 改文件五步
 
-1. 一两句话总结计划的变更。
-2. 备份要改的那个文件。
-3. 能验证就先验证语法：`sshd -t`、`nft -c -f`、`systemd-analyze verify`。
-4. 服务支持 reload 且语法通过时，用 reload 不用 restart。
-5. SSH 或防火墙变更后，开一条全新连接确认可达。
-6. 重读 runtime 状态，报告实际生效的设置。
+1. 备份要改的那个文件。
+2. 能验证就先验证语法：`sshd -t`、`nft -c -f`、`systemd-analyze verify`。
+3. 服务支持 reload 且语法通过时，用 reload 不用 restart。
+4. SSH 或防火墙变更后，开一条全新连接确认可达。
+5. 重读 runtime 状态，报告实际生效的设置。

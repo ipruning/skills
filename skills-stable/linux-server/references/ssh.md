@@ -27,7 +27,7 @@ Match blocks can override global settings. Check them before concluding that a g
 
 ## Single-Owner VPS
 
-On personal VPS and proxy nodes, keep this shape:
+On single-owner VPS and proxy nodes, keep this shape:
 
 ```text
 PubkeyAuthentication yes
@@ -68,9 +68,7 @@ Use host-specific rules or `ssh -i` when debugging. Do not lower `MaxAuthTries` 
 
 ## Change SSH Config
 
-Write an override file rather than editing packaged defaults:
-
-Read existing drop-ins before writing:
+Write an override file rather than editing packaged defaults. Read existing drop-ins before writing:
 
 ```bash
 ls -la /etc/ssh/sshd_config.d/
@@ -129,8 +127,9 @@ Persistent impact: changes the local password hash for `<ADMIN_USER>` until anot
 read -r -s ADMIN_PASSWORD
 printf '%s:%s\n' '<ADMIN_USER>' "$ADMIN_PASSWORD" | chpasswd
 unset ADMIN_PASSWORD
-passwd -e <ADMIN_USER>
 ```
+
+Expire the password with `passwd -e` only when it is a temporary handoff the user will replace at first interactive login; an expired password can block PAM's account check for sudo before that login happens.
 
 Only after verification add:
 
@@ -143,12 +142,12 @@ If `AllowUsers` is set, add every intended admin before reloading. Diagnosis for
 
 ## SSH Settings That Need A Reason
 
-Do not add these to a personal VPS unless the condition is true:
+Do not add these to a single-owner VPS unless the condition is true:
 
 - `X11Forwarding no`: set when SSH X11 forwarding is not in use.
 - `PermitUserRC no`: disables `~/.ssh/rc`, which can be a persistence path.
 - `AllowUsers` / `AllowGroups`: add for team or compliance models after the complete intended user list is known.
-- SSH `KexAlgorithms`, `Ciphers`, and `MACs`: leave unchanged unless the user explicitly asks for crypto policy. Algorithm lists can break older clients and are not required for ordinary VPS security.
+- SSH `KexAlgorithms`, `Ciphers`, and `MACs`: leave unchanged unless the user explicitly asks for crypto policy; verification commands are in [performance-tuning.md](performance-tuning.md). Algorithm lists can break older clients and are not required for ordinary VPS security.
 
 ## Anti-Brute-Force
 

@@ -27,7 +27,7 @@ Swap prevents abrupt OOM kills; it is not a performance substitute for RAM.
 
 ## Resize Existing Swap File
 
-Only resize when there is enough free disk and current memory pressure allows `swapoff`.
+Only resize when there is enough free disk and current memory pressure allows `swapoff`. Do not back up the swap file's contents: after `swapoff` they are dead pages, the copy can fill a small root disk, and the rollback path is simply recreating the file. What must survive is the `/etc/fstab` line.
 
 Persistent impact: recreates the swap file at the existing path and keeps existing `/etc/fstab` behavior when the path is already listed there.
 
@@ -44,7 +44,6 @@ SWAP_PATH=<SWAP_PATH>
 SIZE_MIB=<SIZE_GIB_TIMES_1024>
 grep -q "^[^#].*[[:space:]]${SWAP_PATH}[[:space:]]" /etc/fstab
 swapoff "$SWAP_PATH"
-cp -a "$SWAP_PATH" "$SWAP_PATH.bak.$(date +%Y%m%d%H%M%S)"
 if ! fallocate -l "${SIZE_MIB}M" "$SWAP_PATH" 2>/dev/null; then
   dd if=/dev/zero of="$SWAP_PATH" bs=1M count="$SIZE_MIB" status=none
 fi

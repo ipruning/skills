@@ -23,7 +23,9 @@ Container or app host:
 
 ## Snell Service
 
-Use a dedicated service user and a small unit:
+Get `snell-server` from the official zip, `https://dl.nssurge.com/snell/snell-server-v<VERSION>-linux-<ARCH>.zip`; current versions and release notes are on the Surge Knowledge Base Snell page. Do not use third-party one-click installers — they add panels and firewall rules this baseline rejects.
+
+Use a dedicated service user (creation recipe in [containers.md](containers.md) Service Users) and a small unit:
 
 ```ini
 [Service]
@@ -44,24 +46,14 @@ asked for that hardening and the Snell UDP path has been tested afterward.
 
 Snell v5 can use TCP and UDP when the user request, Snell config,
 listener/firewall inventory, or client profile shows UDP/QUIC use. Snell v6 is
-normally TCP-only unless the user gives a concrete UDP need.
+normally TCP-only unless the user gives a concrete UDP need. Version behavior
+drifts with releases; check the Surge KB Snell release notes when in doubt.
 
 ## SSH
 
-For a single-owner Snell VPS:
-
-```text
-PermitRootLogin prohibit-password
-PasswordAuthentication no
-KbdInteractiveAuthentication no
-PubkeyAuthentication yes
-MaxAuthTries <N>
-```
-
-Raise `MaxAuthTries` only when a loaded-key agent can exhaust the server-side
-attempt limit. Set `<N>` from observed offered-key count and operator policy.
-Do not force non-root admin users or `AllowUsers` onto a single-owner Snell VPS
-unless the user asks.
+Use the single-owner VPS shape and the `MaxAuthTries` rule from
+[ssh.md](ssh.md). Do not force non-root admin users or `AllowUsers` onto a
+single-owner Snell VPS unless the user asks.
 
 ## Firewall
 
@@ -95,13 +87,14 @@ net.ipv4.tcp_congestion_control = bbr
 net.core.somaxconn = 8192
 net.ipv4.tcp_max_syn_backlog = 8192
 net.ipv4.ip_local_port_range = 20000 65000
-net.ipv4.ip_local_reserved_ports = 22,<snell-port>
-net.ipv4.tcp_mtu_probing = 1
+net.ipv4.ip_local_reserved_ports = <snell-port>
 net.ipv4.tcp_syncookies = 1
 ```
 
 Confirm BBR support and sysctl writability before writing. Reserve the real
-Snell port, not a copied example port.
+Snell port, not a copied example port; reserved ports only matter inside
+`ip_local_port_range`. Add `tcp_mtu_probing` only per the evidence table in
+[performance-tuning.md](performance-tuning.md).
 
 Do not make `nf_conntrack_max` a required baseline. Raise it only when Docker,
 NAT, stateful firewall rules, or observed conntrack pressure justify it.
@@ -111,16 +104,15 @@ Do not copy broad TCP buffer, `tcp_tw_reuse`, `tcp_abort_on_overflow`, or
 
 ## Logs And Swap
 
-Bound journald on noisy nodes:
+Bound journald on noisy nodes through a drop-in in `/etc/systemd/journald.conf.d/`:
 
 ```ini
 SystemMaxUse=256M
 RuntimeMaxUse=64M
 ```
 
-For small Snell VPSes, use [swap.md](swap.md) sizing. 2 GiB is normal; 4 GiB
-needs prior OOM evidence, the user's fleet convention, and enough disk. Swap is
-not a throughput tuning. If swap is already present and idle, leave it alone.
+For small Snell VPSes, size swap per [swap.md](swap.md). Swap is not a
+throughput tuning. If swap is already present and idle, leave it alone.
 
 ## Do Not Do This By Default
 

@@ -45,7 +45,7 @@ net.ipv4.tcp_congestion_control = bbr
 net.core.somaxconn = 8192
 net.ipv4.tcp_max_syn_backlog = 8192
 net.ipv4.ip_local_port_range = 20000 65000
-net.ipv4.ip_local_reserved_ports = 22,<SERVICE_PORT>
+net.ipv4.ip_local_reserved_ports = <SERVICE_PORT>
 net.ipv4.tcp_syncookies = 1
 ```
 
@@ -60,11 +60,13 @@ net.ipv4.tcp_congestion_control = bbr
 net.core.somaxconn = 8192
 net.ipv4.tcp_max_syn_backlog = 8192
 net.ipv4.ip_local_port_range = 20000 65000
-net.ipv4.ip_local_reserved_ports = 22,<SERVICE_PORT>
+net.ipv4.ip_local_reserved_ports = <SERVICE_PORT>
 net.ipv4.tcp_syncookies = 1
 EOF
 sysctl -p /etc/sysctl.d/99-vps-tuning.conf
 ```
+
+`ip_local_reserved_ports` only affects ephemeral allocation inside `ip_local_port_range`; listing ports outside the range is dead configuration.
 
 After deleting a sysctl drop-in, `sysctl --system` does not restore deleted parameters to kernel defaults. Revert explicitly with `sysctl -w <param>=<default>` or reboot.
 
