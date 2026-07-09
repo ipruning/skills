@@ -1,6 +1,6 @@
 ---
 name: sing-box-reality-hy2
-description: "Deploy, repair, and validate a narrow sing-box stable stack: VLESS REALITY Vision on TCP/443 plus Hysteria2 on UDP/443. Use for Debian/Ubuntu systemd VPS setup, Linux system-level TUN, cross-platform client configs, migration off Clash/Mihomo, REALITY/HY2 testing, or a 科学上网/翻墙/梯子 request when the user is open to this REALITY+HY2 stack. Standalone macOS network triage and Snell audits belong to the surge skill."
+description: "Deploy, repair, and validate a narrow sing-box stable stack: VLESS REALITY Vision on TCP/443 plus Hysteria2 on UDP/443. Use for Debian/Ubuntu systemd VPS setup, Linux system-level TUN, cross-platform client configs, migration off Clash/Mihomo, REALITY/HY2 testing, or a 科学上网/翻墙/梯子 request when the user is open to this REALITY+HY2 stack. Surge-related macOS network triage and Snell audits belong to the surge skill."
 metadata:
   version: "5"
 ---
