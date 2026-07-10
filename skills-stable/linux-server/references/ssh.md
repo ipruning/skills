@@ -5,6 +5,7 @@ SSH work decides who can log in, how root logs in, how many keys the server lets
 ## Contents
 
 - Read effective state
+- Client aliases with RemoteCommand
 - Single-owner VPS
 - Multi-key agents
 - Change SSH config
@@ -24,6 +25,21 @@ ls -la /etc/ssh/sshd_config.d/ 2>/dev/null
 ```
 
 Match blocks can override global settings. Check them before concluding that a global setting applies to a user or source.
+
+## Client Aliases With RemoteCommand
+
+Inspect the resolved client configuration before using an alias for automation:
+
+```bash
+ssh -G <HOST_ALIAS> | awk '$1 ~ /^(hostname|user|remotecommand|requesttty)$/ { print }'
+```
+
+An alias with `RemoteCommand` cannot also accept a command from the command line. OpenSSH fails before reaching the server. Disable the alias command for non-interactive SSH and SCP:
+
+```bash
+ssh -o RemoteCommand=none -o RequestTTY=no <HOST_ALIAS> '<READ_ONLY_COMMAND>'
+scp -o RemoteCommand=none <SOURCE> <HOST_ALIAS>:<DESTINATION>
+```
 
 ## Single-Owner VPS
 
