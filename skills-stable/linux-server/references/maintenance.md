@@ -24,8 +24,8 @@ systemctl --failed --no-pager
 ss -tulpen
 plan_path=$(mktemp)
 trap 'rm -f "$plan_path"' EXIT
-apt-get -s upgrade >"$plan_path"
-cat "$plan_path"
+if ! apt-get -s upgrade >"$plan_path"; then exit 1; fi
+cat "$plan_path" || exit 1
 ```
 
 Stop before applying updates if `/`, `/var`, or `/boot` is low on space.
@@ -40,11 +40,11 @@ Run only when the user approved refresh, update, upgrade, or maintenance work.
 Persistent impact: refreshes apt package indexes under `/var/lib/apt/lists/`; installed packages are not changed.
 
 ```bash
-apt-get update
+apt-get update || exit 1
 plan_path=$(mktemp)
 trap 'rm -f "$plan_path"' EXIT
-apt-get -s upgrade >"$plan_path"
-cat "$plan_path"
+if ! apt-get -s upgrade >"$plan_path"; then exit 1; fi
+cat "$plan_path" || exit 1
 ```
 
 ## Apply Same-Release Updates
@@ -55,8 +55,7 @@ Persistent impact: upgrades installed packages within the current distro release
 
 ```bash
 export DEBIAN_FRONTEND=noninteractive
-apt-get update
-apt-get -y \
+apt-get update && apt-get -y \
   -o Dpkg::Options::=--force-confdef \
   -o Dpkg::Options::=--force-confold \
   upgrade
@@ -127,7 +126,7 @@ the previous boot's errors when diagnosing startup delay:
 
 ```bash
 cat /proc/sys/kernel/random/boot_id
-journalctl -b -1 -p err..alert --no-pager
+journalctl -b -1 -p err --no-pager
 ```
 
 ## Post-Maintenance
@@ -135,11 +134,32 @@ journalctl -b -1 -p err..alert --no-pager
 ```bash
 systemctl --failed --no-pager
 ss -tulpen
-journalctl -p err..alert -b --no-pager | tail -200
-journalctl -u ssh -b --no-pager | tail -100
+boot_log=$(mktemp)
+ssh_log=$(mktemp)
+trap 'rm -f "$boot_log" "$ssh_log"' EXIT
+if journalctl -p err -b --no-pager >"$boot_log"; then
+  printf 'boot-error-log lines=%s secret-markers=%s path=%s\n' \
+    "$(wc -l <"$boot_log")" \
+    "$(grep -Eic 'authorization|bearer|token|password|secret|connection[_ -]?string' "$boot_log" || true)" \
+    "$boot_log"
+else
+  echo "current-boot error journal unavailable; not verified" >&2
+fi
+ssh_unit=$(systemctl list-unit-files 'ssh.service' 'sshd.service' --no-legend | awk 'NR == 1 { print $1 }')
+if test -n "$ssh_unit" && journalctl -u "$ssh_unit" -b --no-pager >"$ssh_log"; then
+  printf 'ssh-log lines=%s accepted=%s failed=%s path=%s\n' \
+    "$(wc -l <"$ssh_log")" \
+    "$(grep -Ec 'Accepted (publickey|password|keyboard-interactive)' "$ssh_log" || true)" \
+    "$(grep -Eic 'Failed password|authentication failure|Invalid user' "$ssh_log" || true)" \
+    "$ssh_log"
+else
+  echo "current-boot SSH journal unavailable; not verified" >&2
+fi
 ls -lt /var/log/apt/history.log* 2>/dev/null | head -5
 tail -100 /var/log/apt/history.log
 ```
+
+The root-only journal captures are evidence inputs, not transcript output. Inspect named suspect events locally, redact credential values before quoting, and let the trap remove the files when the maintenance shell exits.
 
 Before restoring workers, repeat the System, Storage, Access, Workloads, and End-To-End Routes
 sections of [health-audit.md](health-audit.md). Prove the boot ID changed, the intended kernel is

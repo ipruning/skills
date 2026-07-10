@@ -1,4 +1,4 @@
 interface:
   display_name: "Linux 服务器运维"
-  short_description: "运维 Linux VPS：整机健康、SSH、防火墙、更新、swap 和代理调优"
-  default_prompt: "使用 $linux-server 处理 Linux 服务器：默认只读体检，主机角色和任务模式决定读什么证据、允许改什么，再检查整机健康、近期日志、存储、SSH、防火墙、swap、系统更新、容器端口和代理/VPN 调优。"
+  short_description: "运维与审计 Linux：健康、失陷排查、SSH、防火墙、更新、swap 和代理"
+  default_prompt: "使用 $linux-server 处理 Linux 服务器；按主机角色和请求范围选择证据，默认只读，写操作先确认发行版、可达性、回滚和 runtime 验收。"

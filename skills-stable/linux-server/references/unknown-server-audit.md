@@ -60,19 +60,15 @@ for f in /home/*/.ssh/authorized_keys; do
 done
 ```
 
-Read effective SSH config:
-
-```bash
-sshd -T | awk '$1 ~ /^(port|listenaddress|permitrootlogin|passwordauthentication|kbdinteractiveauthentication|pubkeyauthentication|maxauthtries|maxsessions|logingracetime|allowusers|allowgroups|authenticationmethods|permituserrc|x11forwarding)$/ { print }'
-grep -i '^Match' /etc/ssh/sshd_config /etc/ssh/sshd_config.d/*.conf 2>/dev/null
-sshd -T -C user=root,addr=0.0.0.0,host= | awk '$1 ~ /^(permitrootlogin|passwordauthentication|permituserrc)$/ { print }'
-ls -la /etc/ssh/sshd_config.d/ 2>/dev/null
-```
+Read effective global and Match-context SSH state with the canonical commands in
+[ssh.md](ssh.md). Include `kbdinteractiveauthentication` in both views; a Match
+block can restore it even when the global value is disabled.
 
 ## Network Exposure
 
 ```bash
 ss -tulpen
+ss -tpuna
 ip addr
 ip route
 ip -6 addr
@@ -93,10 +89,17 @@ Provider control panels can bypass OS settings through rescue console, KVM, snap
 
 ## Running Services
 
+The service and journal commands below are systemd-only. On another init system, collect the equivalent service/process evidence or report that coverage gap instead of treating command absence as health.
+
+Do not print every command line into an agent transcript: process argv can contain tokens and passwords. Start with executable names and inspect a named suspect through a secret-aware local capture.
+
 ```bash
 systemctl list-units --type=service --state=running --no-pager
 systemctl list-unit-files --state=enabled --no-pager
-ps auxf --sort=-%cpu | head -80
+ps -eo user,pid,ppid,stat,lstart,comm
+for proc_exe in /proc/[0-9]*/exe; do
+  printf '%s -> %s\n' "$proc_exe" "$(readlink "$proc_exe" 2>/dev/null || true)"
+done
 ```
 
 Record proxies, tunnels, miners, daemons without a user-confirmed purpose, and unit names that do not match installed packages or known services.
@@ -104,7 +107,12 @@ Record proxies, tunnels, miners, daemons without a user-confirmed purpose, and u
 ## Persistence
 
 ```bash
-crontab -l 2>/dev/null
+while IFS=: read -r account_name _ account_uid _ _ _ account_shell; do
+  if test "$account_uid" -eq 0 || { test "$account_uid" -ge 1000 && test "$account_shell" != /usr/sbin/nologin && test "$account_shell" != /bin/false; }; then
+    echo "=== crontab: $account_name ==="
+    crontab -u "$account_name" -l 2>/dev/null || true
+  fi
+done </etc/passwd
 ls -la /etc/cron.d/ /etc/cron.daily/ /etc/cron.hourly/ 2>/dev/null
 systemctl list-timers --all --no-pager
 ls -la /etc/systemd/system/
@@ -127,13 +135,31 @@ getcap -r / 2>/dev/null | head -200
 
 ## Patch State
 
+Read `/etc/os-release` first. Use the matching package manager and security
+tracker; the following block is Debian/Ubuntu-only:
+
 ```bash
-ls -la /etc/apt/sources.list.d/
-cat /etc/apt/sources.list.d/*.sources 2>/dev/null
-cat /etc/apt/sources.list.d/*.list 2>/dev/null
-apt-get -s upgrade | head -80
-systemctl is-enabled unattended-upgrades 2>/dev/null
-systemctl list-timers --no-pager 'apt-daily*'
+. /etc/os-release
+case " ${ID:-} ${ID_LIKE:-} " in
+  *" debian "*|*" ubuntu "*)
+    ls -la /etc/apt/sources.list.d/
+    find /etc/apt -maxdepth 2 -type f \( -name '*.sources' -o -name '*.list' \) \
+      -exec stat -c '%a %U:%G %s %y %n' {} +
+    apt-cache policy
+    plan_path=$(mktemp)
+    if apt-get -s upgrade >"$plan_path"; then
+      head -80 "$plan_path"
+    else
+      echo "apt simulation failed; patch state not verified" >&2
+    fi
+    rm -f "$plan_path"
+    systemctl is-enabled unattended-upgrades 2>/dev/null
+    systemctl list-timers --no-pager 'apt-daily*'
+    ;;
+  *)
+    echo "No package audit recipe for ID=${ID:-unknown} ID_LIKE=${ID_LIKE:-unknown}" >&2
+    ;;
+esac
 ```
 
 Do not run `apt-get update` in the evidence-collection pass unless the user has approved refreshing package indexes.
@@ -141,10 +167,17 @@ Do not run `apt-get update` in the evidence-collection pass unless the user has 
 ## Logs
 
 ```bash
-journalctl -u ssh --since "24 hours ago" --no-pager | tail -200
+ssh_unit=$(systemctl list-unit-files 'ssh.service' 'sshd.service' --no-legend | awk 'NR == 1 { print $1 }')
+ssh_log=$(mktemp)
+if test -n "$ssh_unit" && journalctl -u "$ssh_unit" --since "7 days ago" --no-pager >"$ssh_log"; then
+  tail -200 "$ssh_log"
+  grep -E 'Accepted (publickey|password|keyboard-interactive)' "$ssh_log" | tail -80 || true
+else
+  echo "SSH journal unavailable; authentication evidence not verified" >&2
+fi
+rm -f "$ssh_log"
 last -20
 lastb -20 2>/dev/null
-journalctl -u ssh --since "7 days ago" --no-pager | grep -E 'Accepted (publickey|password|keyboard-interactive)' | tail -80
 last -50
 ```
 
@@ -154,7 +187,7 @@ Treat login source IPs as benign only when they match known user, provider, VPN,
 
 After evidence collection, draft a repair plan in this order. Do not execute delete, disable, rotate, restart, or rewrite actions until the user approves the plan.
 
-1. Access: disable password login, verify key access, remove unknown keys only after preserving evidence.
+1. Access: install and verify a known key from a fresh session, then disable password login; remove unknown keys only after preserving evidence.
 2. Firewall: default drop, allow only required ports, align rules with listeners.
 3. Persistence: disable or remove malicious timers, units, cron, shell hooks.
 4. Updates: patch within current release.

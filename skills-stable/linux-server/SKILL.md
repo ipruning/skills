@@ -1,6 +1,6 @@
 ---
 name: linux-server
-description: "Operate Linux servers over SSH, deepest on Debian/Ubuntu (apt, ufw) with distro-independent safety rules: setup, hardening, whole-host health audits, intrusion triage and audits of unclear or possibly compromised hosts, firewall and container port exposure, package maintenance, swap, and proxy/VPN server setup and tuning including Snell deploy/repair. Not for macOS network problems — that is the surge skill. Snell evidence audits belong to surge; this skill executes the repairs that surge plans. The REALITY+HY2 stack has its own skill, sing-box-reality-hy2."
+description: "Operate Linux servers over SSH: Debian/Ubuntu systemd setup and maintenance, distro-aware health and intrusion audits, SSH, firewall and container exposure, swap, and proxy/VPN setup or tuning including Snell repair. Use for unclear or possibly compromised hosts as well as known hosts. Not for macOS network problems; Snell evidence-only audits belong to surge, and the REALITY+HY2 stack belongs to sing-box-reality-hy2."
 metadata:
   version: "6"
 ---
@@ -26,9 +26,11 @@ metadata:
 whoami && id && hostname && date -Is && uptime && uname -a
 df -h / /var /boot 2>/dev/null || df -h
 free -h
-systemctl --failed --no-pager
+if command -v systemctl >/dev/null 2>&1; then systemctl --failed --no-pager; fi
 ss -tulpen
-sshd -T | awk '$1 ~ /^(port|listenaddress|permitrootlogin|passwordauthentication|kbdinteractiveauthentication|pubkeyauthentication|maxauthtries|maxsessions|logingracetime|allowusers|allowgroups|authenticationmethods|permituserrc|x11forwarding)$/ { print }'
+if command -v sshd >/dev/null 2>&1; then
+  sshd -T | awk '$1 ~ /^(port|listenaddress|permitrootlogin|passwordauthentication|kbdinteractiveauthentication|pubkeyauthentication|maxauthtries|maxsessions|logingracetime|allowusers|allowgroups|authenticationmethods|permituserrc|x11forwarding)$/ { print }'
+fi
 if command -v ufw >/dev/null 2>&1; then ufw status verbose; fi
 if command -v nft >/dev/null 2>&1; then nft list ruleset 2>/dev/null; fi
 iptables -S 2>/dev/null
@@ -49,6 +51,8 @@ ip6tables -S 2>/dev/null
 - 维护窗口：脚本里用 `apt-get` 不用 `apt`，apt 不保证脚本接口稳定。改包之前查磁盘、失败单元、listener、apt 模拟和重启需求。看 [references/maintenance.md](references/maintenance.md)。
 - Swap：改之前查 RAM、现有 swap 设备、根盘空间和 `/etc/fstab`，扩容优先沿用现有路径，用户明确要多设备才建第二块。看 [references/swap.md](references/swap.md)。
 - 性能调优：机器变慢先量化瓶颈，有可测量的目标再写 sysctl，不往普通的 SSH 或防火墙变更里塞抄来的调优清单，用户没要求就不动 SSH 算法。看 [references/performance-tuning.md](references/performance-tuning.md)。
+
+Debian/Ubuntu 之外，先读 `/etc/os-release`、init system、package manager 和实际 service 名。没有对应写入配方时停在只读取证并报告 coverage gap，不把 apt、UFW 或 `ssh.service` 命令硬套到其他发行版。
 
 ## 改文件五步
 

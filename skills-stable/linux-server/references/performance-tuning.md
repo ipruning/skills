@@ -45,26 +45,104 @@ net.ipv4.tcp_congestion_control = bbr
 net.core.somaxconn = 8192
 net.ipv4.tcp_max_syn_backlog = 8192
 net.ipv4.ip_local_port_range = 20000 65000
-net.ipv4.ip_local_reserved_ports = <SERVICE_PORT>
+net.ipv4.ip_local_reserved_ports = <EXISTING_RESERVATIONS>,<SERVICE_PORT>
 net.ipv4.tcp_syncookies = 1
 ```
 
-Apply through a dedicated file:
+`ip_local_reserved_ports` is replacement-valued: writing one service port clears every existing reservation. Read the live value and merge it before staging the file.
+
+Apply through a dedicated file with Bash. The transaction records live values and the previous persistent file before applying. A failed key restores both layers; any failed restoration is a critical unresolved state, not a successful rollback.
 
 Persistent impact: writes `/etc/sysctl.d/99-vps-tuning.conf` and changes kernel network parameters until the file is removed and the parameters are explicitly reset or the host reboots.
 
 ```bash
-cat >/etc/sysctl.d/99-vps-tuning.conf <<'EOF'
+: "${SERVICE_PORT:?set SERVICE_PORT to the verified service port}"
+case "$SERVICE_PORT" in *[!0-9]*|'') exit 1;; esac
+test "$SERVICE_PORT" -ge 1 && test "$SERVICE_PORT" -le 65535 || exit 1
+sysctl -n net.ipv4.tcp_available_congestion_control | grep -qw bbr || exit 1
+
+target=/etc/sysctl.d/99-vps-tuning.conf
+rollback_dir=$(mktemp -d /run/linux-server-sysctl.XXXXXX)
+chmod 700 "$rollback_dir" || exit 1
+candidate="$rollback_dir/candidate.conf"
+runtime_backup="$rollback_dir/runtime.tsv"
+had_target=0
+current_reserved=$(sysctl -n net.ipv4.ip_local_reserved_ports) || exit 1
+if test -n "$current_reserved"; then
+  merged_reserved="${current_reserved},${SERVICE_PORT}"
+else
+  merged_reserved=$SERVICE_PORT
+fi
+cat >"$candidate" <<EOF
 net.core.default_qdisc = fq
 net.ipv4.tcp_congestion_control = bbr
 net.core.somaxconn = 8192
 net.ipv4.tcp_max_syn_backlog = 8192
 net.ipv4.ip_local_port_range = 20000 65000
-net.ipv4.ip_local_reserved_ports = <SERVICE_PORT>
+net.ipv4.ip_local_reserved_ports = $merged_reserved
 net.ipv4.tcp_syncookies = 1
 EOF
-sysctl -p /etc/sysctl.d/99-vps-tuning.conf
+chmod 600 "$candidate" || exit 1
+mapfile -t sysctl_keys < <(awk -F= '/^[[:space:]]*[^#[:space:]]/ { key=$1; gsub(/[[:space:]]/, "", key); print key }' "$candidate")
+declare -A old_values
+: >"$runtime_backup" || exit 1
+chmod 600 "$runtime_backup" || exit 1
+for sysctl_key in "${sysctl_keys[@]}"; do
+  old_values["$sysctl_key"]=$(sysctl -n "$sysctl_key") || exit 1
+  printf '%s\t%s\n' "$sysctl_key" "${old_values[$sysctl_key]}" >>"$runtime_backup" || exit 1
+done
+if test -e "$target"; then
+  cp -a "$target" "$rollback_dir/persistent.conf" || exit 1
+  had_target=1
+else
+  : >"$rollback_dir/target-was-absent" || exit 1
+fi
+restore_sysctl() {
+  restore_failed=0
+  if test "$had_target" -eq 1; then
+    cp -a "$rollback_dir/persistent.conf" "$target" || restore_failed=1
+  else
+    rm -f "$target" || restore_failed=1
+  fi
+  while IFS=$'\t' read -r sysctl_key old_value; do
+    sysctl -q -w "$sysctl_key=$old_value" || restore_failed=1
+  done <"$runtime_backup"
+  test "$restore_failed" -eq 0
+}
+if ! install -o root -g root -m 0644 "$candidate" "$target"; then
+  restore_sysctl || echo "CRITICAL: persistent sysctl install failed and rollback was incomplete" >&2
+  exit 1
+fi
+if ! sysctl -p "$target"; then
+  if ! restore_sysctl; then
+    echo "CRITICAL: sysctl apply failed and rollback was incomplete" >&2
+  fi
+  exit 1
+fi
+printf 'sysctl_rollback_dir=%s\n' "$rollback_dir"
 ```
+
+Keep the printed root-only rollback directory until the proxy/VPN listener and a real client path pass. If a later check fails, restore from a new root Bash shell:
+
+```bash
+rollback_dir=<PRINTED_ROLLBACK_DIR>
+target=/etc/sysctl.d/99-vps-tuning.conf
+restore_failed=0
+if test -e "$rollback_dir/persistent.conf"; then
+  cp -a "$rollback_dir/persistent.conf" "$target" || restore_failed=1
+elif test -e "$rollback_dir/target-was-absent"; then
+  rm -f "$target" || restore_failed=1
+else
+  echo "rollback metadata is incomplete" >&2
+  exit 1
+fi
+while IFS=$'\t' read -r sysctl_key old_value; do
+  sysctl -q -w "$sysctl_key=$old_value" || restore_failed=1
+done <"$rollback_dir/runtime.tsv"
+test "$restore_failed" -eq 0 || { echo "CRITICAL: sysctl rollback was incomplete" >&2; exit 1; }
+```
+
+Verify the persistent file, every live key, listener, and client path before removing the directory. `sysctl --system` alone does not restore deleted or replaced values.
 
 `ip_local_reserved_ports` only affects ephemeral allocation inside `ip_local_port_range`; listing ports outside the range is dead configuration.
 
