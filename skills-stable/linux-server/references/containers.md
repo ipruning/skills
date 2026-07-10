@@ -5,6 +5,7 @@ Container hosts include Docker/containerd, x-ui, nginx-proxy-manager, and apps w
 ## Contents
 
 - Inventory
+- Lifecycle and leftovers
 - Docker and UFW
 - Forwarding
 - Management ports
@@ -14,12 +15,15 @@ Container hosts include Docker/containerd, x-ui, nginx-proxy-manager, and apps w
 ## Inventory
 
 ```bash
-systemctl is-active docker containerd 2>/dev/null || true
-docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Ports}}' 2>/dev/null || true
-docker network ls 2>/dev/null || true
+systemctl is-active docker containerd || true
+docker ps -a --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'
+docker network ls
 ip link
 ss -tulpen
 ```
+
+Treat a Docker permission, daemon, socket, or plugin error as unavailable evidence. Do not turn it
+into an empty inventory with stderr suppression.
 
 Map each public port to:
 
@@ -28,6 +32,29 @@ Map each public port to:
 - container target port
 - firewall allow path
 - whether it is a service port or management/admin port
+
+## Lifecycle And Leftovers
+
+Running containers are only one part of host state. Read stopped and never-started containers,
+builders, volumes, images, restart counts, and health before calling a container host clean:
+
+```bash
+docker ps -a --format '{{.Names}}|{{.Status}}|{{.Image}}'
+docker ps -aq --filter status=created
+docker ps --filter health=unhealthy
+docker system df
+docker volume ls
+docker buildx ls
+docker inspect <CONTAINER> --format \
+  'restart={{json .HostConfig.RestartPolicy}} cgroup={{.HostConfig.CgroupParent}} mounts={{json .Mounts}} health={{json .State.Health}}'
+docker logs --since 24h <CONTAINER>
+```
+
+Classify an old container as a deployment rollback artifact or an orphan from its labels,
+deployment policy, references, events, and resource activity. A running BuildKit container absent
+from `docker buildx ls` is suspicious, not sufficient deletion evidence by itself. Never run broad
+container, image, builder, or volume pruning while jobs or deploys are active. Remove only named,
+proven leftovers and verify that active workloads and subsequent builds still work.
 
 ## Docker And UFW
 

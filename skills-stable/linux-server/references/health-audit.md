@@ -11,13 +11,15 @@ Do not infer whole-host health from `systemctl --failed`, container status, or o
 ## System And Scheduled Work
 
 ```bash
-date -Is
+AUDIT_START=$(date -Is)
+LOG_SINCE=${LOG_SINCE:-'24 hours ago'}
+printf 'audit_start=%s log_since=%s\n' "$AUDIT_START" "$LOG_SINCE"
 cat /proc/sys/kernel/random/boot_id
 uptime
 systemctl is-system-running
 systemctl --failed --no-pager
 systemctl list-timers --all --no-pager
-journalctl -p warning..alert -b --no-pager
+journalctl -p warning..alert --since "$LOG_SINCE" --no-pager
 ```
 
 For important services and timers, read `Result`, `ExecMainStatus`, restart counts, and the recent unit journal. A green timer row proves only that it is scheduled. Verify the service result produced by its latest run.
@@ -29,6 +31,53 @@ findmnt --verify --verbose --tab-file /etc/fstab
 findmnt
 swapon --show
 ```
+
+## Configuration Drift And Persistence
+
+Known ownership does not make every persistent file expected. Inventory custom units, cron,
+user-level services, shell/SSH hooks, and superseded backup files. Compare each item with the
+current workload or an explicit rollback need.
+
+```bash
+systemctl list-unit-files --state=enabled --no-pager
+find /etc/systemd/system -maxdepth 3 \( -type f -o -type l \) -print
+ls -la /etc/cron.d/ /etc/cron.daily/ /etc/cron.hourly/ 2>/dev/null
+find /etc -xdev -type f \( -name '*.bak*' -o -name '*~' \) -print
+for home_dir in /home/*/ /root/; do
+  ls -la "${home_dir}.config/systemd/user/" "${home_dir}.ssh/rc" 2>/dev/null
+done
+```
+
+On Debian/Ubuntu, inspect package drift without assuming every conffile change is malicious:
+
+```bash
+dpkg -V
+if command -v debsums >/dev/null 2>&1; then debsums -s; fi
+```
+
+For shared CI or service accounts, inventory credential-bearing config by path, owner, mode,
+mtime, and marker count without printing values. Persistent Git URL rewrites, registry tokens,
+package-manager credentials, and runner-global HOME state need a named producer and lifecycle.
+Removing one file is not a fix when a workflow or setup action writes it back.
+
+```bash
+find <SHARED_HOME> -xdev -maxdepth 3 -type f \
+  \( -name '.gitconfig' -o -name '.npmrc' -o -name 'settings.xml' -o -name 'config.json' \) \
+  -print
+for config_path in <DISCOVERED_CREDENTIAL_CONFIGS>; do
+  stat -c '%a %U:%G %s %y %n' "$config_path"
+  marker_count=$(grep -Eic 'token|password|_auth|authorization|secret' "$config_path" || true)
+  printf 'credential-marker-count=%s %s\n' "$marker_count" "$config_path"
+done
+```
+
+Before deleting an unexpected-file candidate, record its producer, consumers, rollback purpose,
+owner, mode, and mtime. Remove only named candidates. Re-run syntax and workload checks, then
+check whether automation recreated the path; deletion without a recurrence test is incomplete.
+
+Discover local backup jobs and their latest result. A timer or uploaded artifact proves neither
+restorability nor provider-side coverage; verify a recent restore or report that boundary as
+unverified.
 
 ## Storage And Filesystem Consistency
 
@@ -54,10 +103,19 @@ Use the installed storage tool for each device:
 ```bash
 command -v smartctl nvme || true
 smartctl -H /dev/<DEVICE>
+smartctl -l selftest /dev/<DEVICE>
 nvme smart-log /dev/<CONTROLLER>
+nvme self-test-log /dev/<CONTROLLER>
 ```
 
-Missing SMART or NVMe tooling is a coverage gap, not evidence that disks are healthy.
+Missing SMART or NVMe tooling is a coverage gap, not evidence that disks are healthy. A passing
+health summary with no self-test history is also incomplete evidence. Starting a short or
+extended device self-test is active maintenance; obtain approval and account for workload impact.
+
+`mismatch_cnt` is not durable evidence across array reassembly or reboot. When an earlier audit
+recorded mismatches, a post-reboot zero does not close the finding. Run a read-only RAID `check`
+in an approved maintenance window and read the resulting count. Do not start `repair` without a
+known source of truth and restore path.
 
 ## Capacity And Temporary Storage
 
@@ -80,6 +138,13 @@ On mixed CI and production Docker hosts, treat membership in the `docker` group 
 Check the current boot and a recent wall-clock window for OOM kills, I/O errors, filesystem errors, hardware faults, service crash loops, and repeated OverlayFS warnings. Count events and align timestamps with jobs, deploys, reboots, and maintenance. Internet scanner `404` noise is not a compromise finding without an authentication success, unexpected process, persistence, or other supporting evidence.
 
 ## Report Shape
+
+Record the end of the evidence window before reporting:
+
+```bash
+AUDIT_END=$(date -Is)
+printf 'audit_start=%s audit_end=%s log_since=%s\n' "$AUDIT_START" "$AUDIT_END" "$LOG_SINCE"
+```
 
 Return four explicit groups:
 

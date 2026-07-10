@@ -2,7 +2,7 @@
 name: linux-server
 description: "Operate Linux servers over SSH, deepest on Debian/Ubuntu (apt, ufw) with distro-independent safety rules: setup, hardening, whole-host health audits, intrusion triage and audits of unclear or possibly compromised hosts, firewall and container port exposure, package maintenance, swap, and proxy/VPN server setup and tuning including Snell deploy/repair. Not for macOS network problems — that is the surge skill. Snell evidence audits belong to surge; this skill executes the repairs that surge plans. The REALITY+HY2 stack has its own skill, sing-box-reality-hy2."
 metadata:
-  version: "5"
+  version: "6"
 ---
 
 # Linux Server
@@ -52,7 +52,7 @@ ip6tables -S 2>/dev/null
 
 ## 改文件五步
 
-1. 备份要改的那个文件。
+1. 先定义回滚。需要文件副本时沿用原权限或收紧为 root-only，保留到语法、runtime 和必要的重启验证完成后删除。长期恢复交给备份系统，不在 `/etc` 堆积无期限的 `.bak`。
 2. 能验证就先验证语法：`sshd -t`、`nft -c -f`、`systemd-analyze verify`。`systemd-analyze verify` 可能打印 `Unknown key ... ignoring` 后仍退出 0；目标 unit 的 warning 就不算通过，不能只看退出码。
 3. 服务支持 reload 且语法通过时，用 reload 不用 restart。
 4. SSH 或防火墙变更后，开一条全新连接确认可达。

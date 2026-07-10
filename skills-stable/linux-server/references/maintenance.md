@@ -9,6 +9,7 @@ Maintenance includes Debian/Ubuntu package updates, unattended upgrades, and reb
 - Apply same-release updates
 - needrestart
 - Reboot check
+- Workload drain
 - Post-maintenance
 - unattended-upgrades
 - Debian security tools
@@ -21,10 +22,16 @@ df -h / /var /boot 2>/dev/null || df -h
 free -h
 systemctl --failed --no-pager
 ss -tulpen
-apt-get -s upgrade | head -80
+plan_path=$(mktemp)
+trap 'rm -f "$plan_path"' EXIT
+apt-get -s upgrade >"$plan_path"
+cat "$plan_path"
 ```
 
 Stop before applying updates if `/`, `/var`, or `/boot` is low on space.
+
+When the upgrade can restart production, container runtime, queue, or runner services, complete
+the Workload Drain gate before applying packages, not only before rebooting.
 
 ## Refresh Package Indexes
 
@@ -34,7 +41,10 @@ Persistent impact: refreshes apt package indexes under `/var/lib/apt/lists/`; in
 
 ```bash
 apt-get update
-apt-get -s upgrade | head -80
+plan_path=$(mktemp)
+trap 'rm -f "$plan_path"' EXIT
+apt-get -s upgrade >"$plan_path"
+cat "$plan_path"
 ```
 
 ## Apply Same-Release Updates
@@ -81,6 +91,45 @@ echo "Installed: $(dpkg -l 'linux-image-*' 2>/dev/null | awk '/^ii.*linux-image-
 test -f /var/run/reboot-required && cat /var/run/reboot-required /var/run/reboot-required.pkgs 2>/dev/null
 ```
 
+## Workload Drain
+
+Before rebooting a CI, queue, or batch host, distinguish an idle service from an idle job queue.
+Stop accepting work, let active jobs finish, then stop the workers. Confirm both the control plane
+and host process state.
+
+The control-plane action is platform-specific; use the runner or queue manager's real drain
+procedure rather than inferring availability from systemd alone. Gate production separately:
+verify container/service restart policy, state durability, and public-route recovery requirements.
+An idle runner queue does not prove that production is ready to reboot.
+
+For GitHub Actions self-hosted runners, load `github-actions-runners` for registration, busy state,
+unit mapping, and control-plane verification.
+
+Stopping an enabled systemd service does not keep it stopped across reboot. When post-boot checks
+must finish before work resumes, record the current enable state, disable the units before reboot,
+then restore the recorded state and start them only after health verification. Do not kill active
+jobs merely to shorten the window.
+
+## Approved Reboot
+
+Record the pre-reboot boot ID and prove an out-of-band recovery path before rebooting a remote
+host. A successful `systemctl reboot` return only means the request was accepted.
+
+```bash
+cat /proc/sys/kernel/random/boot_id
+systemctl reboot
+```
+
+Reconnect with fresh TCP connections until SSH returns or the declared timeout expires. Prove a
+new boot ID before running post-maintenance checks. If the host misses the timeout, inspect the
+provider console or rescue path; do not issue repeated blind reboots. After reconnecting, include
+the previous boot's errors when diagnosing startup delay:
+
+```bash
+cat /proc/sys/kernel/random/boot_id
+journalctl -b -1 -p err..alert --no-pager
+```
+
 ## Post-Maintenance
 
 ```bash
@@ -91,6 +140,11 @@ journalctl -u ssh -b --no-pager | tail -100
 ls -lt /var/log/apt/history.log* 2>/dev/null | head -5
 tail -100 /var/log/apt/history.log
 ```
+
+Before restoring workers, repeat the System, Storage, Access, Workloads, and End-To-End Routes
+sections of [health-audit.md](health-audit.md). Prove the boot ID changed, the intended kernel is
+running, mounts and RAID returned, production routes are healthy, and the recorded worker enable
+states were restored. A green systemd summary alone is not post-maintenance verification.
 
 ## unattended-upgrades
 
