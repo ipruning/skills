@@ -1,32 +1,31 @@
 ---
 name: explain-diff-html
-description: "Build a rich, self-contained interactive HTML explainer for a code change, diff, branch, or PR: layered background, intuition with diagrams, a code walkthrough, and a self-check quiz. Use when the user wants a durable, shareable explanation page. Not for an in-chat explanation or summary, regardless of diff size, and not for slide decks."
+description: Use when the user asks for a rich explanation of a code change, diff, branch, or PR. Produces HTML output.
 metadata:
   version: "3"
 ---
 
-# Explain Diff HTML
+# Explain Diff
 
-把一个代码变更讲成一页可交互的 HTML。动笔之前先广泛探索变更周边的代码，讲解的深度取决于对现有系统的理解，不取决于 diff 本身。
+Please make me a rich, interactive explanation of the specified code change.
 
-## 四个板块
+It should have these sections:
 
-- Background：讲与变更相关的现有系统。用户未指明读者时按水平未知处理，先给一段初学者能读的深背景，标注熟悉者可跳过，再收窄到与本变更直接相关的部分。
-- Intuition：讲变更的核心直觉，重在本质不在细节。用玩具数据举具体例子，大量使用图示。
-- Code：高层代码走读，按可理解的方式给改动分组和排序。
-- Quiz：三到五道中等难度的交互选择题，难到需要真正理解变更才能答对，但不出脑筋急转弯。点击后判对错并给反馈，帮读者确认自己真的看懂了。
+- Background: Explain the existing system relevant to this change. (You should broadly explore surrounding code for this.) We don't know how much the reader already knows, so include a deep background for beginners (note that it can be skipped if the reader is already familiar), and then a more narrow background directly relevant to the change.
+- Intuition: Explain the core intuition for the code change. The focus here is to explain the essence, not the full details. Use concrete examples with toy data. Use figures and diagrams liberally.
+- Code: Do a high-level walkthrough of the changes to the code. Group/order the changes in an understandable way.
+- Quiz: Come up with five questions that test the reader's knowledge of this PR. This should be medium difficulty, difficult enough that you actually need to understand the substance of the PR to answer them, but not gotchas. The goal is to help the reader make sure that they've actually understood. These should be presented as interactive multiple-choice questions, and when the user clicks, it tells them whether they were correct and gives feedback.
 
-板块和题数按变更规模伸缩。机械或范围很小的变更可以合并 Background 与 Intuition，题数以覆盖真实考点为准，不凑数。
+Format:
 
-## 交付形态
-
-- 单个自包含 HTML 文件。整页长文加节标题和目录，顶层结构不用 tab。加基础响应式样式，手机能看。
-- harness 有自己的 HTML 交付机制时用它交付，比如 Claude Code 的 Artifact。没有就写到主目录的 `explanations/` 目录，文件名以当天日期开头，按 `YYYY-MM-DD-explanation-<slug>.html` 命名，方便按时间排序且不进版本控制。
-- 行文照 Martin Kleppmann 的风格，节与节之间过渡自然。
-- 关键概念、定义和重要边界情况用 callout 突出。
-
-## 图示
-
-- 挑少数几个图示家族全文复用，用同一族图解释不同情形。常用两类：解释 UI 变更用极简版的产品 UI 示意，讲数据流用组件间的系统图，系统图里必须带示例数据。
-- 不用 ASCII 图，也不手写 SVG，图示用简单 HTML 结构画，列表用 HTML 列表。
-- 代码块一律用 `<pre>`，样式加 `white-space: pre-wrap`，长行在窄屏上才不会横向溢出。
+- Output a single self-contained HTML file which includes CSS and JavaScript. Make the whole thing one long page with section headers and a table of contents. Don't use tabs for the top-level structure. Basic responsive styling so you can view it on a phone is nice too. Put the file in a global place on my computer outside of the code repo, and make sure the filename always starts with today's date in `YYYY-MM-DD-` format, because it helps keep the files time-sorted and out of version control. For example: /tmp/2026-01-12-explanation-<slug>.html
+- Please write with the clarity and flow of Martin Kleppmann, making it engaging and written in classic style. Transitions between sections should be smooth.
+- Some tips on diagrams. Ideally, you should pick a small number of diagram families that can be reused throughout the explanation to explain various cases. Some useful kinds of diagrams:
+  - A very simplified version of the UI that the user sees in the app, to explain UI changes.
+  - A system diagram showing data flow or communication between components. Make sure to include example data here!
+- Don't use ASCII diagrams. Always use simple HTML designs for your diagrams, HTML lists for lists of things, etc.
+  - For code blocks, always use `<pre>` tags. If you use a custom styled div instead, it **must** have
+    `white-space: pre-wrap` in its CSS, or the browser will collapse all newlines into a single line.
+    Before saving the file, scan each code block in the HTML source and confirm its CSS includes
+    `white-space: pre` or `pre-wrap`.
+- Use callouts for key concepts or definitions, important edge cases, etc.
