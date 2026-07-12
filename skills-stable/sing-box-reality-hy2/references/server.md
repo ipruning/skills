@@ -11,7 +11,6 @@ Collect:
 ```text
 SERVER_IP
 HY2_DOMAIN
-ACME_EMAIL optional
 REALITY_SNI
 REALITY_HANDSHAKE_HOST usually same as REALITY_SNI
 ```
@@ -133,20 +132,7 @@ Open a fresh SSH connection after enabling UFW. If the host already uses nftable
 
 ## Certificate
 
-Certbot standalone mode requires TCP/80 to be free and publicly reachable. Prefer a real email:
-
-```bash
-certbot certonly \
-  --standalone \
-  --preferred-challenges http \
-  -d "$HY2_DOMAIN" \
-  -m "$ACME_EMAIL" \
-  --agree-tos \
-  --no-eff-email \
-  --non-interactive
-```
-
-If the user accepts missing expiry notices, use the no-email variant and create a later reminder:
+Certbot standalone mode requires TCP/80 to be free and publicly reachable. Let's Encrypt stopped expiration notification emails and deleted ACME account email addresses on 2025-06-04. Do not ask for an email or create a reminder to add one:
 
 ```bash
 certbot certonly \
@@ -170,6 +156,18 @@ systemctl try-restart sing-box.service
 EOF
 chmod 755 /etc/letsencrypt/renewal-hooks/deploy/restart-sing-box.sh
 ```
+
+The timer performs renewal; it is not an expiry alert. Enable it and validate the complete renewal path, including the deploy hook:
+
+```bash
+systemctl enable --now certbot.timer
+systemctl is-enabled certbot.timer
+systemctl is-active certbot.timer
+systemctl list-timers certbot.timer --no-pager
+certbot renew --dry-run
+```
+
+For unattended production operation, use an external TLS certificate probe as a second layer. Deploying standing monitoring is a separate user-authorized operation; if it is not requested, report it as not configured instead of claiming certificate monitoring is complete.
 
 ## Secrets
 
@@ -312,6 +310,7 @@ ss -lntup | grep -E ':443\b'
 openssl x509 \
   -in "/etc/letsencrypt/live/$HY2_DOMAIN/fullchain.pem" \
   -noout -subject -enddate
+systemctl is-enabled certbot.timer
 systemctl is-active certbot.timer
 test -x /etc/letsencrypt/renewal-hooks/deploy/restart-sing-box.sh
 certbot renew --dry-run

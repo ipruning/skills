@@ -185,6 +185,7 @@ sing-box version | head -8
 printf 'sing-box active='; systemctl is-active sing-box
 printf 'sing-box enabled='; systemctl is-enabled sing-box
 printf 'snell active='; systemctl is-active snell-server 2>/dev/null || true
+printf 'certbot.timer enabled='; systemctl is-enabled certbot.timer 2>/dev/null || true
 printf 'certbot.timer active='; systemctl is-active certbot.timer 2>/dev/null || true
 sing-box check -c /etc/sing-box/config.json >/tmp/singbox-check.out 2>/tmp/singbox-check.err && echo 'sing-box check ok' || (cat /tmp/singbox-check.err; exit 1)
 stat -c '%a %U:%G %n' /etc/sing-box/config.json /root/sing-box-secrets.txt
@@ -221,6 +222,7 @@ ss -lnup | grep -E ':443\b' || true
 ufw status verbose | grep -E 'Status:|Default:|22/tcp|80/tcp|443/tcp|443/udp|14180/tcp|8443/udp' || true
 certbot certificates 2>/dev/null | grep -E 'Certificate Name:|Domains:|Expiry Date:' || true
 test -x /etc/letsencrypt/renewal-hooks/deploy/restart-sing-box.sh && echo 'renew hook present' || echo 'renew hook missing'
+systemctl is-enabled certbot.timer 2>/dev/null || true
 systemctl is-active certbot.timer 2>/dev/null || true
 REMOTE
 ```

@@ -2,7 +2,7 @@
 name: sing-box-reality-hy2
 description: "Deploy, repair, and validate a narrow sing-box stable stack: VLESS REALITY Vision on TCP/443 plus Hysteria2 on UDP/443. Use for Debian/Ubuntu systemd VPS setup, Linux system-level TUN, cross-platform client configs, migration off Clash/Mihomo, REALITY/HY2 testing, or a 科学上网/翻墙/梯子 request when the user is open to this REALITY+HY2 stack. Surge-related macOS network triage and Snell audits belong to the surge skill."
 metadata:
-  version: "5"
+  version: "6"
 ---
 
 # sing-box REALITY HY2
@@ -23,7 +23,7 @@ metadata:
 - 非本栈的通用 Linux 服务器操作、入侵排查、防火墙、Snell 部署归 `$linux-server`
 - 独立的 Surge 分诊、Snell 审计、Snell v6 canary 和修复计划归 `$surge`
 
-缺输入时只问阻塞项。服务器搭建要 SSH 访问、`SERVER_IP`、DNS-only 的 `HY2_DOMAIN`，以及用户指定的 `REALITY_SNI`，或由 Agent 从 VPS 实测后选择目标的许可。`REALITY_HANDSHAKE_HOST` 默认同 `REALITY_SNI`，不是单独的阻塞项。客户端要服务器 secrets，或能 SSH 上去读。certbot 可以无邮箱运行，前提是用户接受这个代价，并留一条日后补邮箱的提醒。
+缺输入时只问阻塞项。服务器搭建要 SSH 访问、`SERVER_IP`、DNS-only 的 `HY2_DOMAIN`，以及用户指定的 `REALITY_SNI`，或由 Agent 从 VPS 实测后选择目标的许可。`REALITY_HANDSHAKE_HOST` 默认同 `REALITY_SNI`，不是单独的阻塞项。客户端要服务器 secrets，或能 SSH 上去读。不要索取 ACME 邮箱或创建补邮箱提醒：Let's Encrypt 已于 2025-06-04 停止证书到期邮件并删除 ACME 账户邮箱。
 
 ## 硬规则
 
@@ -61,7 +61,9 @@ Server:
   systemctl is-active/is-enabled sing-box
   ss shows TCP/443 and UDP/443 owned by sing-box
   certbot certificate exists for HY2_DOMAIN
-  certbot timer and validated renew hook exist
+  certbot timer is active and enabled
+  validated renew hook exists and certbot renew --dry-run passes
+  external certificate-expiry monitoring is either verified or explicitly reported as not configured
   an external client proves both REALITY and HY2 authentication
 
 Linux client:
