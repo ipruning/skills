@@ -1,6 +1,6 @@
 ---
 name: web-fullstack-start
-description: Start or continue a practical Web full-stack app on a React + TanStack Router + Vite + Convex stack — a dashboard, SaaS, internal tool, or product prototype needing a coherent stack choice, scaffold command, auth/data boundary, and first usable feature. Not for isolated changes to an existing feature, and not for Next.js/SSR/SEO sites, React Native, or payment flows; a live-built Next.js Convex app belongs to convex:quickstart.
+description: Start or continue a practical Web full-stack app on a chosen React + TanStack Router + Vite + Convex stack — a dashboard, SaaS, internal tool, or product prototype needing a scaffold command, auth/data boundary, and first usable feature. Not for deciding whether Convex should own application state or producing an architecture-only Convex boundary report; use design-convex-systems for that. Also not for isolated changes to an existing feature, Next.js/SSR/SEO sites, React Native, or payment flows; a live-built Next.js Convex app belongs to convex:quickstart.
 metadata:
   version: "2"
 ---

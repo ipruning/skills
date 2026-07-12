@@ -1,4 +1,0 @@
-interface:
-  display_name: "评估 Convex 适配度"
-  short_description: "判断 Convex 应拥有应用状态、计算、原始数据还是分析层"
-  default_prompt: "使用 $assess-convex-fit 判断这个系统是否适合 Convex，并给出明确的数据与运行时边界。"
