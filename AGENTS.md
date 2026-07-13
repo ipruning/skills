@@ -37,6 +37,17 @@ skills/
 - Write first-party `SKILL.md` bodies in Chinese classic prose with complete sentences. Keep the frontmatter description, key terms, code, code comments, and tables in English. Supporting references may stay in English.
 - Do not edit generated, vendored, or upstream Track-managed content.
 
+## Structural search maintenance
+
+Use the smallest tool that fits: `rg` for exact text; `ast-grep run` for a one-off source-structure investigation; a YAML rule with `valid` and `invalid` tests for a complex or recurring constraint; and `ast-grep scan` wired through `prek` only when the constraint must block merges. Do not add project configuration or a standing gate for an investigation. See `skills-stable/ast-grep/SKILL.md` before authoring or gating rules.
+
+These read-only examples target Python skill scripts in this repository:
+
+```sh
+mise exec -- ast-grep run -p 'subprocess.run($$$ARGS)' -l python skills-stable/summarize-lark-meetings/scripts
+mise exec -- ast-grep run -p 'getattr($OBJ, $ATTR)' -l python skills-stable/things/scripts
+```
+
 ## Branch and sync policy
 
 Source checkouts can have different merge rules. Do not infer one checkout's policy from another checkout.
