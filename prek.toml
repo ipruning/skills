@@ -219,6 +219,16 @@ hooks = [
         priority = 20
     },
     {
+        id = "lark-meeting-stt-tests",
+        name = "Lark meeting STT tests",
+        entry = "uv run --script skills-stable/summarize-lark-meetings/scripts/test_lark_meeting_stt.py",
+        language = "system",
+        pass_filenames = false,
+        always_run = true,
+        stages = ["pre-push"],
+        priority = 20
+    },
+    {
         id = "autocorrect",
         name = "autocorrect",
         entry = "mise exec -- autocorrect --lint . .mise/",

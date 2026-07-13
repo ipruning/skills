@@ -84,7 +84,7 @@ Repair in this order:
 
 1. Record the installed binary hash/architecture, unit fragment and drop-ins, config metadata, listeners, firewall path, service user, and a working client profile. Preserve binary, unit, and config rollback copies outside their target paths.
 2. Stage the official artifact in a root-only temporary directory. Match architecture and intended Snell version. Verify an official digest when one is published; a locally recorded SHA-256 without an official comparator proves only which bytes were staged.
-3. Stage the config as `snell:snell` mode `0600` with the current schema. Never echo the PSK. Confirm the service user can read it and confirm transport requirements from the same server version and client profile before changing TCP/UDP rules.
+3. Stage the config as `root:snell` mode `0640` with the current schema. Never echo the PSK. Confirm the service user can read it but cannot replace the root-owned file, and confirm transport requirements from the same server version and client profile before changing TCP/UDP rules.
 4. Stage a unit or drop-in and run `systemd-analyze verify`; target-unit warnings fail validation. Do not overwrite the live unit or binary until rollback files and the current SSH recovery path are proven.
 5. Apply binary, config, and unit as one maintenance change, run `daemon-reload`, then restart once. On failed start, missing listener, unexpected user, or repeated restart, restore all three artifacts and re-verify the old service.
 6. Verify `ActiveState`, `NRestarts`, the exact TCP/UDP listener, firewall rule, and an end-to-end client request from outside the host. Only that closes the repair; `systemctl active` alone does not.
@@ -100,10 +100,18 @@ getent group snell >/dev/null || groupadd --system snell
 id snell >/dev/null 2>&1 || \
   useradd --system --gid snell --home-dir /nonexistent \
     --shell /usr/sbin/nologin snell
-install -d -o snell -g snell -m 0750 /etc/snell
-install -o snell -g snell -m 0600 snell-server.conf \
+install -d -o root -g snell -m 0750 /etc/snell
+install -o root -g snell -m 0640 snell-server.conf \
   /etc/snell/snell-server.conf
 runuser -u snell -- test -r /etc/snell/snell-server.conf
+if runuser -u snell -- test -w /etc/snell/snell-server.conf; then
+  echo "snell service user must not be able to rewrite its config" >&2
+  exit 1
+fi
+if runuser -u snell -- test -w /etc/snell; then
+  echo "snell service user must not be able to replace its config" >&2
+  exit 1
+fi
 ```
 
 Keep `/usr/local/bin/snell-server` root-owned and executable. After activation,

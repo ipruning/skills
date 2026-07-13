@@ -55,10 +55,16 @@ def base_kv(**overrides: str) -> dict[str, str]:
         "snell_binary_path": "/usr/local/bin/snell-server",
         "snell_config_path": "/etc/snell/snell-server.conf",
         "config_present": "yes",
-        "config_owner_user": "snell",
+        "config_owner_user": "root",
         "config_owner_group": "snell",
-        "config_mode": "600",
+        "config_mode": "640",
         "config_service_readable": "yes",
+        "config_service_writable": "no",
+        "config_parent_path": "/etc/snell",
+        "config_parent_owner_user": "root",
+        "config_parent_owner_group": "snell",
+        "config_parent_mode": "750",
+        "config_parent_service_writable": "no",
         "config_psk_present": "yes",
         "config_listen": "0.0.0.0:14180",
         "config_legacy_keys": "",
@@ -186,6 +192,9 @@ def test_tuning_and_noise_stay_in_facts_without_findings(tmp_path: Path):
             {"config_owner_user": "root", "config_owner_group": "root", "config_mode": "644"},
             "snell.config_permissions_mismatch",
         ),
+        ({"config_owner_user": "snell", "config_mode": "600"}, "snell.config_permissions_mismatch"),
+        ({"config_service_writable": "yes"}, "snell.config_permissions_mismatch"),
+        ({"config_parent_service_writable": "yes"}, "snell.config_permissions_mismatch"),
     ],
 )
 def test_insecure_service_identity_or_config_permissions_are_findings(
@@ -211,6 +220,8 @@ def test_non_root_identity_and_root_owned_group_readable_config_are_valid(tmp_pa
             config_owner_group="svc-snell",
             config_mode="640",
             config_service_readable="yes",
+            config_service_writable="no",
+            config_parent_service_writable="no",
         ),
     )
 
@@ -605,11 +616,13 @@ def test_skill_docs_default_to_read_only_audit():
     assert "confirm-persistent" not in combined
 
 
-def test_server_recipe_keeps_config_readable_by_service_user():
+def test_server_recipe_keeps_config_read_only_for_service_user():
     server_reference = (ROOT / "references" / "snell-vps.md").read_text()
 
-    assert "install -o snell -g snell -m 0600" in server_reference
+    assert "install -d -o root -g snell -m 0750" in server_reference
+    assert "install -o root -g snell -m 0640" in server_reference
     assert "runuser -u snell -- test -r" in server_reference
+    assert "runuser -u snell -- test -w" in server_reference
 
 
 def test_skill_defines_psk_sources_and_platform_scope():

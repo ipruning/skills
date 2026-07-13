@@ -404,9 +404,22 @@ class LarkMeetingSttTests(unittest.TestCase):
         self.assertEqual(default_cmd[-1], "-")
         self.assertEqual(default_cmd[default_cmd.index("--output-last-message") + 1], str(output_path))
         self.assertIn("--ignore-user-config", default_cmd)
-        self.assertEqual(default_cmd[default_cmd.index("--config") + 1], "skills.include_instructions=false")
+        configs = [default_cmd[index + 1] for index, value in enumerate(default_cmd) if value == "--config"]
+        self.assertEqual(
+            configs,
+            [
+                "skills.include_instructions=false",
+                'web_search="disabled"',
+                "mcp_servers={}",
+                "project_doc_max_bytes=0",
+            ],
+        )
         self.assertIn("--ephemeral", default_cmd)
-        self.assertEqual(default_cmd[default_cmd.index("--disable") + 1], "shell_tool")
+        disabled_features = [default_cmd[index + 1] for index, value in enumerate(default_cmd) if value == "--disable"]
+        self.assertEqual(
+            disabled_features,
+            ["shell_tool", "plugins", "apps", "hooks", "multi_agent", "multi_agent_v2"],
+        )
         self.assertIn("--json", default_cmd)
         self.assertEqual(default_cmd[default_cmd.index("--sandbox") + 1], "read-only")
         self.assertNotIn("--model", default_cmd)
@@ -460,6 +473,7 @@ class LarkMeetingSttTests(unittest.TestCase):
             self.assertEqual(result["context_transport"], "stdin")
             self.assertEqual(result["codex_input_bytes"], len(codex_input.encode("utf-8")))
             self.assertEqual(result["codex_input_sha256"], mod.sha256_text(codex_input))
+            self.assertEqual(result["codex_argv_sha256"], mod.codex_argv_sha256(mod.SummarizeOptions(run=base)))
             self.assertIn(result["context_marker"], (base / "summaries" / "obc1.summary.md").read_text())
 
     def test_summarize_rejects_codex_output_without_context_marker(self) -> None:
@@ -487,7 +501,31 @@ class LarkMeetingSttTests(unittest.TestCase):
             report = json.loads((base / "summaries" / "index.json").read_text(encoding="utf-8"))
             self.assertFalse(report["ok"])
             self.assertIn("Codex 总结失败", report["error"])
-            self.assertIn("missing STT context integrity marker", report["results"][0]["stderr"])
+            self.assertIn("does not end with the STT context integrity marker", report["results"][0]["stderr"])
+            self.assertFalse((base / "summaries" / "obc1.summary.md").exists())
+
+    def test_summarize_rejects_context_marker_before_the_last_line(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            self.prepare_prompt_run(base)
+
+            def codex_with_early_marker(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+                marker = str(kwargs["input"]).rstrip().splitlines()[-1]
+                output_path = Path(cmd[cmd.index("--output-last-message") + 1])
+                output_path.write_text(f"# 测试会议\n\n{marker}\n标记后的内容。\n", encoding="utf-8")
+                return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
+
+            with (
+                mock.patch.object(mod, "require_commands"),
+                mock.patch.object(mod.subprocess, "run", side_effect=codex_with_early_marker),
+                contextlib.redirect_stdout(io.StringIO()),
+                contextlib.redirect_stderr(io.StringIO()),
+            ):
+                exit_code = mod.summarize_prompts(
+                    mod.SummarizeOptions(run=base, concurrency=1, format=mod.OutputFormat.json)
+                )
+
+            self.assertEqual(exit_code, 1)
             self.assertFalse((base / "summaries" / "obc1.summary.md").exists())
 
     def test_summarize_reuses_codex_success_when_prompt_is_unchanged(self) -> None:
@@ -529,6 +567,83 @@ class LarkMeetingSttTests(unittest.TestCase):
             self.assertEqual(report["counts"]["reused"], 1)
             self.assertTrue(report["results"][0]["reused"])
             self.assertEqual(report["results"][0]["attempts"], 0)
+
+    def test_summarize_regenerates_success_when_cached_marker_is_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            self.prepare_prompt_run(base)
+
+            def codex_success(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+                marker = str(kwargs["input"]).rstrip().splitlines()[-1]
+                output_path = Path(cmd[cmd.index("--output-last-message") + 1])
+                output_path.write_text(f"# 测试会议\n\n完成。\n{marker}\n", encoding="utf-8")
+                return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
+
+            with (
+                mock.patch.object(mod, "require_commands"),
+                mock.patch.object(mod.subprocess, "run", side_effect=codex_success),
+                contextlib.redirect_stdout(io.StringIO()),
+                contextlib.redirect_stderr(io.StringIO()),
+            ):
+                self.assertEqual(
+                    mod.summarize_prompts(mod.SummarizeOptions(run=base, concurrency=1, format=mod.OutputFormat.json)),
+                    0,
+                )
+
+            summary_path = base / "summaries" / "obc1.summary.md"
+            summary_path.write_text("# 被截断的总结\n", encoding="utf-8")
+            with (
+                mock.patch.object(mod, "require_commands"),
+                mock.patch.object(mod.subprocess, "run", side_effect=codex_success) as run_codex,
+                contextlib.redirect_stdout(io.StringIO()),
+                contextlib.redirect_stderr(io.StringIO()),
+            ):
+                self.assertEqual(
+                    mod.summarize_prompts(mod.SummarizeOptions(run=base, concurrency=1, format=mod.OutputFormat.json)),
+                    0,
+                )
+
+            run_codex.assert_called_once()
+            report = json.loads((base / "summaries" / "index.json").read_text(encoding="utf-8"))
+            self.assertEqual(report["counts"]["reused"], 0)
+            self.assertFalse(report["results"][0]["reused"])
+
+    def test_summarize_regenerates_success_when_cached_argv_hash_is_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            self.prepare_prompt_run(base)
+
+            def codex_success(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+                marker = str(kwargs["input"]).rstrip().splitlines()[-1]
+                output_path = Path(cmd[cmd.index("--output-last-message") + 1])
+                output_path.write_text(f"# 测试会议\n\n完成。\n{marker}\n", encoding="utf-8")
+                return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
+
+            options = mod.SummarizeOptions(run=base, concurrency=1, format=mod.OutputFormat.json)
+            with (
+                mock.patch.object(mod, "require_commands"),
+                mock.patch.object(mod.subprocess, "run", side_effect=codex_success),
+                contextlib.redirect_stdout(io.StringIO()),
+                contextlib.redirect_stderr(io.StringIO()),
+            ):
+                self.assertEqual(mod.summarize_prompts(options), 0)
+
+            index_path = base / "summaries" / "index.json"
+            previous = json.loads(index_path.read_text(encoding="utf-8"))
+            previous["results"][0].pop("codex_argv_sha256")
+            index_path.write_text(json.dumps(previous), encoding="utf-8")
+            with (
+                mock.patch.object(mod, "require_commands"),
+                mock.patch.object(mod.subprocess, "run", side_effect=codex_success) as run_codex,
+                contextlib.redirect_stdout(io.StringIO()),
+                contextlib.redirect_stderr(io.StringIO()),
+            ):
+                self.assertEqual(mod.summarize_prompts(options), 0)
+
+            run_codex.assert_called_once()
+            report = json.loads(index_path.read_text(encoding="utf-8"))
+            self.assertEqual(report["counts"]["reused"], 0)
+            self.assertIn("codex_argv_sha256", report["results"][0])
 
     @staticmethod
     def prepare_prompt_run(base: Path) -> None:

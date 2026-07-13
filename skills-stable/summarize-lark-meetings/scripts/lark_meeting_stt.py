@@ -1185,9 +1185,25 @@ def build_codex_command(options: SummarizeOptions, *, output_path: Path) -> list
         "--ignore-user-config",
         "--config",
         "skills.include_instructions=false",
+        "--config",
+        'web_search="disabled"',
+        "--config",
+        "mcp_servers={}",
+        "--config",
+        "project_doc_max_bytes=0",
         "--ephemeral",
         "--disable",
         "shell_tool",
+        "--disable",
+        "plugins",
+        "--disable",
+        "apps",
+        "--disable",
+        "hooks",
+        "--disable",
+        "multi_agent",
+        "--disable",
+        "multi_agent_v2",
         "--skip-git-repo-check",
         "--sandbox",
         "read-only",
@@ -1203,6 +1219,11 @@ def build_codex_command(options: SummarizeOptions, *, output_path: Path) -> list
     return cmd
 
 
+def codex_argv_sha256(options: SummarizeOptions) -> str:
+    normalized = build_codex_command(options, output_path=Path("<output-last-message>"))
+    return sha256_text(json.dumps(normalized, ensure_ascii=False, separators=(",", ":")))
+
+
 def build_codex_input(prompt_text: str, *, prompt_sha256: str) -> tuple[str, str]:
     marker = f"<!-- codex-stt-context-end:{prompt_sha256} -->"
     integrity_instruction = (
@@ -1213,6 +1234,19 @@ def build_codex_input(prompt_text: str, *, prompt_sha256: str) -> tuple[str, str
         f"{marker}\n"
     )
     return prompt_text.rstrip() + integrity_instruction, marker
+
+
+def output_ends_with_context_marker(output: str, context_marker: str) -> bool:
+    lines = output.rstrip().splitlines()
+    return bool(lines) and lines[-1] == context_marker
+
+
+def summary_file_ends_with_context_marker(summary_path: Path, context_marker: str) -> bool:
+    try:
+        output = summary_path.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    return output_ends_with_context_marker(output, context_marker)
 
 
 def summarize_prompts(options: SummarizeOptions) -> int:
@@ -1312,6 +1346,7 @@ def summarize_prompts(options: SummarizeOptions) -> int:
         codex_input, context_marker = build_codex_input(prompt_text, prompt_sha256=prompt_sha256)
         codex_input_bytes = len(codex_input.encode("utf-8"))
         codex_input_sha256 = sha256_text(codex_input)
+        codex_command_sha256 = codex_argv_sha256(options)
         codex_input_tiktoken_count = count_tiktoken(
             codex_input,
             encoding=tiktoken_encoder(DEFAULT_ENCODING),
@@ -1332,6 +1367,7 @@ def summarize_prompts(options: SummarizeOptions) -> int:
             "codex_input_bytes": codex_input_bytes,
             "codex_input_sha256": codex_input_sha256,
             "codex_input_tiktoken_count": codex_input_tiktoken_count,
+            "codex_argv_sha256": codex_command_sha256,
         }
         previous = previous_results.get(start_event["prompt_path"]) or {}
         if (
@@ -1340,8 +1376,10 @@ def summarize_prompts(options: SummarizeOptions) -> int:
             and previous.get("summarizer") == "codex"
             and previous.get("codex_model") == options.codex_model
             and previous.get("codex_input_sha256") == codex_input_sha256
+            and previous.get("codex_argv_sha256") == codex_command_sha256
             and summary_path.exists()
             and summary_path.stat().st_size > 0
+            and summary_file_ends_with_context_marker(summary_path, context_marker)
         ):
             reused = {
                 **start_event,
@@ -1400,9 +1438,9 @@ def summarize_prompts(options: SummarizeOptions) -> int:
                     if not codex_output.strip():
                         exit_code = 1
                         stderr = "codex returned empty output"
-                    elif context_marker not in codex_output:
+                    elif not output_ends_with_context_marker(codex_output, context_marker):
                         exit_code = 1
-                        stderr = "codex output missing STT context integrity marker"
+                        stderr = "codex output does not end with the STT context integrity marker"
                     else:
                         try:
                             write_text(summary_path, codex_output)

@@ -39,9 +39,9 @@ uv run --script scripts/lark_meeting_stt.py summarize --run "$run"
 
 `pull` 拉取 `minutes-found.json` 里全部妙记，唯一的选择编辑点在 `check` 之后：读 duplicates 证据，从 `selected.txt` 删掉重复。`prompts` 每次重建并写出 `prompt-index.json`，只有它 `"ok": true` 才跑 `summarize`。导出失败的 token 留在 `pulled.md`，别拿会议纪要或总结顶替失败的 transcript。
 
-`summarize` 用 `codex exec -` 从 stdin 发送完整 prompt，输出只读取 `--output-last-message` 文件。命令关闭自动 Skill 指令和 shell tool，并使用只读沙盒和 ephemeral session，让总结只依据当前 STT 且不修改 run 目录、不留下 Codex 会话。默认不传 model，由本机 Codex CLI 选择；用户明确指定时传 `--codex-model`。脚本默认同时运行 2 个 Codex 任务；Codex 慢或限流就调低 `--concurrency`，长会调高 `--timeout-seconds`。
+`summarize` 用 `codex exec -` 从 stdin 发送完整 prompt，输出只读取 `--output-last-message` 文件。命令关闭自动 Skill 和项目指令、web search、MCP、apps、hooks、plugins、multi-agent 和 shell tool，并使用只读沙盒和 ephemeral session，阻止 Codex 通过这些可配置能力读取或补充当前 STT 之外的来源，同时不修改 run 目录、不留下 Codex 会话。Codex 模型本身不是可证明的零外部知识执行环境。默认不传 model，由本机 Codex CLI 选择；用户明确指定时传 `--codex-model`。脚本默认同时运行 2 个 Codex 任务；Codex 慢或限流就调低 `--concurrency`，长会调高 `--timeout-seconds`。
 
-每个 Codex 输入都记录 UTF-8 字节数、SHA-256 和 tiktoken 数，并在 prompt 最后附加基于 prompt SHA-256 的完整性标记。总结末尾没有原样返回该标记就判失败，不保存输出。同一 prompt 已有成功的 Codex 总结时，只有 prompt hash、实际 stdin hash、总结器和显式 model 都一致才复用；旧 Amp 结果不会被当成 Codex 结果复用。`summaries/` 只保留当前选择对应的总结文件。
+每个 Codex 输入都记录 UTF-8 字节数、SHA-256 和 tiktoken 数，并在 prompt 最后附加基于 prompt SHA-256 的完整性标记。总结末尾没有原样返回该标记就判失败，不保存输出。同一 prompt 已有成功的 Codex 总结时，只有 prompt hash、实际 stdin hash、Codex argv hash、总结器和显式 model 都一致才复用；命令隔离参数变化或旧 Amp 结果都会强制重新生成。`summaries/` 只保留当前选择对应的总结文件。
 
 用户指定用当前 agent 或别的工具总结时，跑到 `prompts` 为止，自己读 `prompts/` 下的 prompt 文件出总结，不跑 `summarize`。
 

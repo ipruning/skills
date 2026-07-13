@@ -552,10 +552,10 @@ for file_path in "${shell_files[@]}"; do
   if [[ -f "$file_path" ]]; then existing_shell_files+=("$file_path"); fi
 done
 if ((${#existing_shell_files[@]})); then
-  shell_matches="$(rg -n -i 'watch_proxy|HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|http_proxy|https_proxy|all_proxy' \
+  shell_matches="$(grep -Eni 'watch_proxy|HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|http_proxy|https_proxy|all_proxy' \
     "${existing_shell_files[@]}" 2>&1)"
-  rg_code=$?
-  case "$rg_code" in
+  grep_code=$?
+  case "$grep_code" in
     0) printf '%s\n' "$shell_matches" >&2; exit 1 ;;
     1) ;;
     *) printf '%s\n' "$shell_matches" >&2; exit 1 ;;

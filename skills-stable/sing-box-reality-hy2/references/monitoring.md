@@ -68,6 +68,7 @@ esac
 Connect directly to `SERVER_IP` while validating `HY2_DOMAIN`:
 
 ```bash
+set -euo pipefail
 probe_dir="$(mktemp -d)"
 trap 'rm -rf "$probe_dir"' EXIT
 curl --http3-only \
@@ -75,7 +76,11 @@ curl --http3-only \
   --connect-timeout 8 --max-time 20 \
   -sS -o /dev/null -w '%{http_code}\n%{certs}' \
   "https://$HY2_DOMAIN/" >"$probe_dir/result"
-sed -n '1p' "$probe_dir/result"
+http_status="$(sed -n '1p' "$probe_dir/result")"
+case "$http_status" in
+  [1-5][0-9][0-9]) printf '%s\n' "$http_status" ;;
+  *) echo "HTTP/3 probe returned no valid HTTP status: $http_status" >&2; exit 1 ;;
+esac
 awk '
   /-----BEGIN CERTIFICATE-----/ { capture = 1 }
   capture { print }
@@ -83,8 +88,6 @@ awk '
 ' "$probe_dir/result" >"$probe_dir/leaf.pem"
 openssl x509 -in "$probe_dir/leaf.pem" -noout \
   -checkend "$CERT_MIN_SECONDS"
-rm -rf "$probe_dir"
-trap - EXIT
 ```
 
 Require an HTTP status from the HTTP/3 server, a parseable leaf PEM, successful

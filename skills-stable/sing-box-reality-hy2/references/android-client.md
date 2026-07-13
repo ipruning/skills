@@ -11,6 +11,26 @@ Import the outbounds and selector from the Linux mixed profile in
 [linux-client.md](linux-client.md). Keep its REALITY default, HY2 fallback,
 `ipv4_only` DNS baseline, and omission of guessed HY2 bandwidth values.
 
+The Linux mixed inbound is only a per-app protocol smoke test. For an ordinary
+full-device SFA profile, add this Android TUN baseline instead:
+
+```json
+{
+  "type": "tun",
+  "tag": "tun-in",
+  "address": [
+    "172.19.0.1/30",
+    "fdfe:dcba:9876::1/126"
+  ],
+  "mtu": 1500,
+  "auto_route": true,
+  "strict_route": true
+}
+```
+
+Configure per-app inclusion or exclusion through SFA's Android VPN controls;
+do not copy Linux process or systemd routing assumptions into the profile.
+
 For ordinary on-device SFA, omit Linux's `auto_redirect`. The field is not
 strictly Linux-only: the validated baseline supports limited IPv4 TCP
 forwarding with it on Android, but Android has no nftables or ip6tables. Use it
@@ -53,8 +73,9 @@ model used on Linux.
 
 ## Validation
 
-1. Import the profile and require SFA to start without schema, REALITY, or TLS
-   errors.
+1. Import the full-device profile, confirm it contains the Android TUN inbound,
+   and require SFA to start without schema, REALITY, or TLS errors. A mixed
+   inbound alone validates only explicit per-app proxy traffic.
 2. Select `vless-reality-out`; require an external-IP page to return the VPS
    egress and inspect the SFA log for both TCP and UDP traffic.
 3. Select `hy2-h3-out`; repeat the external-IP check and require no certificate

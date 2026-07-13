@@ -397,6 +397,7 @@ hardening_directives() {
 write_summary_kv() {
   local binary_path=$1
   local config_file=$2
+  local config_parent_dir
   local directives
   local mem_total
   local swap_free
@@ -404,6 +405,7 @@ write_summary_kv() {
   local root_available
   local service_user
   directives="$(hardening_directives)"
+  config_parent_dir="$(dirname -- "$config_file")"
   service_user="$(service_show User)"
   if [ -z "$service_user" ]; then service_user=root; fi
   mem_total="$(awk '/^MemTotal:/ { print $2; exit }' /proc/meminfo 2>/dev/null || true)"
@@ -435,14 +437,21 @@ write_summary_kv() {
       kv config_mode "$(stat -c '%a' "$config_file" 2>/dev/null || true)"
       if [ "$service_user" = root ]; then
         kv config_service_readable "yes"
+        kv config_service_writable "yes"
       elif command -v runuser >/dev/null 2>&1 && id "$service_user" >/dev/null 2>&1; then
         if runuser -u "$service_user" -- test -r "$config_file"; then
           kv config_service_readable "yes"
         else
           kv config_service_readable "no"
         fi
+        if runuser -u "$service_user" -- test -w "$config_file"; then
+          kv config_service_writable "yes"
+        else
+          kv config_service_writable "no"
+        fi
       else
         kv config_service_readable "unknown"
+        kv config_service_writable "unknown"
       fi
       if config_key_present "$config_file" psk; then kv config_psk_present "yes"; else kv config_psk_present "no"; fi
       kv config_listen "$(config_value "$config_file" listen)"
@@ -458,10 +467,26 @@ write_summary_kv() {
       kv config_owner_group ""
       kv config_mode ""
       kv config_service_readable ""
+      kv config_service_writable ""
       kv config_psk_present "no"
       kv config_listen ""
       kv config_legacy_keys ""
       kv config_dns_ip_preference_present "no"
+    fi
+    kv config_parent_path "$config_parent_dir"
+    kv config_parent_owner_user "$(stat -c '%U' "$config_parent_dir" 2>/dev/null || true)"
+    kv config_parent_owner_group "$(stat -c '%G' "$config_parent_dir" 2>/dev/null || true)"
+    kv config_parent_mode "$(stat -c '%a' "$config_parent_dir" 2>/dev/null || true)"
+    if [ "$service_user" = root ]; then
+      kv config_parent_service_writable "yes"
+    elif command -v runuser >/dev/null 2>&1 && id "$service_user" >/dev/null 2>&1; then
+      if runuser -u "$service_user" -- test -w "$config_parent_dir"; then
+        kv config_parent_service_writable "yes"
+      else
+        kv config_parent_service_writable "no"
+      fi
+    else
+      kv config_parent_service_writable "unknown"
     fi
 
     kv systemd_active "$(service_show ActiveState)"

@@ -398,6 +398,12 @@ def build_facts(summary: dict[str, str], journal_text: str) -> dict[str, Any]:
                 "owner_group": summary.get("config_owner_group", ""),
                 "mode": summary.get("config_mode", ""),
                 "service_readable": summary.get("config_service_readable", ""),
+                "service_writable": summary.get("config_service_writable", ""),
+                "parent_path": summary.get("config_parent_path", ""),
+                "parent_owner_user": summary.get("config_parent_owner_user", ""),
+                "parent_owner_group": summary.get("config_parent_owner_group", ""),
+                "parent_mode": summary.get("config_parent_mode", ""),
+                "parent_service_writable": summary.get("config_parent_service_writable", ""),
                 "psk_present": bool_yes(summary.get("config_psk_present")),
                 "listen": summary.get("config_listen", ""),
                 "legacy_keys": csv_values(summary.get("config_legacy_keys", "")),
@@ -542,7 +548,12 @@ def build_findings(facts: dict[str, Any]) -> list[dict[str, Any]]:
         config_mode_bits = None
     insecure_mode = config_mode_bits is not None and bool(config_mode_bits & 0o037)
     unreadable = config["service_readable"] in {"no", "unknown"}
-    if config["present"] and (insecure_mode or unreadable):
+    service_owns_config = bool(systemd["user"]) and config["owner_user"] == systemd["user"]
+    service_can_write = config["service_writable"] in {"yes", "unknown"}
+    service_can_replace = config["parent_service_writable"] in {"yes", "unknown"}
+    if config["present"] and (
+        insecure_mode or unreadable or service_owns_config or service_can_write or service_can_replace
+    ):
         findings.append(
             finding(
                 "snell.config_permissions_mismatch",
@@ -551,8 +562,11 @@ def build_findings(facts: dict[str, Any]) -> list[dict[str, Any]]:
                     f"owner={config['owner_user'] or 'unknown'}:{config['owner_group'] or 'unknown'}",
                     f"mode={config['mode'] or 'unknown'}",
                     f"service_readable={config['service_readable'] or 'not-collected'}",
+                    f"service_writable={config['service_writable'] or 'not-collected'}",
+                    f"parent={config['parent_owner_user'] or 'unknown'}:{config['parent_owner_group'] or 'unknown'} {config['parent_mode'] or 'unknown'}",
+                    f"parent_service_writable={config['parent_service_writable'] or 'not-collected'}",
                 ],
-                "make the config readable by the non-root service while denying group write and all other access",
+                "make the config and parent directory root-owned and readable but not writable by the non-root service",
             )
         )
 

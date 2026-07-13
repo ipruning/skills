@@ -16,6 +16,9 @@ def test_server_external_targets_require_explicit_source_authorization():
 def test_one_shot_monitor_rejects_existing_listener_and_ties_readiness_to_pid():
     monitoring = (ROOT / "references" / "monitoring.md").read_text()
 
+    assert "set -euo pipefail" in monitoring
+    assert "[1-5][0-9][0-9])" in monitoring
+    assert "HTTP/3 probe returned no valid HTTP status" in monitoring
     assert "local monitor port 2089 is already owned" in monitoring
     assert 'grep -Fq "pid=$sidecar_pid,"' in monitoring
     assert "sidecar_listening && break" in monitoring
@@ -39,5 +42,15 @@ def test_linux_validation_fails_closed_for_journal_and_old_proxy_units():
     assert 'if ! user_running="$(systemctl --user list-units' in linux
     assert "pgrep_code=$?" in linux
     assert 'if ! socket_inventory="$(ss -lntup)"' in linux
-    assert "rg_code=$?" in linux
+    assert "grep_code=$?" in linux
     assert "user-level cleanup remains unverified" in linux
+
+
+def test_android_full_device_profile_has_a_tun_baseline():
+    android = (ROOT / "references" / "android-client.md").read_text()
+    normalized = " ".join(android.split())
+
+    assert '"type": "tun"' in android
+    assert '"auto_route": true' in android
+    assert '"strict_route": true' in android
+    assert "mixed inbound alone validates only explicit per-app proxy traffic" in normalized

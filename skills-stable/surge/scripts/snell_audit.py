@@ -16,4 +16,4 @@ from pathlib import Path
 target = Path(__file__).resolve().parents[2] / "operate-snell" / "scripts" / "snell_audit.py"
 if not target.is_file():
     raise SystemExit(f"operate-snell audit CLI not found: {target}")
-os.execv(target, [str(target), *sys.argv[1:]])
+os.execv(sys.executable, [sys.executable, str(target), *sys.argv[1:]])
