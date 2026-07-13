@@ -1190,6 +1190,8 @@ def build_codex_command(options: SummarizeOptions, *, output_path: Path) -> list
         "--config",
         "mcp_servers={}",
         "--config",
+        "plugins={}",
+        "--config",
         "project_doc_max_bytes=0",
         "--ephemeral",
         "--disable",

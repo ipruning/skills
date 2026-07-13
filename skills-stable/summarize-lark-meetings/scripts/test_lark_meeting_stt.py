@@ -411,6 +411,7 @@ class LarkMeetingSttTests(unittest.TestCase):
                 "skills.include_instructions=false",
                 'web_search="disabled"',
                 "mcp_servers={}",
+                "plugins={}",
                 "project_doc_max_bytes=0",
             ],
         )
