@@ -48,16 +48,18 @@ mise exec -- ast-grep run -p 'subprocess.run($$$ARGS)' -l python skills-stable/s
 mise exec -- ast-grep run -p 'getattr($OBJ, $ATTR)' -l python skills-stable/things/scripts
 ```
 
-## Branch and sync policy
+## Checkout and publication policy
 
-Source checkouts can have different merge rules. Do not infer one checkout's policy from another checkout.
+The **primary checkout** is the checkout reported by `skillshare status --json` as `source.path`. A real sync publishes the state of that exact checkout, not the state of the directory where the command happens to run.
 
-- This source checkout is the user's personal skill source. Direct `main` updates are allowed unless the user asks for a branch, PR, or separate commit shape.
-- `_jihuanshe-skills/` is a separate nested source repo. Follow its own `AGENTS.md`: do not commit or push directly to `main`; use a branch and PR for mergeable work.
-- Before starting new work in a source checkout, if the worktree is clean or can be safely paused, switch to `main` and pull the upstream state first. If the worktree has uncommitted work, do not force a branch switch; inspect the state and preserve the work, or leave it untouched and start from a fresh git worktree.
-- Multiple agent sessions may work in a checkout concurrently. When the worktree is dirty with changes you did not make, or your work needs a branch switch that would move files under another session, create a git worktree instead of switching branches in place: `git worktree add ../skills-worktrees/<topic> -b <branch>`. Remove it after the branch lands (`git worktree remove <path>`).
-- Place worktrees outside every skillshare source checkout; a worktree created inside one would be scanned as skill directories. `skillshare` syncs the configured `source.path` checkout, not your cwd, so worktree edits reach synced targets only after they land in the primary checkout. A worktree of this repo also lacks the gitignored nested checkouts (`_<source>-skills/`); read those through the primary checkout.
-- After a PR is squash-merged upstream, treat the local feature branch as stale. Switch to `main`, pull, and branch again before continuing related work. Do not stack new edits on an old branch whose commits no longer match upstream history.
+- This is the user's personal skill source. A small, self-contained change that does not need independent review may commit directly to clean local `main`. Broad, risky, or review-dependent work—and any user-requested PR—must use an external task worktree and merge through a PR before publication.
+- Do not move or clean a primary checkout that contains another session's work. For branch work, run `git fetch origin`, inspect commits on both sides of `main...origin/main`, then create an external worktree from the intended base: `git worktree add ../skills-worktrees/<topic> -b <branch> origin/main`. Never silently include or omit local-only `main` commits.
+- Place every worktree outside all Skillshare source checkouts; an in-source worktree would be scanned as skill content. A worktree of this repo lacks gitignored nested checkouts such as `_<source>-skills/`; read those through the primary checkout, then follow the nested checkout's own `AGENTS.md` for edits.
+- `_jihuanshe-skills/` is a separate team source with a stricter PR-to-live lifecycle. Its `AGENTS.md` is the canonical policy; do not restate or infer it here.
+- A real sync is allowed only from clean local `main` after fetching upstream. Local `main` may be ahead only with eligible small direct-main commits; review-dependent work must already be merged upstream and pulled with `--ff-only`. A dirty primary checkout, missing upstream commits, or unmerged PR work blocks publication.
+- Before syncing, use `skillshare status --json` to discover the complete publication set: the parent source plus every tracked nested source. Inspect each checkout's branch, status, HEAD, and upstream divergence under its own publication policy; a dirty checkout or clean unmerged feature branch blocks the global sync. Then verify copied files with `cmp`, symlink projections by resolved destination and content, and behavior claims with a relevant smoke test.
+- A PR is not live when opened or merged. Pull its upstream merge into the primary checkout, sync, and verify before reporting it live.
+- Keep task worktrees until integration is confirmed in the primary checkout. After a squash merge, remove the stale worktree; create follow-up work from current `main`, never from the pre-merge branch.
 
 ## Working on Skillshare extras
 
@@ -66,7 +68,7 @@ Source checkouts can have different merge rules. Do not infer one checkout's pol
 - Keep global harness prompt files as complete, directly editable documents. Avoid shared-template generators unless the user explicitly asks for a generated model again.
 - When adding a new extra or target, update the active Skillshare config (`extras_source` and `extras:` entries) in the environment that syncs it. If that config is maintained by another repo, make that repo change as a separate logical commit.
 - Use `mode: copy` for extras whose target is a tool root containing unrelated files, such as `~/.codex`, `~/.claude`, or `~/.config/amp`. Use `merge` only for dedicated target directories where pruning Skillshare-managed symlinks is safe.
-- Before a real sync after config changes, run `skillshare extras list --json` and `skillshare sync extras --dry-run --force --json`; confirm the expected targets, modes, and `pruned` counts. After syncing copy-mode prompt files, `cmp` the source and live target when practical.
+- Before a real sync after config changes, run `skillshare extras list --json` and `skillshare sync extras --dry-run --force --json`; confirm the expected targets, modes, and `pruned` counts. After syncing copy-mode prompt files, `cmp` the source and live target.
 
 ## Code Style
 
@@ -96,6 +98,8 @@ When deleting a checked-in external skill, use `skillshare uninstall` when possi
 
 ## Running skillshare
 
-Use supported non-interactive flags such as `--force`, `--yes`, `--no-tui`, explicit selectors, and `--json`; do not start prompt-only workflows. Always run `skillshare sync --all` after any mutation (adding, deleting, or moving synced skills, `install`, `uninstall`, `update`, `collect`, `target`, or extras edits). Use `--json` when you need to parse output. Changes under paths listed in `.skillignore` are not exposed to targets unless the ignore or target configuration changes; check the file rather than assuming a whole collection is ignored.
+Use supported non-interactive flags such as `--force`, `--yes`, `--no-tui`, explicit selectors, and `--json`; do not start prompt-only workflows. Use `--json` when parsing output. Changes under paths listed in `.skillignore` are not exposed to targets unless the ignore or target configuration changes; inspect the file instead of assuming a collection is ignored.
+
+Changes to projected skills, extras, target configuration, or ignore rules require a real `skillshare sync --all --global --json` after they pass the publication gate above. Global Skillshare commands use configured `source.path`, not cwd; do not run a mutating command from a task worktree under the assumption that it changes that worktree. Validate branch content with repository checks, and treat every real Skillshare mutation or sync as an operation on the primary source.
 
 Sync targets such as `~/.claude/skills` are skillshare projections. Never point a third-party skill installer (for example `npx skills add ... -g`) at a target directory; anything written there directly is untracked shadow state that no audit or prune sees. When a vendor CLI embeds its own skills, prefer a thin first-party router skill that reads them at runtime over installing copies into a source repository.
