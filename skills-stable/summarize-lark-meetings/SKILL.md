@@ -1,11 +1,11 @@
 ---
-name: lark-meeting-summary
+name: summarize-lark-meetings
 description: "Use when the user wants to review or summarize Feishu/Lark meetings over a date range, such as 总结这两周的会 or a meeting weekly report: find minute_tokens, pull transcript files, inspect coverage and duplicate evidence, build Chinese prompts, and optionally fan summaries out to Amp. Do not use for a single minute_token or single-meeting lookup (that is the lark skill), or for turning chat history into a report corpus — that is lark-chat-corpus."
 metadata:
   version: "5"
 ---
 
-# Lark Meeting Summary
+# Summarize Lark Meetings
 
 单会议、单 `minute_token` 或未来日程不走这条流水线：读 lark-cli 的内嵌 skill，`lark-cli skills read lark-vc` 管单个会议，`lark-minutes` 管单个 token，`lark-calendar` 管日历事件。
 

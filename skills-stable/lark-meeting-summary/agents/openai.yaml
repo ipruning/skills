@@ -1,4 +1,0 @@
-interface:
-  display_name: "Lark 会议批量总结"
-  short_description: "按日期范围收集飞书妙记逐字稿并生成会议总结"
-  default_prompt: "使用 $lark-meeting-summary 按日期范围收集飞书妙记：list 后读 coverage 确认覆盖，pull 和 check 后读重复证据编辑 selected.txt，再跑 prompts 与 summarize。"
