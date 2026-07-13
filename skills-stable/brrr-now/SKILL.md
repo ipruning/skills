@@ -2,7 +2,7 @@
 name: brrr-now
 description: "Send, test, or integrate brrr.now push notifications when the user wants to be pinged, reminded, or woken outside chat. Not for implementing push notifications inside the user's own product."
 metadata:
-  version: "6"
+  version: "7"
 ---
 
 # brrr Push Notifications
@@ -21,7 +21,7 @@ metadata:
 
 ## 发送
 
-用 sender script [`scripts/brrr-send.sh`](scripts/brrr-send.sh)，flags 传参，`--help` 列出全部。Runtime 检测、endpoint 和鉴权它自己处理。本机缺配置时它失败会自己说明缺什么。exe.dev VM 上的失败先按下面 exe.dev 一节核对 proxy integration。
+用 sender script [`scripts/brrr-send.sh`](scripts/brrr-send.sh)，flags 传参，`--help` 列出全部。Runtime 检测、endpoint 和鉴权它自己处理。显式加载的 `BRRR_SECRET` 优先；没有显式凭据且处于 exe.dev VM 时，才回退到 HTTP Proxy integration。本机缺配置时它失败会自己说明缺什么。
 
 ```bash
 /bin/bash "<brrr-now skill dir>/scripts/brrr-send.sh" \
@@ -32,15 +32,17 @@ metadata:
 
 `--dry-run` 校验 payload 并报告 `auth_mode`，不真发，配置缺失时同样以退出码 3 失败，适合在延迟发送之前确认命令没写错。凭证是否有效，只有真发一条能证明。
 
+真发成功后，sender stdout 只报告 `auth_mode` 和 `http_status`，不输出 endpoint、payload、响应正文或 secret。成功的 `2xx` 只证明 API 或 proxy 接受了请求；设备端送达仍以用户确认为准。
+
 同一件事复用同一个 `thread_id`，通知才会在手机上归组。有值得点开的页面就加 `--open-url`。
 
 目标主机上不一定有这个 skill 目录。在本机发送时，直接按绝对路径调用 sender script。要写进 repo、装到远程主机或 systemd 时，把它复制或改编到那一侧的稳定路径。
 
 ## exe.dev HTTP Proxy
 
-exe.dev VM 里 sender script 会调用 `https://brrr.int.exe.xyz/v1/send`，这要求 exe.dev 上存在名为 `brrr` 的 HTTP Proxy integration。`notify` mobile notification integration 不是同一个东西，不能当作已配置的 brrr proxy。`https://brrr.int.exe.xyz/` 只是 proxy 根路径，发送通知用 `https://brrr.int.exe.xyz/v1/send`。
+exe.dev VM 没有加载 `BRRR_SECRET` 时，sender script 才会调用 `https://brrr.int.exe.xyz/v1/send`。这要求当前 VM runtime 附有名为 `brrr` 的 HTTP Proxy integration。`notify` mobile notification integration 不是同一个东西，不能当作已配置的 brrr proxy。`https://brrr.int.exe.xyz/` 只是 proxy 根路径，发送通知用 `https://brrr.int.exe.xyz/v1/send`。
 
-先查再配：VM 内读 `https://reflection.int.exe.xyz/integrations`，看到 `name=brrr`、`type=http-proxy` 就直接用。缺失才创建。`BRRR_SECRET` 取自本机的 `~/.config/brrr/env` 或 `~/.config/notify/brrr.env`，从不来自 VM 内，VM 里的请求由 exe.dev 注入认证。执行 add 前确认变量非空，空 bearer 会创建一个静默坏掉的 integration。
+先查再配：VM 内读 `https://reflection.int.exe.xyz/integrations`，确认当前 runtime 实际看得到 `name=brrr`、`type=http-proxy` 再使用。缺失才创建。创建 integration 所需的 `BRRR_SECRET` 取自发起配置的本机授权来源，不复制进 VM；VM 里的 proxy 请求由 exe.dev 注入认证。执行 add 前确认变量非空，空 bearer 会创建一个静默坏掉的 integration。
 
 ```bash
 ssh exe.dev integrations add http-proxy \
@@ -53,7 +55,7 @@ ssh exe.dev integrations add http-proxy \
 
 如果用网页表单配置，提交前看 preview，必须是 `--attach=auto:all`。表单可能先自动生成 `tag:brrr`。
 
-配好后从 VM 内向 `https://brrr.int.exe.xyz/v1/send` 发一条真实测试通知。HTTP `202` 说明 proxy 打通，设备端送达仍以用户确认为准。
+配好后从实际发送通知的 runtime 发一条测试通知；systemd `OnFailure=` 场景要测独立的 notification handler，不能用失败源服务或交互 shell 的成功代替。`401` 或 `403` 先查当前 runtime 的 integration attachment；如果 notification handler 已经通过授权的 env file 加载 `BRRR_SECRET`，保留显式 bearer 路径，不要为了迁就 machine proxy 删除它。成功的 `2xx` 说明 proxy 或 API 打通，设备端送达仍以用户确认为准。
 
 ## 紧急程度
 

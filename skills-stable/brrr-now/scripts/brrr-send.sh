@@ -15,8 +15,8 @@ Options:
   --dry-run              print auth_mode and payload without sending; exit 3 if unconfigured
 
 Environment:
-  exe.dev: detected automatically; sends to https://brrr.int.exe.xyz/v1/send
-  BRRR_SECRET: public API bearer token for Authorization header
+  BRRR_SECRET: public API bearer token; takes precedence over runtime detection
+  exe.dev: when no BRRR_SECRET is loaded, sends through the attached HTTP Proxy
   BRRR_ENV_FILE: optional shell env file to source before sending
   BRRR_TIMEOUT: curl timeout in seconds, default 10
 
@@ -144,13 +144,14 @@ timeout="${BRRR_TIMEOUT:-10}"
 endpoint=
 auth_mode=
 
-# every exe.dev VM ships /exe.dev/shelley.json; it marks the proxy runtime
-if [ -f /exe.dev/shelley.json ]; then
-    endpoint="https://brrr.int.exe.xyz/v1/send"
-    auth_mode="exe.dev-proxy"
-elif [ -n "${BRRR_SECRET:-}" ]; then
+# An explicit credential belongs to the invoking service and must win over a
+# machine-level proxy attachment. The exe.dev marker is only a fallback.
+if [ -n "${BRRR_SECRET:-}" ]; then
     endpoint="https://api.brrr.now/v1/send"
     auth_mode="bearer"
+elif [ -f /exe.dev/shelley.json ]; then
+    endpoint="https://brrr.int.exe.xyz/v1/send"
+    auth_mode="exe.dev-proxy"
 elif [ "$dry_run" -eq 1 ]; then
     auth_mode="unconfigured"
 else
@@ -233,7 +234,20 @@ if [ "$auth_mode" = "bearer" ]; then
     curl_args+=(-H "Authorization: Bearer $BRRR_SECRET")
 fi
 
-curl "${curl_args[@]}" \
+http_status="$(curl "${curl_args[@]}" \
     -H 'Content-Type: application/json' \
     --data-binary "$payload" \
-    "$endpoint" >/dev/null
+    --output /dev/null \
+    --write-out '%{http_code}' \
+    "$endpoint")"
+
+case "$http_status" in
+    2??) ;;
+    *)
+        echo "brrr returned unexpected HTTP status: $http_status" >&2
+        exit 1
+        ;;
+esac
+
+printf 'auth_mode=%s\n' "$auth_mode"
+printf 'http_status=%s\n' "$http_status"

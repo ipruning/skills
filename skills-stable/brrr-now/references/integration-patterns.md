@@ -8,7 +8,7 @@ Real-work notifications need a hook that observes completion, failure, liveness,
 | ---------------------------------------- | ---------------------------------------- | ---------------------------------------- |
 | One command in the current agent session | Wrap the command and notify success/fail | Skill dir (copy first if absent on host) |
 | Script in a repo                         | Call the sender script or a repo-local wrapper      | `scripts/` or `ops/notify/`              |
-| systemd service                          | `OnFailure=notify-brrr@%p.service`       | Stable absolute path                     |
+| systemd unit                             | `OnFailure=`; source shape changes the specifiers, see the systemd pattern | Stable absolute path                     |
 | Cron replacement                         | systemd timer plus `OnFailure`           | Stable absolute path                     |
 | Long-running daemon                      | systemd `Restart=` plus `OnFailure`      | Stable absolute path                     |
 | Queue worker                             | Queue task result callback               | Repo or worker path                      |
@@ -64,7 +64,8 @@ Use the narrowest credential source that matches the runtime:
 
 | Runtime                     | Credential source                                                                                     |
 | --------------------------- | ----------------------------------------------------------------------------------------------------- |
-| exe.dev VM                  | No brrr secret. Use the HTTP Proxy integration.                                                       |
+| exe.dev VM with explicit service secret | Load the authorized `BRRR_SECRET`; explicit bearer auth wins over runtime proxy detection.            |
+| exe.dev VM without a service secret      | Use the HTTP Proxy integration attached to that exact runtime.                                        |
 | Current interactive shell   | Export `BRRR_SECRET` in the shell that runs the sender script.                                        |
 | macOS local user            | `~/.config/brrr/env` or `~/.config/notify/brrr.env`, readable only by the user.                       |
 | Project local dev           | Set `BRRR_ENV_FILE` to an untracked env file or load `BRRR_SECRET` from a local secret manager.       |
