@@ -1,9 +1,9 @@
 ---
 name: image-workbench
-description: "Use when a task needs AI-generated or AI-edited bitmap assets, visual QA of generated images, screenshot-backed image work, UI annotations, or the local image workbench CLI. Not for deterministic local edits such as crop, resize, or compress, and not for diagrams, charts, or images that must carry precise text or code — those belong in vector tools such as SVG/HTML, Typst, or Mermaid."
+description: "Use instead of the ordinary built-in imagegen workflow when an image task specifically needs the local image workbench CLI, source-fidelity editing or repair across iterations, screenshot or UI annotation, generated-image visual QA, variant comparison, or reusable bitmap component extraction. The built-in imagegen skill owns ordinary one-off image generation or editing. Not for deterministic crop, resize, or compression, and not for diagrams, charts, or images that must carry precise text or code — those belong in vector tools such as SVG/HTML, Typst, or Mermaid."
 metadata:
   version: "3.1"
-  short-description: gpt-image-2 generation, editing, repair, and visual QA of generated images
+  short-description: Local source-fidelity repair, annotation, variants, and generated-image visual QA
 ---
 
 # Image Generation Workbench
