@@ -1,17 +1,17 @@
 ---
-name: web-fullstack-start
-description: Start or continue a practical Web full-stack app on a chosen React + TanStack Router + Vite + Convex stack — a dashboard, SaaS, internal tool, or product prototype needing a scaffold command, auth/data boundary, and first usable feature. Not for deciding whether Convex should own application state or producing an architecture-only Convex boundary report; use design-convex-systems for that. Also not for isolated changes to an existing feature, Next.js/SSR/SEO sites, React Native, or payment flows; a live-built Next.js Convex app belongs to convex:quickstart.
+name: start-convex-web-app
+description: Start or continue a practical Web full-stack app on a chosen React + TanStack Router + Vite + Convex stack — a dashboard, SaaS, internal tool, or product prototype needing a scaffold command, auth/data boundary, and first usable feature. Not for deciding whether Convex should own application state or producing an architecture-only Convex boundary report; use design-convex-systems for that. Also not for isolated changes to an existing feature, Next.js/SSR/SEO sites, React Native, or payment flows; use a matching implementation workflow from the current environment instead of routing to an unverified skill name.
 metadata:
   version: "2"
 ---
 
-# Web Full-Stack Start
+# Start Convex Web App
 
 把「我要做一个 Web app」翻译成可执行的启动路线。先确定用户是在启动新项目，还是在已有项目里加第一批真实功能。新建产品两者都要：先按 react ref 做到最小闭环，再进入 feature brief 或用户自己的产品目标，边界不变。
 
 默认路线是 React、TanStack Router、Convex、Convex-managed WorkOS AuthKit、shadcn + Base UI、Vite+ 和 pnpm。它适合需要登录、数据读写、实时同步和少量后端胶水代码的 dashboard、SaaS 原型和内部工具。Cloudflare Kumo 只在用户明确想要 Cloudflare 风格成品设计系统时加到 web app。
 
-如果用户明确要 Next.js SSR、SEO 内容站、React Native native、付款闭环、公司既有 Auth/DB 标准，先按用户的既有约束工作，不要强行套默认路线。要 Next.js 上 live 搭 Convex app 就路由到 convex:quickstart。
+如果用户明确要 Next.js SSR、SEO 内容站、React Native native、付款闭环、公司既有 Auth/DB 标准，先按用户的既有约束工作，不要强行套默认路线。要在 Next.js 上 live 搭 Convex app 时不走本 Skill；先查当前环境实际安装的 Skill，有匹配的 Next.js/Convex 实现流程才路由过去，没有就按用户的既有约束直接实现。
 
 ## 启动新项目
 
