@@ -1,4 +1,0 @@
-interface:
-  display_name: "Scheduled Work"
-  short_description: "把稍后做和反复检查变成合适的调度形态：定时新线程或续跑本线程"
-  default_prompt: "使用 $scheduled-work 决定调度形态：先选全新线程还是回到同一线程，再补全节奏、汇报门槛和停止条件，交给 harness 自带的调度机制创建。"

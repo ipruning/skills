@@ -1,13 +1,13 @@
 ---
-name: scheduled-work
-description: "Set up scheduled agent work where the agent itself runs each check and nothing is deployed: do something later, keep checking until something changes, watch for something to finish and report it, or follow up periodically. Use when the user asks to schedule, loop, keep watching, or be reminded later — decide the scheduling shape first, then create it with the harness's own scheduling mechanism. Not for deploying durable monitoring infrastructure — that is end-to-end-monitoring."
+name: schedule-agent-work
+description: "Set up finite or state-bounded scheduled work where the agent itself runs each check and nothing is deployed: do something later, keep checking until a state changes, watch for something to finish, or follow up for a defined period. Use when the work depends on the current task context, has a stop condition, or the user explicitly asks the agent to re-check. Not for open-ended production responsibility or monitoring that must outlive the task and run independently — that is end-to-end-monitoring."
 metadata:
   version: "5"
 ---
 
-# Scheduled Work
+# Schedule Agent Work
 
-决定调度形态并创建它，执行每次运行的是 agent 本人。要交付无人值守的常驻监控链路，如 collector、探针和告警后端，用 `$end-to-end-monitoring`。运行结果要推送到聊天之外时，用 `$brrr-now` 发送。
+决定调度形态并创建它，执行每次运行的是 agent 本人。这里只接有限期、依赖当前任务上下文或有明确停止状态的工作；开放期限的生产责任、必须独立于当前任务持续运行的 collector、探针和告警后端归 `$end-to-end-monitoring`。运行结果要推送到聊天之外时，用 `$brrr-now` 发送。
 
 ## 核心决策
 

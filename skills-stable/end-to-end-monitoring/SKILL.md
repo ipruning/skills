@@ -1,6 +1,6 @@
 ---
 name: end-to-end-monitoring
-description: "Design, deploy, repair, or verify standing monitoring and alerting infrastructure that runs on its own, independent of any agent session, for a host, service, cron job, crawler, dependency, data pipeline, or AI workflow. Not for the agent itself periodically re-checking something and pinging you — that is scheduled-work."
+description: "Design, deploy, repair, or verify standing monitoring and alerting infrastructure for open-ended production responsibility that must outlive the current task and run independently of any agent session: a host, service, cron job, crawler, dependency, data pipeline, or AI workflow. Not for finite or state-bounded checks performed by the agent itself — that is schedule-agent-work."
 metadata:
   version: "7"
 ---
@@ -13,7 +13,7 @@ metadata:
 protected subject -> signal producer -> observability backend -> alert rule -> notification channel -> responder -> runbook
 ```
 
-agent 本人在会话里周期性盯梢的需求归 `$scheduled-work`。
+有限期、依赖当前任务上下文或到某个状态就停止的周期检查归 `$schedule-agent-work`。开放期限的生产责任，或必须独立于当前任务持续运行的监控留在这里。
 
 ## 先问什么
 
@@ -81,7 +81,7 @@ secrets boundary:
 
 ## 工具边界
 
-只读遥测查询、dashboard、告警定义和运行历史，优先用 observability backend 的 MCP 工具。MCP 不可用时，可用已认证的浏览器 UI 做同等范围的只读查询和告警检查。仍只运行有边界、有 `LIMIT` 的查询，不碰 cookies、local storage 和密码。创建或改动告警、渠道、凭据，只在用户要求部署、配置、轮换、修复或验证时做。主机事实、运行时状态、systemd、日志和权限走 SSH。MCP 完不成的凭据操作，也用已认证的浏览器 UI 完成。provider 端点、token 行为、collector 配置或告警语法可能已变化时，查当前官方文档。secret 不进聊天摘要、shell history、进程 argv、unit 文件、git 和普通用户可写文件。
+只读遥测查询、dashboard、告警定义和运行历史，优先用 observability backend 的 MCP 工具。MCP 不可用时，可用已认证的浏览器 UI 做同等范围的只读查询和告警检查。仍只运行有边界、有 `LIMIT` 的查询，不碰 cookies、local storage 和密码。创建或改动告警、渠道、凭据，只在用户要求部署、配置、轮换或修复时做。验证请求只授权只读检查和已获授权的测试信号，不授权新建或修改基础设施；验证必须改变状态时先取得明确授权。主机事实、运行时状态、systemd、日志和权限走 SSH。MCP 完不成的凭据操作，也用已认证的浏览器 UI 完成。provider 端点、token 行为、collector 配置或告警语法可能已变化时，查当前官方文档。secret 不进聊天摘要、shell history、进程 argv、unit 文件、git 和普通用户可写文件。
 
 ## 按需读的 reference
 
