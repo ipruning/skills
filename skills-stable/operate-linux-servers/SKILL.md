@@ -1,11 +1,11 @@
 ---
-name: linux-server
-description: "Operate Linux servers over SSH: Debian/Ubuntu systemd setup and maintenance, distro-aware health and intrusion audits, SSH, firewall and container exposure, swap, and proxy/VPN setup or tuning including Snell repair. Use for unclear or possibly compromised hosts as well as known hosts. Not for macOS network problems; Snell evidence-only audits belong to surge, and the REALITY+HY2 stack belongs to sing-box-reality-hy2."
+name: operate-linux-servers
+description: "Operate Linux servers over SSH: Debian/Ubuntu systemd setup and maintenance, distro-aware health and intrusion audits, SSH, firewall and container exposure, swap, general server-side work for proxy/VPN services, and Snell-specific setup or repair. Use for unclear or possibly compromised hosts as well as known hosts. Not for macOS network problems; Snell evidence collection, diagnosis, and repair planning belong to surge before confirmed server-side changes are applied here; REALITY+HY2 deployment, repair, and validation belong to sing-box-reality-hy2."
 metadata:
   version: "6"
 ---
 
-# Linux Server
+# Operate Linux Servers
 
 主机角色和任务模式决定读什么证据、允许改什么状态。只在会改变这些决定时做分类。
 
@@ -39,7 +39,7 @@ ip6tables -S 2>/dev/null
 
 ## 主机角色
 
-- 单主 VPS：用户直接管 root 的个人机、代理节点、Snell/Xray 盒子。保持 key-only root 的访问形状，只开当前需要或明确规划的端口。不默认加非 root 管理员、fail2ban、SSH 算法表或 sysctl 调优，机器没这个需要且用户没要求就不加。SSH 细节看 [references/ssh.md](references/ssh.md)，防火墙看 [references/firewall.md](references/firewall.md)，Snell 搭建或修复看 [references/snell-vps.md](references/snell-vps.md)。
+- 单主 VPS：用户直接管 root 的个人机、代理节点、Snell/Xray 盒子。保持 key-only root 的访问形状，只开当前需要或明确规划的端口。不默认加非 root 管理员、fail2ban、SSH 算法表或 sysctl 调优，机器没这个需要且用户没要求就不加。SSH 细节看 [references/ssh.md](references/ssh.md)，防火墙看 [references/firewall.md](references/firewall.md)。现有 Snell 故障尚未取证时，先用 `$surge` 产出审计证据和修复计划；新搭建或已有确认方案的服务器侧变更看 [references/snell-vps.md](references/snell-vps.md)。
 - 团队管理机：多于一个人类管理员，访问要能按人吊销。一人一账号，验证过 sudo 之后才收 root SSH，`AllowUsers` 要等全部预期用户都测试过再加。看 [references/ssh.md](references/ssh.md)。
 - 不明或疑似失陷机：先取证后修复。证据收齐之前不升级、不清理、不轮换、不删除、不重启、不改写持久化。看 [references/unknown-server-audit.md](references/unknown-server-audit.md)。
 - 容器主机：Docker 发布的端口可能绕过 UFW 的 input 规则。改防火墙前把每个公网端口映射到进程、容器和防火墙路径，没确认真实的转发问题就不加宽路由规则。看 [references/containers.md](references/containers.md)。

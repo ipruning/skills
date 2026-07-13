@@ -1,6 +1,6 @@
 ---
 name: sing-box-reality-hy2
-description: "Deploy, repair, and validate a narrow sing-box stable stack: VLESS REALITY Vision on TCP/443 plus Hysteria2 on UDP/443. Use for Debian/Ubuntu systemd VPS setup, Linux system-level TUN, cross-platform client configs, migration off Clash/Mihomo, REALITY/HY2 testing, or a 科学上网/翻墙/梯子 request when the user is open to this REALITY+HY2 stack. Surge-related macOS network triage and Snell audits belong to the surge skill."
+description: "Deploy, repair, and validate a narrow sing-box stable stack: VLESS REALITY Vision on TCP/443 plus Hysteria2 on UDP/443. Use for Debian/Ubuntu systemd VPS setup, Linux system-level TUN, REALITY/HY2-specific client profiles and transport connectivity on Linux, macOS Surge, Android/SFA, and Windows, migration off Clash/Mihomo, testing, or a 科学上网/翻墙/梯子 request when the user is open to this stack. iOS/SFI is not covered. Generic Linux server operations and confirmed Snell server-side changes belong to operate-linux-servers; generic macOS Surge runtime, DNS, policy, Enhanced Mode, and system-network diagnosis plus Snell evidence collection, diagnosis, and repair planning belong to surge."
 metadata:
   version: "6"
 ---
@@ -15,13 +15,13 @@ metadata:
 
 - 服务器搭建或修复：[references/server.md](references/server.md)
 - Linux/VPS 客户端、测试、从 Clash/Mihomo/shell export 迁移：[references/linux-client.md](references/linux-client.md)
-- macOS Surge 配置或测试：[references/macos-client.md](references/macos-client.md)
+- macOS Surge 中 REALITY/HY2 专属配置、协议连通性或测试：[references/macos-client.md](references/macos-client.md)
 - Android/SFA 与 Tailscale 共存：[references/android-client.md](references/android-client.md)
 - Windows 客户端配置或测试：[references/windows-client.md](references/windows-client.md)
 - 测速、性能解读、SOP 与真实服务器的比对：[references/testing.md](references/testing.md)
 - iOS/SFI 不在本栈覆盖内，用户点名 iPhone 时先说明这一点
-- 非本栈的通用 Linux 服务器操作、入侵排查、防火墙、Snell 部署归 `$linux-server`
-- 独立的 Surge 分诊、Snell 审计、Snell v6 canary 和修复计划归 `$surge`
+- 非本栈的通用 Linux 服务器操作、入侵排查、防火墙、新建 Snell 或已有确认方案的 Snell 服务器变更归 `$operate-linux-servers`
+- 独立的 Surge 分诊、现有 Snell 的取证、诊断、v6 canary 和修复计划归 `$surge`
 
 缺输入时只问阻塞项。服务器搭建要 SSH 访问、`SERVER_IP`、DNS-only 的 `HY2_DOMAIN`，以及用户指定的 `REALITY_SNI`，或由 Agent 从 VPS 实测后选择目标的许可。`REALITY_HANDSHAKE_HOST` 默认同 `REALITY_SNI`，不是单独的阻塞项。客户端要服务器 secrets，或能 SSH 上去读。不要索取 ACME 邮箱或创建补邮箱提醒：Let's Encrypt 已于 2025-06-04 停止证书到期邮件并删除 ACME 账户邮箱。
 
@@ -49,7 +49,7 @@ metadata:
 - Linux TUN 的 DNS 默认 `ipv4_only`，除非 IPv6 在 DNS、路由、软件源和 curl 全部验证过。`prefer_ipv4` 仍会把 AAAA 暴露给应用，不够。
 - Tailscale 按平台分派。Linux TUN 启用前，按 [references/linux-client.md](references/linux-client.md) 保护 tailnet 地址、当前管理路径和 `tailscaled`。启用后实测 peer、MagicDNS、accepted subnet routes 和当前 SSH。macOS Surge 不照搬 Linux 排除段。Android/SFA 和 Tailscale 共用 VPN service 语义，不承诺同时全设备 VPN。
 - Windows 从 mixed 起步避免路由冲突，full-device TUN 按具体客户端适配并验证 Tailscale 路由。
-- macOS Surge 原生使用 HY2。只有已存在并且用户要求保留 Snell 时才把它加入 fallback。Snell 的健康和修复归 `$surge`。
+- macOS Surge 原生使用 HY2。只有已存在并且用户要求保留 Snell 时才把它加入 fallback。Snell 的健康、取证和修复计划归 `$surge`，已确认的服务器侧变更归 `$operate-linux-servers`。
 
 ## 验收标准
 

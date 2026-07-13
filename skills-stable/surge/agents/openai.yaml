@@ -1,8 +1,4 @@
 interface:
   display_name: "Surge"
-  short_description: "诊断 macOS 上的 Surge、Tailscale、Snell，不改本机或服务器，VPS 审计只建删临时证据目录"
-  default_prompt: >-
-    使用 $surge 处理 macOS 上可能经过 Surge 的网络问题：Surge CLI 帮助、配置语法、
-    Enhanced Mode/System Proxy/DNS 排查、Tailscale 路由与 MagicDNS 共存检查、本地 policy
-    smoke test、任意 Surge policy 的策略检查和 Snell VPS 证据审计，可规划 Snell v6 canary。
-    只采集和解释证据，需要变更时只输出人工操作计划，不执行本地网络切换、VPS 修复、重启、安装或调优。
+  short_description: "诊断 macOS Surge 网络问题并审计 Snell VPS，只输出修复计划"
+  default_prompt: "使用 $surge 诊断通用 macOS Surge 运行路径或审计 Snell VPS，并输出证据与修复计划；不切换本机网络、不改服务器配置、不执行修复，Snell 采集需要临时证据目录时先取得明确授权，REALITY+HY2 专属配置与协议诊断交给 $sing-box-reality-hy2。"
