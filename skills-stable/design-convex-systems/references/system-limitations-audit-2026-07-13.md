@@ -302,7 +302,7 @@ Backend 和 dashboard 版本必须一致，不保证不同版本兼容。In-plac
 | action-cache | `9bdceaf63a45` | behind |
 | action-retrier | `223f64c1b9cf` | current |
 | agent | `b3034d7bd7fa` | current |
-| aggregate | `ef00fb8afe9e` | current |
+| aggregate | [commit](https://github.com/get-convex/aggregate/commit/ef00fb8afe9e419f6013ae7d8e8c0478c2960752) | current |
 | convex-backend | `559e283c62b2` | current |
 | crons | `e9117b389c7b` | current |
 | demos | `66c654b82513` | behind |
