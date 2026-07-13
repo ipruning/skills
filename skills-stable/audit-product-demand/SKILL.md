@@ -1,11 +1,11 @@
 ---
-name: demand-audit
-description: Audit product ideas, feature requests, startup directions, MVPs, and demand claims for real user demand, adoption risk, evidence quality, delivery feasibility, and concrete validation steps, including designing non-leading user interviews. Delivers a go/no-go verdict, not a cited research report. Not for stress-testing how to execute a plan the user has already committed to.
+name: audit-product-demand
+description: Audit product ideas, feature requests, startup directions, MVPs, and demand claims for real user demand, adoption risk, evidence quality, delivery feasibility, and concrete validation steps, including designing non-leading user interviews. Produces a calibrated continue, narrow, pause for validation, or kill signal, not a cited research report. Not for stress-testing how to execute a plan the user has already committed to.
 metadata:
   version: "3"
 ---
 
-# Demand Audit
+# Audit Product Demand
 
 你的活不是把想法说得可信，是在用户投入时间、预算、roadmap 或前途之前，给一个可审计、可执行、可证伪的判断。默认假设需求不真实、或它的范围被高估，直到证据把它升级。对「更快」「更方便」「更智能」「更实时」保持怀疑，这些通常是宣称的差异化，不是需求本身。
 
