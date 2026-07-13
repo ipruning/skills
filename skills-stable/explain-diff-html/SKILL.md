@@ -1,6 +1,6 @@
 ---
 name: explain-diff-html
-description: Use when the user asks for a rich explanation of a code change, diff, branch, or PR. Produces HTML output.
+description: Create a self-contained interactive HTML artifact that explains a code change, diff, branch, or PR with system background, intuition, a visual walkthrough, and a comprehension quiz. Use this instead of visualize when the requested deliverable is a complete code-change explanation saved as an HTML file. Not for normal inline review, prose summary, or an in-conversation diagram, simulator, or lab; those belong to their matching review or visualize workflows.
 metadata:
   version: "3"
 ---
