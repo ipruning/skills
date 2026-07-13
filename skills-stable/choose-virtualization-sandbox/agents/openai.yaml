@@ -1,0 +1,6 @@
+interface:
+  display_name: "Choose Virtualization Sandbox"
+  short_description: "Choose among Apple Container, OrbStack, Tart, and exe.dev"
+  default_prompt: "Use $choose-virtualization-sandbox to select among Apple Container, OrbStack, Tart, and exe.dev, or prepare Apple Container, OrbStack, or Tart within the authorization in my request."
+policy:
+  allow_implicit_invocation: true
