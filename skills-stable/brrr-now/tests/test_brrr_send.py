@@ -128,7 +128,15 @@ def run_unit_notifier(
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     fake_systemctl = bin_dir / "systemctl"
-    fake_systemctl.write_text('#!/bin/bash\nprintf "LoadState=loaded\\nActiveState=failed\\nSubState=failed\\n"\n')
+    fake_systemctl.write_text(
+        """#!/bin/bash
+case "$*" in
+    *--property=ActiveState*) printf 'failed\\n' ;;
+    *--property=SubState*) printf 'failed\\n' ;;
+    *) exit 2 ;;
+esac
+"""
+    )
     fake_systemctl.chmod(0o755)
 
     env: dict[str, str] = dict(os.environ)
@@ -140,9 +148,17 @@ def run_unit_notifier(
         }
     )
     if monitor_unit is None:
-        env.pop("MONITOR_UNIT", None)
+        for name in ("MONITOR_UNIT", "MONITOR_SERVICE_RESULT", "MONITOR_EXIT_CODE", "MONITOR_EXIT_STATUS"):
+            env.pop(name, None)
     else:
-        env["MONITOR_UNIT"] = monitor_unit
+        env.update(
+            {
+                "MONITOR_UNIT": monitor_unit,
+                "MONITOR_SERVICE_RESULT": "exit-code",
+                "MONITOR_EXIT_CODE": "exited",
+                "MONITOR_EXIT_STATUS": "1",
+            }
+        )
 
     result = subprocess.run([str(UNIT_NOTIFIER), argument], capture_output=True, text=True, check=False, env=env)
     return result, sender_args.read_text() if sender_args.exists() else ""
@@ -154,7 +170,10 @@ def test_systemd_service_handler_prefers_exact_monitor_unit(tmp_path: Path) -> N
     assert result.returncode == 0
     assert ": worker@blue.service failed" in sender_args
     assert "systemd unit" in sender_args
-    assert "Inspect its journal before restarting." in sender_args
+    assert "The unit entered failed/failed." in sender_args
+    assert "Service result is exit-code." in sender_args
+    assert "Process exit is exited/1." in sender_args
+    assert "Inspect the unit status and journal to diagnose the failure." in sender_args
     assert "systemd-" in sender_args
     assert "-worker@blue.service" in sender_args
     assert "worker-blue" not in sender_args
@@ -166,6 +185,11 @@ def test_systemd_non_service_handler_uses_full_argument(tmp_path: Path) -> None:
     assert result.returncode == 0
     assert ": backup.timer failed" in sender_args
     assert "systemd unit" in sender_args
+    assert "The unit entered failed/failed." in sender_args
+    assert "Service result" not in sender_args
+    assert "Process exit" not in sender_args
+    assert "unknown" not in sender_args
+    assert "restart" not in sender_args
 
 
 def test_systemd_handler_rejects_lossy_fallback_identity(tmp_path: Path) -> None:

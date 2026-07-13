@@ -16,11 +16,15 @@ fi
 host="$(hostname -f 2>/dev/null || hostname)"
 active_state="$(systemctl show "$unit" --property=ActiveState --value 2>/dev/null || printf unknown)"
 sub_state="$(systemctl show "$unit" --property=SubState --value 2>/dev/null || printf unknown)"
-service_result="${MONITOR_SERVICE_RESULT:-unknown}"
-exit_code="${MONITOR_EXIT_CODE:-unknown}"
-exit_status="${MONITOR_EXIT_STATUS:-unknown}"
 
-message="The unit entered ${active_state:-unknown}/${sub_state:-unknown}; result=${service_result}, exit=${exit_code}/${exit_status}. Inspect its journal before restarting."
+message="The unit entered ${active_state:-unknown}/${sub_state:-unknown}."
+if [ -n "${MONITOR_SERVICE_RESULT:-}" ]; then
+    message+=" Service result is ${MONITOR_SERVICE_RESULT}."
+fi
+if [ -n "${MONITOR_EXIT_CODE:-}" ] || [ -n "${MONITOR_EXIT_STATUS:-}" ]; then
+    message+=" Process exit is ${MONITOR_EXIT_CODE:-unknown}/${MONITOR_EXIT_STATUS:-unknown}."
+fi
+message+=" Inspect the unit status and journal to diagnose the failure."
 
 "$sender" \
     --title "${host}: ${unit} failed" \
