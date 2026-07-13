@@ -24,10 +24,19 @@ Call the sender script through `/bin/bash` by absolute path. One-off copies stay
 BRRR_SENDER="<brrr-now skill dir>/scripts/brrr-send.sh"
 
 if long_running_command; then
-  /bin/bash "$BRRR_SENDER" --title "Task complete" --message "long_running_command finished" --thread-id "agent-task"
+  /bin/bash "$BRRR_SENDER" \
+    --title "payments/main: build passed" \
+    --subtitle "GitHub Actions · production" \
+    --message "All required checks passed. No action needed." \
+    --thread-id "payments-main-build"
 else
   rc=$?
-  /bin/bash "$BRRR_SENDER" --title "Task failed" --message "long_running_command failed with rc=$rc" --thread-id "agent-task" || true
+  /bin/bash "$BRRR_SENDER" \
+    --title "payments/main: build failed" \
+    --subtitle "GitHub Actions · production" \
+    --message "The build exited with status $rc and blocks release. Open the failed run to inspect it." \
+    --thread-id "payments-main-build" \
+    --open-url "https://example.invalid/builds/123" || true
   exit "$rc"
 fi
 ```
@@ -45,16 +54,42 @@ set -eEuo pipefail
 notify_failure() {
   rc=$?
   line=${1:-?}
+  host=$(hostname)
   trap - ERR
   /absolute/path/to/brrr-send \
-    --title "Script failed" \
-    --message "$(basename "$0") failed rc=$rc line=$line on $(hostname)" \
-    --thread-id "script-$(basename "$0")" || true
+    --title "$host: $(basename "$0") failed" \
+    --subtitle "Scheduled script · production" \
+    --message "The script exited with status $rc at line $line. Inspect its run log before retrying." \
+    --thread-id "script-$host-$(basename "$0")" || true
   exit "$rc"
 }
 
 trap 'notify_failure "$LINENO"' ERR
 ```
+
+## Content and recurrence
+
+A notification is the interrupting summary, not the diagnostic record. Use the smallest actionable identity in the title. Put role, environment, provider, and an operationally useful IP in the subtitle. Put raw metrics, logs, producer lists, and internal field names behind `--open-url`.
+
+Do not turn every poll into a push. Keep recurrence state at the producer and notify transitions or thresholds:
+
+- First anomaly while the service remains healthy: record it, or send one `passive` notification when the user asked to see it.
+- Repeated samples below the escalation threshold: increment the count without sending.
+- Frequency, duration, or impact crosses its threshold: send one aggregate notification with the window, count, current impact, and action.
+- Recovery: notify only if the onset or escalation was sent.
+
+For example:
+
+```bash
+/absolute/path/to/brrr-send \
+  --title "ci-host-01: kernel warnings recurring; runtime healthy" \
+  --subtitle "GitHub Actions host · production · last 50 minutes" \
+  --message "Seven overlay warnings were observed; jobs remain healthy. No action is needed now. Open the diagnostic report for details." \
+  --thread-id "ci-host-01-kernel" \
+  --open-url "https://example.invalid/hosts/ci-host-01/diagnostics"
+```
+
+The sender does not count, suppress, acknowledge, resolve, or replace notifications. `thread_id` only asks the operating system to group related notifications.
 
 Bash may skip an `ERR` trap for a direct `exit N`. If that exit should notify, call the sender script before exiting.
 
@@ -87,8 +122,9 @@ Failure notifications do not cover host outages, scheduler failure, broken netwo
 
 ```bash
 /absolute/path/to/brrr-send \
-  --title "heartbeat" \
-  --message "host=$(hostname) time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  --title "$(hostname): daily heartbeat received" \
+  --subtitle "Linux host" \
+  --message "The host reported on schedule. No action needed." \
   --thread-id "heartbeat-$(hostname)" \
   --interruption-level passive
 ```

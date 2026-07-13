@@ -11,7 +11,12 @@ SYSTEMD_PATTERN = SKILL_ROOT / "references" / "systemd-pattern.md"
 
 
 def run_sender(
-    tmp_path: Path, *, secret: str | None, exe_dev: bool, http_status: int = 202
+    tmp_path: Path,
+    *,
+    secret: str | None,
+    exe_dev: bool,
+    http_status: int = 202,
+    extra_args: list[str] | None = None,
 ) -> tuple[subprocess.CompletedProcess[str], str]:
     marker = tmp_path / "shelley.json"
     if exe_dev:
@@ -48,13 +53,13 @@ def run_sender(
         env["BRRR_SECRET"] = secret
 
     result = subprocess.run(
-        [str(sender), "--title", "test", "--message", "test"],
+        [str(sender), "--title", "test", "--message", "test", *(extra_args or [])],
         capture_output=True,
         text=True,
         check=False,
         env=env,
     )
-    return result, curl_args.read_text()
+    return result, curl_args.read_text() if curl_args.exists() else ""
 
 
 def test_explicit_secret_wins_over_exe_dev_proxy(tmp_path: Path) -> None:
@@ -74,6 +79,42 @@ def test_exe_dev_proxy_is_fallback_without_secret(tmp_path: Path) -> None:
     assert result.stdout == "auth_mode=exe.dev-proxy\nhttp_status=202\n"
     assert "https://brrr.int.exe.xyz/v1/send" in curl_args
     assert "Authorization:" not in curl_args
+
+
+def test_sender_includes_notification_content_fields(tmp_path: Path) -> None:
+    result, curl_args = run_sender(
+        tmp_path,
+        secret="test-secret",
+        exe_dev=False,
+        extra_args=[
+            "--subtitle",
+            "production host",
+            "--image-url",
+            "https://example.invalid/image.png",
+            "--expiration-date",
+            "2026-07-13T18:00:00Z",
+            "--filter-criteria",
+            "host=ci-01",
+        ],
+    )
+
+    assert result.returncode == 0
+    assert '"subtitle":"production host"' in curl_args
+    assert '"image_url":"https://example.invalid/image.png"' in curl_args
+    assert '"expiration_date":"2026-07-13T18:00:00Z"' in curl_args
+    assert '"filter_criteria":"host=ci-01"' in curl_args
+
+
+def test_sender_rejects_expiration_without_timezone(tmp_path: Path) -> None:
+    result, _curl_args = run_sender(
+        tmp_path,
+        secret="test-secret",
+        exe_dev=False,
+        extra_args=["--expiration-date", "2026-07-13T18:00:00"],
+    )
+
+    assert result.returncode == 2
+    assert "expiration_date must be an ISO 8601 date and time with a timezone" in result.stderr
 
 
 def run_unit_notifier(
@@ -111,9 +152,11 @@ def test_systemd_service_handler_prefers_exact_monitor_unit(tmp_path: Path) -> N
     result, sender_args = run_unit_notifier(tmp_path, argument="worker-blue", monitor_unit="worker@blue.service")
 
     assert result.returncode == 0
-    assert "systemd failed: worker@blue.service" in sender_args
-    assert "unit: worker@blue.service" in sender_args
-    assert "systemd-worker@blue.service" in sender_args
+    assert ": worker@blue.service failed" in sender_args
+    assert "systemd unit" in sender_args
+    assert "Inspect its journal before restarting." in sender_args
+    assert "systemd-" in sender_args
+    assert "-worker@blue.service" in sender_args
     assert "worker-blue" not in sender_args
 
 
@@ -121,8 +164,8 @@ def test_systemd_non_service_handler_uses_full_argument(tmp_path: Path) -> None:
     result, sender_args = run_unit_notifier(tmp_path, argument="backup.timer", monitor_unit=None)
 
     assert result.returncode == 0
-    assert "systemd failed: backup.timer" in sender_args
-    assert "unit: backup.timer" in sender_args
+    assert ": backup.timer failed" in sender_args
+    assert "systemd unit" in sender_args
 
 
 def test_systemd_handler_rejects_lossy_fallback_identity(tmp_path: Path) -> None:

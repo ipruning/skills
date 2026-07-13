@@ -13,19 +13,17 @@ if [ -z "$unit" ]; then
             ;;
     esac
 fi
-host="$(hostname)"
-when="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-state="$(systemctl show "$unit" --property=LoadState,ActiveState,SubState,UnitFileState --no-pager 2>/dev/null || true)"
+host="$(hostname -f 2>/dev/null || hostname)"
+active_state="$(systemctl show "$unit" --property=ActiveState --value 2>/dev/null || printf unknown)"
+sub_state="$(systemctl show "$unit" --property=SubState --value 2>/dev/null || printf unknown)"
+service_result="${MONITOR_SERVICE_RESULT:-unknown}"
+exit_code="${MONITOR_EXIT_CODE:-unknown}"
+exit_status="${MONITOR_EXIT_STATUS:-unknown}"
 
-message="[${host}] systemd FAILED
-unit: ${unit}
-time: ${when}
-service_result: ${MONITOR_SERVICE_RESULT:-n/a}
-exit_code: ${MONITOR_EXIT_CODE:-n/a}
-exit_status: ${MONITOR_EXIT_STATUS:-n/a}
-${state}"
+message="The unit entered ${active_state:-unknown}/${sub_state:-unknown}; result=${service_result}, exit=${exit_code}/${exit_status}. Inspect its journal before restarting."
 
 "$sender" \
-    --title "systemd failed: ${unit}" \
+    --title "${host}: ${unit} failed" \
+    --subtitle "systemd unit" \
     --message "$message" \
-    --thread-id "systemd-${unit}"
+    --thread-id "systemd-${host}-${unit}"

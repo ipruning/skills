@@ -2,7 +2,7 @@
 name: brrr-now
 description: "Send, test, or integrate brrr.now push notifications when the user wants to be pinged, reminded, or woken outside chat. Not for implementing push notifications inside the user's own product."
 metadata:
-  version: "7"
+  version: "8"
 ---
 
 # brrr Push Notifications
@@ -11,13 +11,28 @@ metadata:
 
 ## 理解用户在要什么
 
-用户的原话通常很随意：「跑完叫我」「到点提醒我」「盯着这个部署」。动手之前，把它补全成三个判断：
+用户的原话通常很随意：「跑完叫我」「到点提醒我」「盯着这个部署」。动手之前，把它补全成四个判断：
 
 - 触发事件是什么。通知要挂在能观察到真实结果的位置上。会话内的等待用 harness 自己的等待机制，前台 `sleep` 只在普通 shell 脚本里可靠。要延后或反复触发的调度，一次性提醒和检查循环都交给 `$schedule-agent-work` 或 harness 自己的调度机制。只有目标主机上没有可用的调度器时，才自己落临时脚本、cron 或 systemd。
+- 接收者看到通知时是否能重新建立情景。通知必须独立说清对象、状态、影响和行动，不能依赖当前聊天或把原始 health report 当正文。
 - 要多紧急。默认普通，也就是不传 `--interruption-level`。用户表达了「必须马上看到」「吵醒我也行」才升级。听不出来而后果要紧时，问一句：普通通知就行，还是要能吵醒你？
 - 送不到怎么办。无人值守工作要依赖通知时，先真发一条测试，让用户确认手机上收到了。HTTP `202` 只证明 API 收下，不证明设备端送达。送达失败就退回聊天汇报，不要静默吞掉。
 
 用户没有要求过通知而你想主动发时，先问一句，再发第一条。
+
+## 写通知
+
+把通知写成一张能独立阅读的事件卡片，不写成日志摘录。
+
+- `title` 写最小可操作对象和当前结论：`<stable identity>: <state change or result>`。主机事件用 hostname 或 instance name，不写宽泛的 `CI VM warning`。只有 IP 能帮助区分或接手时才放在 `subtitle`；公网 IP 或敏感地址默认留在详情页。
+- `subtitle` 写次级定位：角色、环境、provider、必要时的 IP 或时间窗口。没有有用信息就省略。
+- `message` 按「发生了什么；当前影响。需要做什么」组织。无须操作也明确写出。只保留会改变判断的事实，不放原始字段、完整日志、长指标列表或未解释的内部术语。
+- `open_url` 指向接手页：失败 job、日志、incident、runbook 或诊断报告。详情放在那里，不挤进锁屏。
+- 锁屏默认可见。凭据、客户数据、完整请求和敏感路径不进入标题、subtitle 或正文。
+
+标题单独出现时应能回答「哪个对象现在怎样了」。正文应让接收者在几秒内知道影响和行动。不要承诺尚未实现的自动升级、重试或恢复行为。
+
+BRRR 是单向投递，不是 ticket 或 incident backend。`thread_id` 只让相关通知在 Notification Center 归组，不去重、不替换旧通知，也不提供 acknowledge 或 resolve。生产者必须按状态变化通知：重复采样在源头累计，越过频率、时长或影响阈值时才升级。系统健康且无须行动的事件通常不推送，确需留痕时用 `passive`。只有此前通知过故障时才发送恢复通知。
 
 ## 发送
 
@@ -25,16 +40,18 @@ metadata:
 
 ```bash
 /bin/bash "<brrr-now skill dir>/scripts/brrr-send.sh" \
-  --title "Task complete" \
-  --message "long_running_command finished" \
-  --thread-id "agent-task"
+  --title "payments/main: build passed" \
+  --subtitle "GitHub Actions · production" \
+  --message "All required checks passed. No action needed." \
+  --thread-id "payments-main-build" \
+  --open-url "https://example.invalid/builds/123"
 ```
 
 `--dry-run` 校验 payload 并报告 `auth_mode`，不真发，配置缺失时同样以退出码 3 失败，适合在延迟发送之前确认命令没写错。凭证是否有效，只有真发一条能证明。
 
 真发成功后，sender stdout 只报告 `auth_mode` 和 `http_status`，不输出 endpoint、payload、响应正文或 secret。成功的 `2xx` 只证明 API 或 proxy 接受了请求；设备端送达仍以用户确认为准。
 
-同一件事复用同一个 `thread_id`，通知才会在手机上归组。有值得点开的页面就加 `--open-url`。
+同一件事复用同一个 `thread_id`，通知才会在手机上归组。归组不能替代生产者侧的去重和冷却。有值得点开的页面就加 `--open-url`。会过时的提醒用 `--expiration-date` 限制 APNs 重试期限。
 
 目标主机上不一定有这个 skill 目录。在本机发送时，直接按绝对路径调用 sender script。要写进 repo、装到远程主机或 systemd 时，把它复制或改编到那一侧的稳定路径。
 
@@ -50,7 +67,7 @@ ssh exe.dev integrations add http-proxy \
   --target=https://api.brrr.now/ \
   --bearer="$BRRR_SECRET" \
   --attach=auto:all \
-  --comment="Push notifications to the user's devices. Auth is injected by exe.dev. POST JSON to https://brrr.int.exe.xyz/v1/send with title, message, optional thread_id, open_url, sound, interruption_level, and volume (critical only). Use only for user-requested pings or task-critical alerts."
+  --comment="Push notifications to the user's devices. Auth is injected by exe.dev. POST JSON to https://brrr.int.exe.xyz/v1/send with title, message, and optional subtitle, thread_id, open_url, image_url, expiration_date, filter_criteria, sound, interruption_level, and volume (critical only). Use only for user-requested pings or task-critical alerts."
 ```
 
 如果用网页表单配置，提交前看 preview，必须是 `--attach=auto:all`。表单可能先自动生成 `tag:brrr`。

@@ -92,7 +92,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 EnvironmentFile=/root/.config/notify/brrr.env
-ExecStart=/usr/local/libexec/brrr-send --title "heartbeat" --message "host=%H daily heartbeat" --thread-id "heartbeat-%H" --interruption-level passive
+ExecStart=/usr/local/libexec/brrr-send --title "%H: daily heartbeat received" --subtitle "Linux host" --message "The host reported on schedule. No action needed." --thread-id "heartbeat-%H" --interruption-level passive
 ```
 
 Heartbeat timer, saved as `/etc/systemd/system/heartbeat.timer`:
