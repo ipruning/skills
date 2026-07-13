@@ -1,9 +1,11 @@
 # brrr systemd Pattern
 
-Long-running Linux hosts, daemons, and cron replacements need explicit absolute paths and systemd-owned environment files. A user shell `PATH` is not part of the service contract. Install the sender script once at a stable path; the units below assume it:
+Long-running Linux hosts, daemons, and cron replacements need explicit absolute paths and systemd-owned environment files. A user shell `PATH` is not part of the service contract. Install the sender and systemd wrapper once at stable paths; the units below assume them:
 
 ```bash
-install -m 755 brrr-send.sh /usr/local/libexec/brrr-send
+install -d -m 755 /usr/local/libexec
+install -m 755 "<brrr-now skill dir>/scripts/brrr-send.sh" /usr/local/libexec/brrr-send
+install -m 755 "<brrr-now skill dir>/scripts/notify-brrr-unit.sh" /usr/local/libexec/notify-brrr-unit
 ```
 
 ## Environment file
@@ -12,7 +14,15 @@ A root-owned environment file lives outside the repo:
 
 ```bash
 install -d -m 700 /root/.config/notify
-install -m 600 /dev/null /root/.config/notify/brrr.env
+if [ -L /root/.config/notify/brrr.env ]; then
+  echo "refusing symlinked brrr env file" >&2
+  exit 1
+fi
+if [ ! -e /root/.config/notify/brrr.env ]; then
+  install -m 600 /dev/null /root/.config/notify/brrr.env
+fi
+chown root:root /root/.config/notify/brrr.env
+chmod 600 /root/.config/notify/brrr.env
 ```
 
 Example content:
@@ -29,7 +39,7 @@ Template unit, saved as `/etc/systemd/system/notify-brrr@.service`:
 
 ```ini
 [Unit]
-Description=Notify brrr about failure of %i.service
+Description=Notify brrr about unit failure (%i)
 
 [Service]
 Type=oneshot
@@ -37,46 +47,37 @@ EnvironmentFile=/root/.config/notify/brrr.env
 ExecStart=/usr/local/libexec/notify-brrr-unit "%i"
 ```
 
-Wrapper script, installed executable at `/usr/local/libexec/notify-brrr-unit`:
+Install [`scripts/notify-brrr-unit.sh`](../scripts/notify-brrr-unit.sh) as `/usr/local/libexec/notify-brrr-unit`. It keeps the unit identity, named service-result fields, and host context in one tested wrapper. `/usr/local/libexec/brrr-send` remains the transport-only sender.
 
-```bash
-#!/usr/bin/env bash
-set -uo pipefail
+The handler has its own execution environment. It does not inherit `EnvironmentFile=` from the failed service, so load the authorized brrr env file in `notify-brrr@.service` itself.
 
-unit_short="${1:-unknown}"
-unit="${unit_short}.service"
-host="$(hostname)"
-when="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-state="$(systemctl show "$unit" --property=ActiveState,Result,ExecMainStatus --value 2>/dev/null | tr '\n' ' ')"
-context="$(journalctl -u "$unit" -n 15 --no-pager --output=cat 2>/dev/null | tail -15 || true)"
-
-message="[${host}] systemd FAILED
-unit:  ${unit}
-state: ${state}
-time:  ${when}
-last logs:
-${context}"
-
-/usr/local/libexec/brrr-send \
-  --title "systemd failed: ${unit}" \
-  --message "$message" \
-  --thread-id "systemd-${unit_short}"
-```
-
-`notify-brrr-unit` is the systemd wrapper. `/usr/local/libexec/brrr-send` is the sender script. Keep unit name, journal, and host context in the wrapper.
-
-Services that should notify on failure include this unit dependency:
+For a non-templated service or non-templated unit such as `backup.timer`, use the complete unit name:
 
 ```ini
 [Unit]
-OnFailure=notify-brrr@%p.service
-
-[Service]
-StandardOutput=journal
-StandardError=journal
+OnFailure=notify-brrr@%n.service
 ```
 
-`%p` gives `notify-brrr@%p.service` the unit prefix without `.service`. Check templated units and non-service units before relying on this template; adjust the wrapper when `%p` drops required instance details.
+For a source service, keep its own output in the journal when that is part of the local runbook. Do not add a `[Service]` section to timer or other non-service units.
+
+For a templated service such as `worker@blue.service`, systemd's documented handler shape is different:
+
+```ini
+[Unit]
+OnFailure=notify-brrr@%p-%i.service
+```
+
+On systemd 251 and later, a handler triggered by a service receives the exact source unit in `MONITOR_UNIT`; the wrapper prefers it over `%i`. Check `systemctl --version` before relying on this. On older systemd, use a service-specific handler that reconstructs and passes the exact unit name, then test it with `systemd-analyze verify`; the wrapper rejects the lossy `%p-%i` value when `MONITOR_UNIT` is absent.
+
+`MONITOR_UNIT` applies only when a service triggers the handler. For a non-templated non-service unit, `%n` remains the exact fallback argument. For a templated timer or other templated non-service unit, use a unit-specific handler that can reconstruct `<prefix>@%i.<type>` unambiguously.
+
+Test a templated service through a controlled source failure, which lets systemd inject `MONITOR_UNIT`. Directly starting `notify-brrr@worker-blue.service` does not reproduce that runtime and is rejected instead of producing a false-positive notification.
+
+`OnFailure=` on `backup.timer` reports failure of the timer unit itself. It does not report failure of the `backup.service` activated by that timer; put the task-failure hook on the service, and add a timer hook only when scheduler-unit failure is also part of the contract.
+
+The default wrapper sends named state and service-result fields, not journal excerpts. Logs can contain tokens, payloads, or user data; include only an explicitly authorized and filtered excerpt when the notification contract requires it.
+
+The source of truth for the two service handler forms and `MONITOR_UNIT` is the [systemd execution-environment documentation](https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html#%24MONITOR_SERVICE_RESULT%2C%20%24MONITOR_EXIT_CODE%2C%20%24MONITOR_EXIT_STATUS%2C%20%24MONITOR_INVOCATION_ID%2C%20%24MONITOR_UNIT).
 
 ## Heartbeat
 
@@ -91,7 +92,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 EnvironmentFile=/root/.config/notify/brrr.env
-ExecStart=/usr/local/libexec/brrr-send --title "heartbeat" --message "host=%H daily heartbeat" --thread-id "heartbeat-%H" --interruption-level passive
+ExecStart=/usr/local/libexec/brrr-send --title "%H: daily heartbeat received" --subtitle "Linux host" --message "The host reported on schedule. No action needed." --thread-id "heartbeat-%H" --interruption-level passive
 ```
 
 Heartbeat timer, saved as `/etc/systemd/system/heartbeat.timer`:
