@@ -25,6 +25,8 @@ description: |
 # yaml-language-server: $schema=https://raw.githubusercontent.com/ast-grep/ast-grep/main/schemas/typescript_rule.json
 ```
 
+CI 和 Git hook 先跑 `ast-grep test --skip-snapshot-tests`，再跑全库 `scan`。只有 scan 没有 rule tests 时，规则字段或 AST 结构漂移可能把门禁静默变成永不命中；只有 tests 没有 scan 时，又看不到真实代码上的新增违规和过期豁免。
+
 ## 退出码即门禁
 
 `ast-grep scan` 只在 error 级命中时非零退出；warning/info/hint 不影响退出码，在 pre-commit/CI 门禁下等于没开。要挡提交的规则一律 `severity: error`，或在命令行用 `--error=<rule-id>` 按条提升。高召回策略（规则宁可多报、误报靠豁免消化）的完整门禁是：
