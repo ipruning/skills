@@ -2,7 +2,7 @@
 name: end-to-end-monitoring
 description: "Design, deploy, repair, or verify standing monitoring and alerting infrastructure for open-ended production responsibility that must outlive the current task and run independently of any agent session: a host, service, cron job, crawler, dependency, data pipeline, or AI workflow. Not for finite or state-bounded checks performed by the agent itself — that is schedule-agent-work."
 metadata:
-  version: "7"
+  version: "8"
 ---
 
 # End-to-End Monitoring

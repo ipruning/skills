@@ -7,16 +7,20 @@ Usage:
   brrr-send.sh --title TEXT --message TEXT [options]
 
 Options:
+  --subtitle TEXT
   --thread-id TEXT
   --open-url URL
+  --image-url URL
+  --expiration-date ISO8601
+  --filter-criteria TEXT
   --sound NAME
   --interruption-level passive|active|time-sensitive|critical (omit for a normal ping)
   --volume 0..1          critical only
   --dry-run              print auth_mode and payload without sending; exit 3 if unconfigured
 
 Environment:
-  exe.dev: detected automatically; sends to https://brrr.int.exe.xyz/v1/send
-  BRRR_SECRET: public API bearer token for Authorization header
+  BRRR_SECRET: public API bearer token; takes precedence over runtime detection
+  exe.dev: when no BRRR_SECRET is loaded, sends through the attached HTTP Proxy
   BRRR_ENV_FILE: optional shell env file to source before sending
   BRRR_TIMEOUT: curl timeout in seconds, default 10
 
@@ -79,8 +83,12 @@ find_python() {
 
 message=
 title=
+subtitle=
 thread_id=
 open_url=
+image_url=
+expiration_date=
+filter_criteria=
 sound=
 interruption_level=
 volume=
@@ -96,12 +104,28 @@ while [ "$#" -gt 0 ]; do
             title="${2:?missing value for --title}"
             shift 2
             ;;
+        --subtitle)
+            subtitle="${2:?missing value for --subtitle}"
+            shift 2
+            ;;
         --thread-id)
             thread_id="${2:?missing value for --thread-id}"
             shift 2
             ;;
         --open-url)
             open_url="${2:?missing value for --open-url}"
+            shift 2
+            ;;
+        --image-url)
+            image_url="${2:?missing value for --image-url}"
+            shift 2
+            ;;
+        --expiration-date)
+            expiration_date="${2:?missing value for --expiration-date}"
+            shift 2
+            ;;
+        --filter-criteria)
+            filter_criteria="${2:?missing value for --filter-criteria}"
             shift 2
             ;;
         --sound)
@@ -144,13 +168,14 @@ timeout="${BRRR_TIMEOUT:-10}"
 endpoint=
 auth_mode=
 
-# every exe.dev VM ships /exe.dev/shelley.json; it marks the proxy runtime
-if [ -f /exe.dev/shelley.json ]; then
-    endpoint="https://brrr.int.exe.xyz/v1/send"
-    auth_mode="exe.dev-proxy"
-elif [ -n "${BRRR_SECRET:-}" ]; then
+# An explicit credential belongs to the invoking service and must win over a
+# machine-level proxy attachment. The exe.dev marker is only a fallback.
+if [ -n "${BRRR_SECRET:-}" ]; then
     endpoint="https://api.brrr.now/v1/send"
     auth_mode="bearer"
+elif [ -f /exe.dev/shelley.json ]; then
+    endpoint="https://brrr.int.exe.xyz/v1/send"
+    auth_mode="exe.dev-proxy"
 elif [ "$dry_run" -eq 1 ]; then
     auth_mode="unconfigured"
 else
@@ -161,15 +186,20 @@ fi
 python_bin="$(find_python)"
 
 payload="$(
-    "$python_bin" - "$message" "$title" "$thread_id" "$open_url" "$sound" "$interruption_level" "$volume" <<'PY'
+    "$python_bin" - "$message" "$title" "$subtitle" "$thread_id" "$open_url" "$image_url" "$expiration_date" "$filter_criteria" "$sound" "$interruption_level" "$volume" <<'PY'
 import json
 import sys
+from datetime import datetime
 
 names = [
     "message",
     "title",
+    "subtitle",
     "thread_id",
     "open_url",
+    "image_url",
+    "expiration_date",
+    "filter_criteria",
     "sound",
     "interruption_level",
     "volume",
@@ -182,13 +212,29 @@ values = dict(zip(names, sys.argv[1:]))
 fields = {
     "message": values["message"],
     "title": values["title"],
+    "subtitle": values["subtitle"],
     "thread_id": values["thread_id"],
     "open_url": values["open_url"],
+    "image_url": values["image_url"],
+    "expiration_date": values["expiration_date"],
+    "filter_criteria": values["filter_criteria"],
     "sound": values["sound"],
     "interruption_level": values["interruption_level"],
 }
 
 payload = {key: value for key, value in fields.items() if value}
+expiration_date = values["expiration_date"]
+if expiration_date:
+    normalized_expiration = expiration_date[:-1] + "+00:00" if expiration_date.endswith("Z") else expiration_date
+    try:
+        parsed_expiration = datetime.fromisoformat(normalized_expiration)
+    except ValueError:
+        print("expiration_date must be an ISO 8601 date and time with a timezone", file=sys.stderr)
+        sys.exit(2)
+    if "T" not in expiration_date or parsed_expiration.tzinfo is None:
+        print("expiration_date must be an ISO 8601 date and time with a timezone", file=sys.stderr)
+        sys.exit(2)
+
 interruption_level = values["interruption_level"]
 if interruption_level and interruption_level not in {
     "passive",
@@ -233,7 +279,20 @@ if [ "$auth_mode" = "bearer" ]; then
     curl_args+=(-H "Authorization: Bearer $BRRR_SECRET")
 fi
 
-curl "${curl_args[@]}" \
+http_status="$(curl "${curl_args[@]}" \
     -H 'Content-Type: application/json' \
     --data-binary "$payload" \
-    "$endpoint" >/dev/null
+    --output /dev/null \
+    --write-out '%{http_code}' \
+    "$endpoint")"
+
+case "$http_status" in
+    2??) ;;
+    *)
+        echo "brrr returned unexpected HTTP status: $http_status" >&2
+        exit 1
+        ;;
+esac
+
+printf 'auth_mode=%s\n' "$auth_mode"
+printf 'http_status=%s\n' "$http_status"
