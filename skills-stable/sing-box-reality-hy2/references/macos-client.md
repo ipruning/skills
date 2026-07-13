@@ -2,6 +2,9 @@
 
 Use this for macOS Surge and optional macOS sing-box sidecar.
 
+Resolve values and their authorized source through
+[client-inputs.md](client-inputs.md) before rendering a policy.
+
 ## Surge Boundary
 
 Surge cannot directly use VLESS REALITY.
@@ -23,7 +26,7 @@ REALITY: only via local sing-box sidecar exposing SOCKS/Mixed
 
 This reference only wires an existing Snell policy into the REALITY + HY2 stack. For
 Snell service health, Snell v6 migration, UDP relay/NAT interpretation, or
-server repair planning, use the `surge` skill.
+other Snell-specific work, use `$operate-snell`.
 
 ## Native Surge HY2 Policy
 
@@ -46,17 +49,17 @@ Expected shape:
 
 ```ini
 [General]
-skip-proxy = ..., 100.64.0.0/10, 203.0.113.10
+skip-proxy = <preserve-existing-entries>, 100.64.0.0/10, <SERVER_IP>
 tun-excluded-routes = 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12
 
 [Proxy]
-vps-1-hy2 = hysteria2, vps-1.example.com, 443, password=<redacted>, sni=vps-1.example.com
+vps-1-hy2 = hysteria2, <HY2_DOMAIN>, 443, password=<HY2_PASSWORD>, sni=<HY2_DOMAIN>
 
 [Proxy Group]
 PROXY = select, vps-1-hy2
 
 [Rule]
-IP-CIDR,203.0.113.10/32,DIRECT,no-resolve
+IP-CIDR,<SERVER_IP>/32,DIRECT,no-resolve
 DOMAIN-SUFFIX,tailscale.com,DIRECT
 DOMAIN-SUFFIX,tailscale.io,DIRECT
 IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
@@ -71,7 +74,7 @@ PROCESS-NAME,Tailscale,DIRECT
 Only when a working Snell policy already exists and the user asks to retain it,
 append that existing policy to `[Proxy]` and the group. Preserve its actual
 port, version, and options instead of generating new Snell defaults. Snell
-health and repair remain owned by the `surge` skill.
+health and repair remain owned by `$operate-snell`.
 
 Do not copy Linux sing-box Tailscale exclusions into Surge
 `tun-excluded-routes`. On macOS Surge, keep ordinary LAN ranges excluded from

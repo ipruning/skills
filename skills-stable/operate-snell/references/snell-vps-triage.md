@@ -75,7 +75,8 @@ uv run --script "$SKILL_DIR/scripts/snell_audit.py" audit-snell \
   --host root@203.0.113.10 \
   --port <snell-port> \
   --journal-since "6 hours ago" \
-  --out /tmp/surge-snell-runs
+  --remote-base /var/tmp/snell-runs \
+  --out /tmp/snell-runs
 ```
 
 Audit a fleet:
@@ -85,7 +86,8 @@ uv run --script "$SKILL_DIR/scripts/snell_audit.py" audit-fleet \
   --hosts ./snell-hosts.txt \
   --port <snell-port> \
   --journal-since "6 hours ago" \
-  --out /tmp/surge-snell-runs
+  --remote-base /var/tmp/snell-runs \
+  --out /tmp/snell-runs
 ```
 
 `audit-snell` exits non-zero only when SSH, upload, remote execution, or
@@ -268,6 +270,8 @@ Finding ids:
 - `snell.service_inactive`
 - `snell.service_not_running`
 - `snell.tcp_not_listening`
+- `snell.service_identity_mismatch`
+- `snell.config_permissions_mismatch`
 - `snell.v5.udp_crash`
 - `snell.v5.historical_crash_markers`
 - `snell.v6.udp_listener_present`
@@ -294,7 +298,8 @@ crashes point to a real failure.
 
 Stdout is one JSON object. Logs and command output stay in the run directory.
 Remote collection uses Bash; do not require Python packages on the VPS.
-`audit-snell` uploads a payload to `/var/tmp/surge-snell-runs/<run_id>`, collects
+With the commands above, `audit-snell` uploads a payload to
+`/var/tmp/snell-runs/<run_id>`, collects
 the run directory back to the local `--out` path, then removes the remote run
 directory after a successful collect. If collection fails or cleanup fails,
 `persistent_effects` names the remote directory that may remain.

@@ -209,6 +209,16 @@ hooks = [
         priority = 20
     },
     {
+        id = "proxy-skill-tests",
+        name = "Proxy skill tests",
+        entry = "uv run pytest -q skills-stable/operate-snell/tests skills-stable/surge/tests skills-stable/sing-box-reality-hy2/tests",
+        language = "system",
+        pass_filenames = false,
+        always_run = true,
+        stages = ["pre-push"],
+        priority = 20
+    },
+    {
         id = "autocorrect",
         name = "autocorrect",
         entry = "mise exec -- autocorrect --lint . .mise/",

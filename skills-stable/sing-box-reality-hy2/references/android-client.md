@@ -4,16 +4,19 @@ Use this for SFA / sing-box for Android configs and Tailscale coexistence.
 
 ## Default Shape
 
-Android should import the same sing-box outbounds as Linux:
+Resolve values and their authorized source through
+[client-inputs.md](client-inputs.md) before importing a profile.
 
-- Selector default: `vless-reality-out`.
-- HY2 available as `hy2-h3-out`.
-- Keep `direct` outside the selector; use it only in explicit routing rules.
-- Omit VLESS `network` so the `v1.13.14` outbound keeps both TCP and UDP.
-- Omit HY2 `up_mbps` / `down_mbps` unless the current fixed device network has
-  its own repeated measurement.
-- DNS strategy: `ipv4_only` unless IPv6 is verified on the device network.
-- Remove Linux-only `auto_redirect`.
+Import the outbounds and selector from the Linux mixed profile in
+[linux-client.md](linux-client.md). Keep its REALITY default, HY2 fallback,
+`ipv4_only` DNS baseline, and omission of guessed HY2 bandwidth values.
+
+For ordinary on-device SFA, omit Linux's `auto_redirect`. The field is not
+strictly Linux-only: the validated baseline supports limited IPv4 TCP
+forwarding with it on Android, but Android has no nftables or ip6tables. Use it
+only for a tested hotspot or repeater forwarding setup, not as the phone
+default. The source version is pinned in
+[version-compatibility.md](version-compatibility.md).
 
 ## Tailscale Boundary
 
@@ -47,3 +50,17 @@ external IP through selected proxy
 Do not copy Linux `route_exclude_address` guidance here. Android VPN ownership
 is controlled by the platform and client app, not by the same systemd TUN route
 model used on Linux.
+
+## Validation
+
+1. Import the profile and require SFA to start without schema, REALITY, or TLS
+   errors.
+2. Select `vless-reality-out`; require an external-IP page to return the VPS
+   egress and inspect the SFA log for both TCP and UDP traffic.
+3. Select `hy2-h3-out`; repeat the external-IP check and require no certificate
+   or authentication error.
+4. Verify expected DNS behavior, local-LAN access, and app exclusions on the
+   actual device network.
+5. When Tailscale matters, test the two VPN modes separately. Do not report
+   coexistence unless both the named tailnet peer and MagicDNS work while SFA is
+   active.

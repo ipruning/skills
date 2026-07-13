@@ -402,7 +402,10 @@ write_summary_kv() {
   local swap_free
   local swap_total
   local root_available
+  local service_user
   directives="$(hardening_directives)"
+  service_user="$(service_show User)"
+  if [ -z "$service_user" ]; then service_user=root; fi
   mem_total="$(awk '/^MemTotal:/ { print $2; exit }' /proc/meminfo 2>/dev/null || true)"
   swap_total="$(awk '/^SwapTotal:/ { print $2; exit }' /proc/meminfo 2>/dev/null || true)"
   swap_free="$(awk '/^SwapFree:/ { print $2; exit }' /proc/meminfo 2>/dev/null || true)"
@@ -427,6 +430,20 @@ write_summary_kv() {
     kv snell_config_path "$config_file"
     if [ -r "$config_file" ]; then
       kv config_present "yes"
+      kv config_owner_user "$(stat -c '%U' "$config_file" 2>/dev/null || true)"
+      kv config_owner_group "$(stat -c '%G' "$config_file" 2>/dev/null || true)"
+      kv config_mode "$(stat -c '%a' "$config_file" 2>/dev/null || true)"
+      if [ "$service_user" = root ]; then
+        kv config_service_readable "yes"
+      elif command -v runuser >/dev/null 2>&1 && id "$service_user" >/dev/null 2>&1; then
+        if runuser -u "$service_user" -- test -r "$config_file"; then
+          kv config_service_readable "yes"
+        else
+          kv config_service_readable "no"
+        fi
+      else
+        kv config_service_readable "unknown"
+      fi
       if config_key_present "$config_file" psk; then kv config_psk_present "yes"; else kv config_psk_present "no"; fi
       kv config_listen "$(config_value "$config_file" listen)"
       kv config_legacy_keys "$(config_legacy_keys "$config_file")"
@@ -437,6 +454,10 @@ write_summary_kv() {
       fi
     else
       kv config_present "no"
+      kv config_owner_user ""
+      kv config_owner_group ""
+      kv config_mode ""
+      kv config_service_readable ""
       kv config_psk_present "no"
       kv config_listen ""
       kv config_legacy_keys ""
@@ -448,7 +469,7 @@ write_summary_kv() {
     kv systemd_result "$(service_show Result)"
     kv systemd_nrestarts "$(service_show NRestarts)"
     kv systemd_limit_nofile "$(service_show LimitNOFILE)"
-    kv systemd_user "$(service_show User)"
+    kv systemd_user "$service_user"
     kv systemd_group "$(service_show Group)"
     kv systemd_restart "$(service_show Restart)"
     kv systemd_main_pid "$(service_show MainPID)"

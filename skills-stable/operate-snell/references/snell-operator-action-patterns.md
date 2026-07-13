@@ -1,9 +1,15 @@
 # Snell Operator Action Patterns
 
-Use these patterns only when the audit evidence calls for a human change plan:
-an item in the audit's `recommended_manual_actions` array, or a tuning judgment
-you made from `facts`. They are examples for the human operator;
-do not apply them during diagnosis.
+Do not apply these patterns during diagnosis. Use them when audit evidence calls
+for a change: an item in `recommended_manual_actions`, or a tuning judgment
+grounded in `facts`.
+
+When the user asked only for an audit or plan, keep them as human operator
+examples. When the user explicitly asked to deploy, repair, migrate, or apply a
+confirmed plan, the Agent may apply the exact evidence-backed pattern after it
+records rollback, checks the target and ownership, and confirms the requested
+scope. Re-run the relevant audit and Surge policy tests after every applied
+change.
 
 ## Proxy Sysctl Baseline
 

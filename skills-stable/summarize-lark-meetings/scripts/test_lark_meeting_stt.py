@@ -395,31 +395,87 @@ class LarkMeetingSttTests(unittest.TestCase):
             finally:
                 patch_module_attr("require_commands", original_require_commands)
 
-    def test_amp_command_uses_installed_amp_defaults_unless_overridden(self) -> None:
-        default_cmd = mod.build_amp_command(mod.SummarizeOptions(run=Path("/tmp/run")))
-        self.assertNotIn("--mode", default_cmd)
-        self.assertNotIn("--effort", default_cmd)
-
-        explicit_cmd = mod.build_amp_command(
-            mod.SummarizeOptions(run=Path("/tmp/run"), amp_mode="high", amp_effort="xhigh")
+    def test_codex_command_reads_stdin_and_writes_last_message(self) -> None:
+        output_path = Path("/tmp/codex-output.md")
+        default_cmd = mod.build_codex_command(
+            mod.SummarizeOptions(run=Path("/tmp/run")),
+            output_path=output_path,
         )
-        self.assertEqual(explicit_cmd[explicit_cmd.index("--mode") + 1], "high")
-        self.assertEqual(explicit_cmd[explicit_cmd.index("--effort") + 1], "xhigh")
+        self.assertEqual(default_cmd[-1], "-")
+        self.assertEqual(default_cmd[default_cmd.index("--output-last-message") + 1], str(output_path))
+        self.assertIn("--ignore-user-config", default_cmd)
+        self.assertEqual(default_cmd[default_cmd.index("--config") + 1], "skills.include_instructions=false")
+        self.assertIn("--ephemeral", default_cmd)
+        self.assertEqual(default_cmd[default_cmd.index("--disable") + 1], "shell_tool")
+        self.assertIn("--json", default_cmd)
+        self.assertEqual(default_cmd[default_cmd.index("--sandbox") + 1], "read-only")
+        self.assertNotIn("--model", default_cmd)
 
-    def test_summarize_retries_bun_keyring_failure_and_then_succeeds(self) -> None:
+        explicit_cmd = mod.build_codex_command(
+            mod.SummarizeOptions(run=Path("/tmp/run"), codex_model="gpt-5.4"),
+            output_path=output_path,
+        )
+        self.assertEqual(explicit_cmd[explicit_cmd.index("--model") + 1], "gpt-5.4")
+
+    def test_codex_input_preserves_full_prompt_and_adds_tail_marker(self) -> None:
+        prompt_text = "STT 开始\n中间内容\nSTT 结束\n"
+        prompt_sha256 = mod.sha256_text(prompt_text)
+        codex_input, marker = mod.build_codex_input(prompt_text, prompt_sha256=prompt_sha256)
+
+        self.assertTrue(codex_input.startswith(prompt_text.rstrip()))
+        self.assertTrue(codex_input.endswith(marker + "\n"))
+        self.assertIn(prompt_sha256, marker)
+
+    def test_summarize_sends_full_prompt_to_codex_stdin(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
             self.prepare_prompt_run(base)
-            keyring_error = 'error: dlopen(/$bunfs/root/keyring.darwin-arm64-test.node) code: "ERR_DLOPEN_FAILED"'
-            amp_results = [
-                subprocess.CompletedProcess(args=["amp"], returncode=1, stdout="", stderr=keyring_error),
-                subprocess.CompletedProcess(args=["amp"], returncode=0, stdout="# 测试会议\n\n完成。\n", stderr=""),
-            ]
+
+            def codex_success(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+                codex_input = str(kwargs["input"])
+                marker = codex_input.rstrip().splitlines()[-1]
+                output_path = Path(cmd[cmd.index("--output-last-message") + 1])
+                output_path.write_text(f"# 测试会议\n\n完成。\n{marker}\n", encoding="utf-8")
+                return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="progress", stderr="")
 
             with (
                 mock.patch.object(mod, "require_commands"),
-                mock.patch.object(mod.subprocess, "run", side_effect=amp_results) as run_amp,
-                mock.patch.object(mod.time, "sleep") as sleep,
+                mock.patch.object(mod.subprocess, "run", side_effect=codex_success) as run_codex,
+                contextlib.redirect_stdout(io.StringIO()),
+                contextlib.redirect_stderr(io.StringIO()),
+            ):
+                self.assertEqual(
+                    mod.summarize_prompts(mod.SummarizeOptions(run=base, concurrency=1, format=mod.OutputFormat.json)),
+                    0,
+                )
+
+            run_codex.assert_called_once()
+            codex_input = run_codex.call_args.kwargs["input"]
+            self.assertTrue(codex_input.startswith("总结这场会议。"))
+            self.assertEqual(run_codex.call_args.kwargs["env"]["RUST_LOG"], "off")
+            report = json.loads((base / "summaries" / "index.json").read_text(encoding="utf-8"))
+            result = report["results"][0]
+            self.assertTrue(report["ok"])
+            self.assertEqual(result["summarizer"], "codex")
+            self.assertEqual(result["context_transport"], "stdin")
+            self.assertEqual(result["codex_input_bytes"], len(codex_input.encode("utf-8")))
+            self.assertEqual(result["codex_input_sha256"], mod.sha256_text(codex_input))
+            self.assertIn(result["context_marker"], (base / "summaries" / "obc1.summary.md").read_text())
+
+    def test_summarize_rejects_codex_output_without_context_marker(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            self.prepare_prompt_run(base)
+
+            def codex_without_marker(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+                del kwargs
+                output_path = Path(cmd[cmd.index("--output-last-message") + 1])
+                output_path.write_text("# 测试会议\n\n上下文不完整。\n", encoding="utf-8")
+                return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
+
+            with (
+                mock.patch.object(mod, "require_commands"),
+                mock.patch.object(mod.subprocess, "run", side_effect=codex_without_marker),
                 contextlib.redirect_stdout(io.StringIO()),
                 contextlib.redirect_stderr(io.StringIO()),
             ):
@@ -427,74 +483,28 @@ class LarkMeetingSttTests(unittest.TestCase):
                     mod.SummarizeOptions(run=base, concurrency=1, format=mod.OutputFormat.json)
                 )
 
-            self.assertEqual(exit_code, 0)
-            self.assertEqual(run_amp.call_count, 2)
-            sleep.assert_called_once_with(1)
-            first_cmd = run_amp.call_args_list[0].args[0]
-            self.assertNotIn("--mode", first_cmd)
-            self.assertNotIn("--effort", first_cmd)
-            report = json.loads((base / "summaries" / "index.json").read_text(encoding="utf-8"))
-            self.assertTrue(report["ok"])
-            self.assertEqual(report["counts"]["retries"], 1)
-            self.assertEqual(report["results"][0]["attempts"], 2)
-            self.assertEqual(len(report["results"][0]["retry_failures"]), 1)
-            self.assertTrue((base / "summaries" / "obc1.summary.md").exists())
-
-    def test_summarize_does_not_retry_non_transient_amp_error(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            base = Path(tmp)
-            self.prepare_prompt_run(base)
-            stale_summary = base / "summaries" / "obc1.summary.md"
-            stale_summary.parent.mkdir()
-            stale_summary.write_text("旧总结", encoding="utf-8")
-            amp_error = subprocess.CompletedProcess(
-                args=["amp"],
-                returncode=1,
-                stdout="",
-                stderr='Error: Reasoning effort "xhigh" is not available for medium mode.',
-            )
-
-            with (
-                mock.patch.object(mod, "require_commands"),
-                mock.patch.object(mod.subprocess, "run", return_value=amp_error) as run_amp,
-                mock.patch.object(mod.time, "sleep") as sleep,
-                contextlib.redirect_stdout(io.StringIO()),
-                contextlib.redirect_stderr(io.StringIO()),
-            ):
-                exit_code = mod.summarize_prompts(
-                    mod.SummarizeOptions(
-                        run=base,
-                        concurrency=1,
-                        amp_mode="medium",
-                        amp_effort="xhigh",
-                        format=mod.OutputFormat.json,
-                    )
-                )
-
             self.assertEqual(exit_code, 1)
-            run_amp.assert_called_once()
-            sleep.assert_not_called()
             report = json.loads((base / "summaries" / "index.json").read_text(encoding="utf-8"))
             self.assertFalse(report["ok"])
-            self.assertEqual(report["exit_code"], 1)
-            self.assertIn("Amp 总结失败", report["error"])
-            self.assertEqual(report["counts"]["retries"], 0)
-            self.assertEqual(report["results"][0]["attempts"], 1)
-            self.assertFalse(stale_summary.exists())
+            self.assertIn("Codex 总结失败", report["error"])
+            self.assertIn("missing STT context integrity marker", report["results"][0]["stderr"])
+            self.assertFalse((base / "summaries" / "obc1.summary.md").exists())
 
-    def test_summarize_reuses_success_when_prompt_is_unchanged(self) -> None:
+    def test_summarize_reuses_codex_success_when_prompt_is_unchanged(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
             self.prepare_prompt_run(base)
-            amp_success = subprocess.CompletedProcess(
-                args=["amp"],
-                returncode=0,
-                stdout="# 测试会议\n\n完成。\n",
-                stderr="",
-            )
+
+            def codex_success(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+                codex_input = str(kwargs["input"])
+                marker = codex_input.rstrip().splitlines()[-1]
+                output_path = Path(cmd[cmd.index("--output-last-message") + 1])
+                output_path.write_text(f"# 测试会议\n\n完成。\n{marker}\n", encoding="utf-8")
+                return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
+
             with (
                 mock.patch.object(mod, "require_commands"),
-                mock.patch.object(mod.subprocess, "run", return_value=amp_success),
+                mock.patch.object(mod.subprocess, "run", side_effect=codex_success),
                 contextlib.redirect_stdout(io.StringIO()),
                 contextlib.redirect_stderr(io.StringIO()),
             ):
@@ -505,7 +515,7 @@ class LarkMeetingSttTests(unittest.TestCase):
 
             with (
                 mock.patch.object(mod, "require_commands"),
-                mock.patch.object(mod.subprocess, "run") as run_amp,
+                mock.patch.object(mod.subprocess, "run") as run_codex,
                 contextlib.redirect_stdout(io.StringIO()),
                 contextlib.redirect_stderr(io.StringIO()),
             ):
@@ -514,7 +524,7 @@ class LarkMeetingSttTests(unittest.TestCase):
                     0,
                 )
 
-            run_amp.assert_not_called()
+            run_codex.assert_not_called()
             report = json.loads((base / "summaries" / "index.json").read_text(encoding="utf-8"))
             self.assertEqual(report["counts"]["reused"], 1)
             self.assertTrue(report["results"][0]["reused"])

@@ -1,8 +1,8 @@
 # Server Reference
 
-Use this for a Debian 12 or Ubuntu 24.04 systemd VPS running `sing-box stable + VLESS REALITY Vision + Hysteria2 HTTP/3 masquerade`.
+Use this for a Debian 12/13 or Ubuntu 24.04 systemd VPS running `sing-box stable + VLESS REALITY Vision + Hysteria2 HTTP/3 masquerade`.
 
-This configuration is validated against sing-box `v1.13.14`. If the installed stable is outside `1.13.x`, stop before writing configuration and read that version's migration and configuration documentation. Do not apply this reference to non-APT, non-systemd, container-only, or already complex firewall hosts without adapting it first.
+Read [version-compatibility.md](version-compatibility.md) before installation. Do not apply this reference to non-APT, non-systemd, container-only, or already complex firewall hosts without adapting it first.
 
 ## Inputs
 
@@ -13,7 +13,11 @@ SERVER_IP
 HY2_DOMAIN
 REALITY_SNI
 REALITY_HANDSHAKE_HOST usually same as REALITY_SNI
+MASQUERADE_URL, a user-owned or deliberately chosen stable HTTPS origin
+DNS_RESOLVER_IP, a user-owned or explicitly authorized external resolver
 ```
+
+`HY2_DOMAIN` 必须是用户为本次部署指定或明确授权使用的域名。`REALITY_SNI`、`REALITY_HANDSHAKE_HOST`、`MASQUERADE_URL` 和 `DNS_RESOLVER_IP` 必须逐项由用户指定，或由用户明确授权 Agent 为这个 VPS 选择；一般性的部署授权不等于允许自行引入第三方目标。缺少来源授权时停止并询问，不继承其他服务器的值，也不使用永久全局默认值。
 
 Cloudflare DNS:
 
@@ -53,8 +57,8 @@ Stop instead of killing an unknown process when:
 Verify public DNS through an external resolver before requesting a certificate:
 
 ```bash
-dig +short A "$HY2_DOMAIN" @1.1.1.1
-dig +short AAAA "$HY2_DOMAIN" @1.1.1.1
+dig +short A "$HY2_DOMAIN" @"$DNS_RESOLVER_IP"
+dig +short AAAA "$HY2_DOMAIN" @"$DNS_RESOLVER_IP"
 ```
 
 The A result must contain `SERVER_IP`. The AAAA result must be empty unless IPv6 is intentionally supported. Provider security groups must allow the same ports as the host firewall; UFW alone does not prove public reachability.
@@ -73,6 +77,12 @@ curl -fsSI "https://$REALITY_SNI/" | grep -Ei '^(HTTP/|location:)'
 ```
 
 Require TLS 1.3, ALPN `h2`, certificate verification success, and no redirect to a different hostname. Prefer a target whose network location and latency are close to the VPS. Do not use a permanent global default target.
+
+Verify the chosen masquerade origin independently:
+
+```bash
+curl -fsS -o /dev/null --connect-timeout 8 --max-time 20 "$MASQUERADE_URL"
+```
 
 ## Install
 
@@ -164,10 +174,10 @@ systemctl enable --now certbot.timer
 systemctl is-enabled certbot.timer
 systemctl is-active certbot.timer
 systemctl list-timers certbot.timer --no-pager
-certbot renew --dry-run
+certbot renew --dry-run --run-deploy-hooks
 ```
 
-For unattended production operation, use an external TLS certificate probe as a second layer. Deploying standing monitoring is a separate user-authorized operation; if it is not requested, report it as not configured instead of claiming certificate monitoring is complete.
+For unattended production operation, an ordinary TCP/443 TLS probe cannot observe the HY2 certificate because TCP/443 belongs to REALITY. If standing monitoring is authorized, use `$end-to-end-monitoring` with the protocol assertions in [monitoring.md](monitoring.md). Otherwise report it as not configured.
 
 ## Secrets
 
@@ -181,7 +191,7 @@ REALITY_SHORT_ID="$(openssl rand -hex 8)"
 HY2_PASSWORD="$(openssl rand -hex 32)"
 ```
 
-sing-box `v1.13.14` stores REALITY short IDs in up to 8 decoded bytes, so `openssl rand -hex 8` produces the full 16-hex-character value accepted by the implementation and its tests.
+The validated implementation stores REALITY short IDs in up to 8 decoded bytes, so `openssl rand -hex 8` produces the full 16-hex-character value. The source anchor is in [version-compatibility.md](version-compatibility.md).
 
 Write `/root/sing-box-secrets.txt` with mode `600` and these keys:
 
@@ -255,7 +265,7 @@ UDP/443 Hysteria2:
   },
   "masquerade": {
     "type": "proxy",
-    "url": "https://www.apple.com",
+    "url": "__MASQUERADE_URL__",
     "rewrite_host": true
   }
 }
@@ -263,14 +273,26 @@ UDP/443 Hysteria2:
 
 The full config uses a direct outbound and `route.final = direct`. With one IP, ordinary TCP HTTPS to `HY2_DOMAIN` reaches REALITY, not the Hysteria2 masquerade; only HTTP/3 over UDP/443 exercises the masquerade.
 
-Use `log.level = info` during deployment and external protocol validation. Set
-the durable service to `warn` after both protocols pass; public scanners and
-per-connection info logs otherwise create avoidable journal volume.
+The proxy masquerade origin is an availability dependency only for
+unauthenticated HTTP/3 cover traffic. Prefer an origin the user controls; if a
+public origin is chosen, verify it from the VPS and do not treat its `2xx`
+response as proof of HY2 authentication.
 
-Leave server and client HY2 `up_mbps` / `down_mbps` empty by default. In
-`v1.13.14`, empty values select the congestion-controlled BBR path instead of a
-guessed Brutal rate. A fixed client may opt into measured Brutal values without
-turning that client-specific rate into a server-template default.
+Use `log.level = warn` in the production candidate. Temporarily switch to
+`info` only when validation or diagnosis needs connection-level evidence, then
+restore `warn`; public scanners and per-connection info logs otherwise create
+avoidable journal volume.
+
+In a whole-host journal audit, classify `[UFW BLOCK]` records as firewall drop
+events before counting them as kernel faults. Keep bounded low-level firewall
+logging when its audit value is wanted; disabling it is a conscious loss of
+edge evidence, not a generic log-health fix.
+
+Leave server and client HY2 `up_mbps` / `down_mbps` empty by default. In the
+validated baseline, empty values select the congestion-controlled BBR path
+instead of a guessed Brutal rate. A fixed client may opt into measured Brutal
+values without turning that client-specific rate into a server-template
+default.
 
 ## Stage and Activate
 
@@ -313,7 +335,7 @@ openssl x509 \
 systemctl is-enabled certbot.timer
 systemctl is-active certbot.timer
 test -x /etc/letsencrypt/renewal-hooks/deploy/restart-sing-box.sh
-certbot renew --dry-run
+certbot renew --dry-run --run-deploy-hooks
 ```
 
 Expected listeners:

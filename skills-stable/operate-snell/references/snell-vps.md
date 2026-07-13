@@ -84,7 +84,7 @@ Repair in this order:
 
 1. Record the installed binary hash/architecture, unit fragment and drop-ins, config metadata, listeners, firewall path, service user, and a working client profile. Preserve binary, unit, and config rollback copies outside their target paths.
 2. Stage the official artifact in a root-only temporary directory. Match architecture and intended Snell version. Verify an official digest when one is published; a locally recorded SHA-256 without an official comparator proves only which bytes were staged.
-3. Stage the config with mode `0600` and the current schema. Never echo the PSK. Confirm transport requirements from the same server version and client profile before changing TCP/UDP rules.
+3. Stage the config as `snell:snell` mode `0600` with the current schema. Never echo the PSK. Confirm the service user can read it and confirm transport requirements from the same server version and client profile before changing TCP/UDP rules.
 4. Stage a unit or drop-in and run `systemd-analyze verify`; target-unit warnings fail validation. Do not overwrite the live unit or binary until rollback files and the current SSH recovery path are proven.
 5. Apply binary, config, and unit as one maintenance change, run `daemon-reload`, then restart once. On failed start, missing listener, unexpected user, or repeated restart, restore all three artifacts and re-verify the old service.
 6. Verify `ActiveState`, `NRestarts`, the exact TCP/UDP listener, firewall rule, and an end-to-end client request from outside the host. Only that closes the repair; `systemctl active` alone does not.
@@ -93,7 +93,22 @@ Repair in this order:
 
 Get `snell-server` from the official zip, `https://dl.nssurge.com/snell/snell-server-v<VERSION>-linux-<ARCH>.zip`; current versions and release notes are on the Surge Knowledge Base Snell page. Do not use third-party one-click installers — they add panels and firewall rules this baseline rejects.
 
-Use a dedicated service user (creation recipe in [containers.md](containers.md) Service Users) and a small unit:
+Use a dedicated service user and a small unit:
+
+```bash
+getent group snell >/dev/null || groupadd --system snell
+id snell >/dev/null 2>&1 || \
+  useradd --system --gid snell --home-dir /nonexistent \
+    --shell /usr/sbin/nologin snell
+install -d -o snell -g snell -m 0750 /etc/snell
+install -o snell -g snell -m 0600 snell-server.conf \
+  /etc/snell/snell-server.conf
+runuser -u snell -- test -r /etc/snell/snell-server.conf
+```
+
+Keep `/usr/local/bin/snell-server` root-owned and executable. After activation,
+verify `systemctl show <snell-unit> -p User -p Group` reports `snell` and the
+running process can still read the same config path.
 
 ```ini
 [Service]
@@ -118,9 +133,10 @@ unpublished version's UDP/TCP behavior from an older release.
 
 ## SSH
 
-Use the single-owner VPS shape and the `MaxAuthTries` rule from
-[ssh.md](ssh.md). Do not force non-root admin users or `AllowUsers` onto a
-single-owner Snell VPS unless the user asks.
+Keep the existing verified SSH ownership model and key-only access. Do not
+force non-root admin users, `AllowUsers`, or guessed `MaxAuthTries` values onto
+a single-owner Snell VPS unless the user asks. Independent SSH redesign or
+whole-host access audits belong to `$operate-linux-servers`.
 
 ## Firewall
 
@@ -141,10 +157,11 @@ blacklists without a reason.
 
 ## Proxy Sysctl
 
-Use the conditional proxy/VPN recipe in
-[performance-tuning.md](performance-tuning.md). Confirm BBR support and sysctl
-writability before writing. Reserve the real Snell port, not a copied example
-port; reserved ports only matter inside `ip_local_port_range`.
+Use the evidence-gated baseline in
+[snell-operator-action-patterns.md](snell-operator-action-patterns.md). Confirm
+BBR support and sysctl writability before writing. Reserve the real Snell port,
+not a copied example port; reserved ports only matter inside
+`ip_local_port_range`.
 
 Do not make `nf_conntrack_max` a required baseline. Raise it only when Docker,
 NAT, stateful firewall rules, or observed conntrack pressure justify it.
@@ -170,8 +187,10 @@ systemd-analyze cat-config systemd/journald.conf
 journalctl --disk-usage
 ```
 
-For small Snell VPSes, size swap per [swap.md](swap.md). Swap is not a
-throughput tuning. If swap is already present and idle, leave it alone.
+Swap is not a throughput tuning. If swap is already present and idle, leave it
+alone. Adding or resizing swap is a separate whole-host change and belongs to
+`$operate-linux-servers` when the user requests it or measured memory pressure
+requires a plan.
 
 ## Do Not Do This By Default
 

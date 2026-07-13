@@ -85,6 +85,7 @@ install -d -m 700 /tmp/singbox-protocol-bench
 truncate -s 134217728 /tmp/singbox-protocol-bench/blob.bin
 systemd-run \
   --unit=singbox-protocol-bench \
+  --collect \
   --property=RuntimeMaxSec=300 \
   --property=WorkingDirectory=/tmp/singbox-protocol-bench \
   /usr/bin/python3 -m http.server 18080 --bind 127.0.0.1
@@ -105,7 +106,12 @@ Compare medians, not the best sample. For HY2, compare omitted bandwidth values
 against one conservative Brutal candidate only on a fixed link. While each
 download runs, measure latency to the local gateway; a throughput increase that
 materially worsens latency or loss is not a better default. Stop the transient
-unit and delete the test file when finished.
+unit and delete the test file when finished:
+
+```bash
+systemctl stop singbox-protocol-bench.service 2>/dev/null || true
+rm -rf /tmp/singbox-protocol-bench
+```
 
 ## Linux Protocol Tests
 
@@ -164,32 +170,45 @@ Mbps = speed_download * 8 / 1000000
 - A changed Speedtest server can explain large differences. Compare same protocol on the same server.
 - A server raw multi-gigabit result does not mean the client hotspot can achieve multi-gigabit proxy speed.
 - HY2 over UDP may underperform on hotspot or lossy paths even when VPS bandwidth is excellent.
-- HY2 with omitted `up_mbps` / `down_mbps` uses automatic BBR in `v1.13.14`; a fixed Brutal value is a per-link optimization, not a portable default.
+- HY2 with omitted `up_mbps` / `down_mbps` uses automatic BBR in the validated baseline; a fixed Brutal value is a per-link optimization, not a portable default.
 - A low global UDP sysctl value is not proof of a small sing-box socket. Inspect `ss -u -a -m -p` and UDP error counters during an active HY2 transfer before tuning it.
-- `UDP is not supported by outbound: proxy` with VLESS selected means the selected VLESS outbound was restricted to TCP; omit `network` to restore the `v1.13.14` TCP+UDP default.
+- `UDP is not supported by outbound: proxy` with VLESS selected means the selected VLESS outbound was restricted to TCP; omit `network` to restore the validated TCP+UDP default.
 - `icmp is not supported by default outbound: proxy` means TUN ICMP reached the selector. Add an explicit ICMP direct or reject rule; VLESS and HY2 do not carry it.
 - `inactive (dead)`, exit status 0, and a journal line saying `Stopped sing-box service` prove a clean external stop, not a crash. Inspect timers, test harnesses, and operator actions before changing the config.
 
 ## Live SOP Cross-Validation
 
-Use this when the user asks whether the SOP or generated configs match the live VPS. This is read-only and must not print secrets.
+Use this when the user asks whether the SOP or generated configs match a live VPS. Set the target and paths from that deployment. The audit is read-only and must not print secrets.
 
 Server audit:
 
 ```bash
-ssh root@<SERVER_IP> 'bash -s' <<'REMOTE'
+SSH_TARGET=<user@server>
+CONFIG_PATH=/etc/sing-box/config.json
+SECRETS_PATH=/root/sing-box-secrets.txt
+
+ssh "$SSH_TARGET" bash -s -- "$CONFIG_PATH" "$SECRETS_PATH" <<'REMOTE'
 set -euo pipefail
+config_path="$1"
+secrets_path="$2"
 hostname
 date -Is
 sing-box version | head -8
 printf 'sing-box active='; systemctl is-active sing-box
 printf 'sing-box enabled='; systemctl is-enabled sing-box
-printf 'snell active='; systemctl is-active snell-server 2>/dev/null || true
 printf 'certbot.timer enabled='; systemctl is-enabled certbot.timer 2>/dev/null || true
 printf 'certbot.timer active='; systemctl is-active certbot.timer 2>/dev/null || true
-sing-box check -c /etc/sing-box/config.json >/tmp/singbox-check.out 2>/tmp/singbox-check.err && echo 'sing-box check ok' || (cat /tmp/singbox-check.err; exit 1)
-stat -c '%a %U:%G %n' /etc/sing-box/config.json /root/sing-box-secrets.txt
-cut -d= -f1 /root/sing-box-secrets.txt | sed '/^$/d'
+if check_output="$(sing-box check -c "$config_path" 2>&1)"; then
+  echo 'sing-box check ok'
+else
+  printf '%s\n' "$check_output" >&2
+  exit 1
+fi
+stat -c '%a %U:%G %n' "$config_path"
+if test -n "$secrets_path" && test -f "$secrets_path"; then
+  stat -c '%a %U:%G %n' "$secrets_path"
+  cut -d= -f1 "$secrets_path" | sed '/^$/d'
+fi
 jq '{
   inbounds: [.inbounds[] | {
     tag: .tag,
@@ -216,10 +235,9 @@ jq '{
   }],
   outbounds: [.outbounds[] | {tag: .tag, type: .type}],
   route: .route
-}' /etc/sing-box/config.json
-ss -lntup | grep -E ':(443|14180)\b' || true
-ss -lnup | grep -E ':443\b' || true
-ufw status verbose | grep -E 'Status:|Default:|22/tcp|80/tcp|443/tcp|443/udp|14180/tcp|8443/udp' || true
+}' "$config_path"
+ss -lntup | grep -E ':443\b' || true
+ufw status verbose 2>/dev/null || true
 certbot certificates 2>/dev/null | grep -E 'Certificate Name:|Domains:|Expiry Date:' || true
 test -x /etc/letsencrypt/renewal-hooks/deploy/restart-sing-box.sh && echo 'renew hook present' || echo 'renew hook missing'
 systemctl is-enabled certbot.timer 2>/dev/null || true
@@ -249,18 +267,16 @@ jq '{
 }' <client-config.json>
 ```
 
-Expected live shape for a verified deployment:
+Expected live shape for this stack:
 
 ```text
-server: vps-1 / 203.0.113.10
-sing-box: 1.13.14, active and enabled for this template version
+server: the requested deployment target
+sing-box: version accepted by version-compatibility.md, active and enabled
 TCP/443: vless-reality-in, xtls-rprx-vision, REALITY enabled, validated REALITY_SNI
-UDP/443: hy2-h3-in, certificate for vps-1.example.com, validated masquerade target
-Snell: present only when it already existed and the user asked to retain it
-client HY2: server 203.0.113.10, tls.server_name vps-1.example.com
-Linux VLESS: network omitted, TCP and UDP enabled, uTLS present for REALITY on v1.13.14
+UDP/443: hy2-h3-in, certificate for HY2_DOMAIN, validated masquerade target
+client HY2: server SERVER_IP, tls.server_name HY2_DOMAIN
+Linux VLESS: network omitted, TCP and UDP enabled, uTLS present for REALITY
 Linux HY2: up_mbps/down_mbps omitted by default; measured Brutal values are client-specific
-Linux TUN: warn logs; selector excludes direct; rule order ICMP direct -> optional tailscaled direct -> sniff -> hijack-dns -> private direct
-Linux workstation final mode: sing-box@<name>.service active/enabled, singtun0 present, no HTTP_PROXY/ALL_PROXY defaults, old Clash/Mihomo absent
-Surge: syntax OK; HY2 policy direct to vps-1.example.com:443; optional existing Snell fallback only when requested
+Linux TUN when requested: warn logs; selector excludes direct; ICMP policy explicit; sniff precedes DNS hijack
+Migration, Tailscale, Snell, and platform-specific checks: present only when discovered and included in the request
 ```

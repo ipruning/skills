@@ -6,6 +6,9 @@ outbounds and avoid inventing a separate protocol plan.
 
 ## Recommended Shape
 
+Resolve values and their authorized source through
+[client-inputs.md](client-inputs.md) before rendering the profile.
+
 Start with mixed mode:
 
 ```text
@@ -14,18 +17,8 @@ selector default vless-reality-out
 hy2-h3-out available as fallback
 ```
 
-Use the Linux mixed config as the source of truth:
-
-- VLESS dials `SERVER_IP`.
-- VLESS TLS `server_name` is `REALITY_SNI`.
-- VLESS REALITY uses `public_key` and `short_id`.
-- Include `tls.utls` with Chrome fingerprint.
-- Omit VLESS `network`; `v1.13.14` enables TCP and UDP by default.
-- HY2 dials `SERVER_IP`.
-- HY2 TLS `server_name` is `HY2_DOMAIN`.
-- Omit HY2 `up_mbps` / `down_mbps` by default.
-- Keep selector default as `vless-reality-out`.
-- Keep `direct` outside the selector and reserve it for explicit rules.
+Use the complete Linux mixed profile in [linux-client.md](linux-client.md) as
+the outbound source of truth. Windows adds no protocol-specific fields.
 
 Mixed mode is also the safest Tailscale-compatible default on Windows because
 it does not install system routes or compete with the Tailscale adapter.
@@ -40,7 +33,9 @@ sing-box.exe run -c .\client-mixed.json
 curl.exe -fsS4 --proxy socks5h://127.0.0.1:2080 https://api.ipify.org
 ```
 
-The curl result should be `SERVER_IP`.
+Require `SERVER_IP`, stop the process, change the selector default to
+`hy2-h3-out`, and repeat. Both outbounds must pass before the profile is called
+valid.
 
 ## Full-Device Routing
 

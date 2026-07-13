@@ -15,6 +15,7 @@ import datetime as dt
 import difflib
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -40,7 +41,7 @@ SELECTED = "selected.txt"
 PROMPT_INDEX = "prompt-index.json"
 
 app = typer.Typer(
-    help="列出飞书妙记、拉取文字记录、检查重复、生成提示词并调用 Amp 生成会议总结。",
+    help="列出飞书妙记、拉取文字记录、检查重复、生成提示词并调用 Codex CLI 生成会议总结。",
     no_args_is_help=True,
     add_completion=False,
 )
@@ -82,10 +83,7 @@ class PromptsOptions(CommandOptions):
 class SummarizeOptions(CommandOptions):
     timeout_seconds: int = Field(default=900, ge=1)
     concurrency: int = Field(default=2, ge=1)
-    amp_attempts: int = Field(default=3, ge=1)
-    amp_mode: str | None = None
-    amp_effort: str | None = None
-    amp_visibility: str = "private"
+    codex_model: str | None = None
 
 
 def eprint(message: str) -> None:
@@ -1180,30 +1178,47 @@ def write_summaries_error(base: Path, message: str) -> None:
     write_json(index_path, report)
 
 
-def build_amp_command(options: SummarizeOptions) -> list[str]:
+def build_codex_command(options: SummarizeOptions, *, output_path: Path) -> list[str]:
     cmd = [
-        "amp",
-        "--execute",
-        "--visibility",
-        options.amp_visibility,
+        "codex",
+        "exec",
+        "--ignore-user-config",
+        "--config",
+        "skills.include_instructions=false",
+        "--ephemeral",
+        "--disable",
+        "shell_tool",
+        "--skip-git-repo-check",
+        "--sandbox",
+        "read-only",
+        "--color",
+        "never",
+        "--json",
+        "--output-last-message",
+        str(output_path),
     ]
-    if options.amp_mode:
-        cmd.extend(["--mode", options.amp_mode])
-    if options.amp_effort:
-        cmd.extend(["--effort", options.amp_effort])
-    cmd.extend(["--no-ide", "--no-color"])
+    if options.codex_model:
+        cmd.extend(["--model", options.codex_model])
+    cmd.append("-")
     return cmd
 
 
-def is_retryable_amp_failure(stderr: str) -> bool:
-    # Bun keyring native-module load flake; the platform suffix varies by machine.
-    return "ERR_DLOPEN_FAILED" in stderr and "keyring." in stderr
+def build_codex_input(prompt_text: str, *, prompt_sha256: str) -> tuple[str, str]:
+    marker = f"<!-- codex-stt-context-end:{prompt_sha256} -->"
+    integrity_instruction = (
+        "\n\n## 上下文完整性验证\n\n"
+        "只根据本提示词中的 STT 总结，不要调用工具或读取本地文件。"
+        "如果你完整收到本提示词，最终 Markdown 的最后一行必须原样输出下面的注释。"
+        "缺少该注释的输出会被丢弃。\n\n"
+        f"{marker}\n"
+    )
+    return prompt_text.rstrip() + integrity_instruction, marker
 
 
 def summarize_prompts(options: SummarizeOptions) -> int:
     base = options.run.expanduser().resolve()
     try:
-        require_commands(["amp"])
+        require_commands(["codex"])
     except SystemExit as exc:
         write_summaries_error(base, str(exc))
         raise
@@ -1294,6 +1309,13 @@ def summarize_prompts(options: SummarizeOptions) -> int:
             append_event(completed)
             return completed
         prompt_sha256 = sha256_text(prompt_text)
+        codex_input, context_marker = build_codex_input(prompt_text, prompt_sha256=prompt_sha256)
+        codex_input_bytes = len(codex_input.encode("utf-8"))
+        codex_input_sha256 = sha256_text(codex_input)
+        codex_input_tiktoken_count = count_tiktoken(
+            codex_input,
+            encoding=tiktoken_encoder(DEFAULT_ENCODING),
+        )
         start_event = {
             "event": "started",
             "started_at": started_at,
@@ -1303,11 +1325,21 @@ def summarize_prompts(options: SummarizeOptions) -> int:
             "title": prompt.get("title") or "",
             "prompt_tiktoken_count": prompt["prompt_tiktoken_count"],
             "prompt_sha256": prompt_sha256,
+            "summarizer": "codex",
+            "codex_model": options.codex_model,
+            "context_transport": "stdin",
+            "context_marker": context_marker,
+            "codex_input_bytes": codex_input_bytes,
+            "codex_input_sha256": codex_input_sha256,
+            "codex_input_tiktoken_count": codex_input_tiktoken_count,
         }
         previous = previous_results.get(start_event["prompt_path"]) or {}
         if (
             previous.get("exit_code") == 0
             and previous.get("prompt_sha256") == prompt_sha256
+            and previous.get("summarizer") == "codex"
+            and previous.get("codex_model") == options.codex_model
+            and previous.get("codex_input_sha256") == codex_input_sha256
             and summary_path.exists()
             and summary_path.stat().st_size > 0
         ):
@@ -1325,70 +1357,67 @@ def summarize_prompts(options: SummarizeOptions) -> int:
                 "reused": True,
             }
             append_event(reused)
-            eprint(f"Amp 复用 {summary_path.name}")
+            eprint(f"Codex 复用 {summary_path.name}")
             return reused
         if summary_path.exists():
             summary_path.unlink()
         append_event(start_event)
-        eprint(f"Amp 处理 {prompt_path.name} prompt_tiktoken_count={prompt['prompt_tiktoken_count']}")
-        cmd = build_amp_command(options)
+        eprint(
+            f"Codex 处理 {prompt_path.name} "
+            f"prompt_tiktoken_count={prompt['prompt_tiktoken_count']} "
+            f"stdin_bytes={codex_input_bytes}"
+        )
+        codex_output_path = summary_path.with_suffix(".codex-output.tmp")
+        if codex_output_path.exists():
+            codex_output_path.unlink()
+        cmd = build_codex_command(options, output_path=codex_output_path)
         exit_code = 1
         timed_out = False
         stderr = ""
-        retry_failures: list[dict[str, Any]] = []
-        attempt = 0
-        for attempt in range(1, options.amp_attempts + 1):
-            try:
-                proc = subprocess.run(
-                    cmd,
-                    input=prompt_text,
-                    text=True,
-                    capture_output=True,
-                    timeout=options.timeout_seconds,
-                    check=False,
-                    cwd=base,
-                )
-                exit_code = proc.returncode
-                stderr = proc.stderr
-                if exit_code == 0 and not proc.stdout.strip():
-                    exit_code = 1
-                    stderr = (stderr.strip() + "\n" if stderr.strip() else "") + "amp returned empty output"
-                elif exit_code == 0:
-                    try:
-                        write_text(summary_path, proc.stdout)
-                    except OSError as exc:
-                        exit_code = 1
-                        stderr = f"写入总结失败：{exc}"
-                    else:
-                        break
-            except subprocess.TimeoutExpired:
-                exit_code = 124
-                timed_out = True
-                stderr = f"amp timed out after {options.timeout_seconds}s"
-            except OSError as exc:
-                exit_code = 1
-                stderr = f"启动 Amp 失败：{exc}"
-
-            if attempt >= options.amp_attempts or not is_retryable_amp_failure(stderr):
-                break
-            retry_failure = {
-                "attempt": attempt,
-                "exit_code": exit_code,
-                "stderr": text_snippet(stderr),
-            }
-            retry_failures.append(retry_failure)
-            append_event(
-                {
-                    **start_event,
-                    "event": "retrying",
-                    "attempt": attempt,
-                    "next_attempt": attempt + 1,
-                    "exit_code": exit_code,
-                    "stderr": text_snippet(stderr),
-                }
+        attempt = 1
+        try:
+            proc = subprocess.run(
+                cmd,
+                input=codex_input,
+                text=True,
+                capture_output=True,
+                timeout=options.timeout_seconds,
+                check=False,
+                cwd=base,
+                env={**os.environ, "RUST_LOG": "off"},
             )
-            eprint(f"Amp 重试 {prompt_path.name} attempt={attempt + 1}/{options.amp_attempts}")
-            time.sleep(attempt)
+            exit_code = proc.returncode
+            stderr = proc.stderr
+            if exit_code != 0 and proc.stdout.strip():
+                stderr = (stderr.strip() + "\n" if stderr.strip() else "") + text_snippet(proc.stdout)
+            if exit_code == 0:
+                try:
+                    codex_output = codex_output_path.read_text(encoding="utf-8")
+                except OSError as exc:
+                    exit_code = 1
+                    stderr = f"读取 Codex 输出失败：{exc}"
+                else:
+                    if not codex_output.strip():
+                        exit_code = 1
+                        stderr = "codex returned empty output"
+                    elif context_marker not in codex_output:
+                        exit_code = 1
+                        stderr = "codex output missing STT context integrity marker"
+                    else:
+                        try:
+                            write_text(summary_path, codex_output)
+                        except OSError as exc:
+                            exit_code = 1
+                            stderr = f"写入总结失败：{exc}"
+        except subprocess.TimeoutExpired:
+            exit_code = 124
+            timed_out = True
+            stderr = f"codex timed out after {options.timeout_seconds}s"
+        except OSError as exc:
+            exit_code = 1
+            stderr = f"启动 Codex 失败：{exc}"
+        finally:
+            codex_output_path.unlink(missing_ok=True)
         completed = {
             **start_event,
             "event": "completed",
@@ -1397,9 +1426,9 @@ def summarize_prompts(options: SummarizeOptions) -> int:
             "exit_code": exit_code,
             "timed_out": timed_out,
             "output_bytes": summary_path.stat().st_size if summary_path.exists() else 0,
-            "stderr": stderr.strip(),
+            "stderr": text_snippet(stderr.strip()),
             "attempts": attempt,
-            "retry_failures": retry_failures,
+            "retry_failures": [],
             "reused": False,
         }
         append_event(completed)
@@ -1430,7 +1459,7 @@ def summarize_prompts(options: SummarizeOptions) -> int:
         "results": results,
     }
     if failures:
-        report["error"] = f"{len(failures)} 个 Amp 总结失败；详见 results。"
+        report["error"] = f"{len(failures)} 个 Codex 总结失败；详见 results。"
         report["exit_code"] = 1
     write_json(summaries_dir / "index.json", report)
     emit(report, fmt=options.format)
@@ -1531,24 +1560,15 @@ def prompts_cmd(
     )
 
 
-@app.command("summarize", help="并发调用 Amp 生成会议总结。")
+@app.command("summarize", help="并发调用 Codex CLI 生成会议总结。")
 def summarize_cmd(
     run: Annotated[Path, typer.Option("--run", help="运行目录。")],
-    timeout_seconds: Annotated[int, typer.Option("--timeout-seconds", min=1, help="单个 Amp 超时。")] = 900,
-    concurrency: Annotated[int, typer.Option("--concurrency", min=1, help="Amp 并发数。")] = 2,
-    amp_attempts: Annotated[
-        int,
-        typer.Option("--amp-attempts", min=1, help="已知 Bun keyring 瞬时加载失败的最多尝试次数。"),
-    ] = 3,
-    amp_mode: Annotated[
+    timeout_seconds: Annotated[int, typer.Option("--timeout-seconds", min=1, help="单个 Codex 超时。")] = 900,
+    concurrency: Annotated[int, typer.Option("--concurrency", min=1, help="Codex 并发数。")] = 2,
+    codex_model: Annotated[
         str | None,
-        typer.Option("--amp-mode", help="Amp mode；默认不传，由当前 Amp 决定。"),
+        typer.Option("--codex-model", help="Codex model；默认不传，由当前 Codex CLI 决定。"),
     ] = None,
-    amp_effort: Annotated[
-        str | None,
-        typer.Option("--amp-effort", help="Amp reasoning effort；默认不传，由当前 Amp 决定。"),
-    ] = None,
-    amp_visibility: Annotated[str, typer.Option("--amp-visibility")] = "private",
     output_format: Annotated[OutputFormat, typer.Option("--format", help="输出格式。")] = OutputFormat.md,
 ) -> None:
     run_command(
@@ -1557,10 +1577,7 @@ def summarize_cmd(
                 run=run,
                 timeout_seconds=timeout_seconds,
                 concurrency=concurrency,
-                amp_attempts=amp_attempts,
-                amp_mode=amp_mode,
-                amp_effort=amp_effort,
-                amp_visibility=amp_visibility,
+                codex_model=codex_model,
                 format=output_format,
             )
         ),

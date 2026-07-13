@@ -15,8 +15,6 @@ PAYLOAD = ROOT / "scripts" / "payloads" / "snell_debian_payload.sh"
 SKILL = ROOT / "SKILL.md"
 TRIAGE = ROOT / "references" / "snell-vps-triage.md"
 OPERATOR_ACTION_PATTERNS = ROOT / "references" / "snell-operator-action-patterns.md"
-MACOS_TRIAGE = ROOT / "references" / "macos-network-triage.md"
-MACOS_OPERATOR_ACTIONS = ROOT / "references" / "macos-surge-operator-actions.md"
 
 
 def load_module():
@@ -57,6 +55,10 @@ def base_kv(**overrides: str) -> dict[str, str]:
         "snell_binary_path": "/usr/local/bin/snell-server",
         "snell_config_path": "/etc/snell/snell-server.conf",
         "config_present": "yes",
+        "config_owner_user": "snell",
+        "config_owner_group": "snell",
+        "config_mode": "600",
+        "config_service_readable": "yes",
         "config_psk_present": "yes",
         "config_listen": "0.0.0.0:14180",
         "config_legacy_keys": "",
@@ -176,6 +178,48 @@ def test_tuning_and_noise_stay_in_facts_without_findings(tmp_path: Path):
     assert facts["swap"]["swap_total_kib"] == 0
 
 
+@pytest.mark.parametrize(
+    ("overrides", "expected_finding"),
+    [
+        ({"systemd_user": "", "systemd_group": ""}, "snell.service_identity_mismatch"),
+        (
+            {"config_owner_user": "root", "config_owner_group": "root", "config_mode": "644"},
+            "snell.config_permissions_mismatch",
+        ),
+    ],
+)
+def test_insecure_service_identity_or_config_permissions_are_findings(
+    tmp_path: Path, overrides: dict[str, str], expected_finding: str
+):
+    snell_audit = load_module()
+    run_dir = write_audit_fixture(tmp_path, kv=base_kv(**overrides))
+
+    pack = snell_audit.build_evidence_pack(local_dir=run_dir, target="root@example", transport_status="ok")
+
+    assert pack["status"] == "warn"
+    assert expected_finding in finding_ids(pack)
+
+
+def test_non_root_identity_and_root_owned_group_readable_config_are_valid(tmp_path: Path):
+    snell_audit = load_module()
+    run_dir = write_audit_fixture(
+        tmp_path,
+        kv=base_kv(
+            systemd_user="svc-snell",
+            systemd_group="",
+            config_owner_user="root",
+            config_owner_group="svc-snell",
+            config_mode="640",
+            config_service_readable="yes",
+        ),
+    )
+
+    pack = snell_audit.build_evidence_pack(local_dir=run_dir, target="root@example", transport_status="ok")
+
+    assert pack["status"] == "ok"
+    assert pack["findings"] == []
+
+
 def test_v6_udp_and_legacy_config_are_version_aware(tmp_path: Path):
     snell_audit = load_module()
     run_dir = write_audit_fixture(
@@ -212,7 +256,7 @@ def test_audit_snell_dry_run_plans_without_connecting(
         host="root@203.0.113.10",
         port=9999,
         out=tmp_path,
-        remote_base="/var/tmp/surge-snell-runs",
+        remote_base="/var/tmp/snell-runs",
         ssh_option=[],
         dry_run=True,
     )
@@ -225,6 +269,16 @@ def test_audit_snell_dry_run_plans_without_connecting(
     assert plan["target"] == "root@203.0.113.10"
     assert len(plan["commands"]) == 5
     assert any("rm -rf" in cmd for cmd in plan["commands"])
+
+
+def test_parser_preserves_legacy_default_contract():
+    snell_audit = load_module()
+
+    args = snell_audit.build_parser().parse_args(["audit-snell", "--host", "root@example"])
+
+    assert args.out == Path("/tmp/surge-snell-runs")
+    assert args.remote_base == "/var/tmp/surge-snell-runs"
+    assert snell_audit.RUN_SCHEMA_VERSION == "surge-snell.audit-run.v2"
 
 
 def test_audit_fleet_continues_after_issue(
@@ -292,7 +346,7 @@ def test_single_audit_issue_exits_zero_without_fail_on_issue(monkeypatch: pytest
     snell_audit = load_module()
     local_dir = tmp_path / "run"
     local_dir.mkdir()
-    manifest = {"target": "root@example", "remote_dir": "/var/tmp/surge-snell-runs/test-run"}
+    manifest = {"target": "root@example", "remote_dir": "/var/tmp/snell-runs/test-run"}
     completed = subprocess.CompletedProcess(["true"], 0, "", "")
 
     monkeypatch.setattr(snell_audit, "prepare_audit_run", lambda args, host: (local_dir, manifest))
@@ -328,7 +382,7 @@ def test_single_audit_issue_respects_fail_on_issue(monkeypatch: pytest.MonkeyPat
     snell_audit = load_module()
     local_dir = tmp_path / "run"
     local_dir.mkdir()
-    manifest = {"target": "root@example", "remote_dir": "/var/tmp/surge-snell-runs/test-run"}
+    manifest = {"target": "root@example", "remote_dir": "/var/tmp/snell-runs/test-run"}
     completed = subprocess.CompletedProcess(["true"], 0, "", "")
 
     monkeypatch.setattr(snell_audit, "prepare_audit_run", lambda args, host: (local_dir, manifest))
@@ -363,7 +417,7 @@ def test_single_audit_cleanup_failure_records_remote_directory(monkeypatch: pyte
     snell_audit = load_module()
     local_dir = tmp_path / "run"
     local_dir.mkdir()
-    manifest = {"target": "root@example", "remote_dir": "/var/tmp/surge-snell-runs/test-run"}
+    manifest = {"target": "root@example", "remote_dir": "/var/tmp/snell-runs/test-run"}
     completed = subprocess.CompletedProcess(["true"], 0, "", "")
     cleanup_failed = subprocess.CompletedProcess(["ssh"], 255, "", "cleanup failed")
 
@@ -393,14 +447,14 @@ def test_single_audit_cleanup_failure_records_remote_directory(monkeypatch: pyte
     pack, rc = snell_audit.run_audit_for_host(args, "root@example")
 
     assert rc == 0
-    assert pack["persistent_effects"] == ["remote audit directory may remain: /var/tmp/surge-snell-runs/test-run"]
+    assert pack["persistent_effects"] == ["remote audit directory may remain: /var/tmp/snell-runs/test-run"]
 
 
 def test_single_audit_transport_failure_exits_nonzero(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     snell_audit = load_module()
     local_dir = tmp_path / "run"
     local_dir.mkdir()
-    manifest = {"target": "root@example", "remote_dir": "/var/tmp/surge-snell-runs/test-run"}
+    manifest = {"target": "root@example", "remote_dir": "/var/tmp/snell-runs/test-run"}
     failed = subprocess.CompletedProcess(["ssh"], 255, "", "ssh failed")
 
     monkeypatch.setattr(snell_audit, "prepare_audit_run", lambda args, host: (local_dir, manifest))
@@ -525,8 +579,10 @@ def test_payload_redacts_psk_from_raw_log(tmp_path: Path):
 
     assert result.returncode == 0, result.stderr
     raw_log = (run_dir / "logs" / "audit_raw.log").read_text()
+    summary = (run_dir / "logs" / "audit_summary.kv").read_text()
     assert secret not in raw_log
     assert "psk = <redacted>" in raw_log
+    assert "schema_version=surge-snell.audit.remote.v1" in summary
 
 
 def test_skill_docs_default_to_read_only_audit():
@@ -535,25 +591,36 @@ def test_skill_docs_default_to_read_only_audit():
     # Anchor on read-only intent semantically, not on exact prose, so a doc
     # rewrite that keeps the meaning does not silently break this test.
     assert "read-only collection commands over SSH" in combined
-    assert "do not apply them during diagnosis" in combined
+    assert "do not apply these patterns during diagnosis" in combined.lower()
     assert "human operator" in combined
     assert "audit-snell" in combined
     assert "audit-fleet" in combined
-    # The SKILL description must be honest that a server-side temp dir is touched.
+    # The skill must disclose its remote temporary write and gate persistent writes.
     skill = SKILL.read_text()
-    assert "never changes local network settings or server configuration" in skill
-    assert "create and delete a temporary evidence directory" in skill
+    assert "审计默认不改本机网络或服务器配置" in skill
+    assert "临时远程写入授权" in skill
+    assert "用户明确要求部署、修复、迁移或应用已确认方案时，才写服务器" in skill
     # No execution / persistence verbs leaked back in.
     assert "install-snell" not in combined
     assert "confirm-persistent" not in combined
 
 
-def test_macos_triage_keeps_write_actions_in_operator_reference():
-    triage_text = MACOS_TRIAGE.read_text()
-    operator_text = MACOS_OPERATOR_ACTIONS.read_text()
+def test_server_recipe_keeps_config_readable_by_service_user():
+    server_reference = (ROOT / "references" / "snell-vps.md").read_text()
 
-    assert "xh POST" not in triage_text
-    assert "export http_proxy" not in triage_text
-    assert "unset http_proxy" not in triage_text
-    assert "xh --verify no POST" in operator_text
-    assert "export http_proxy" in operator_text
+    assert "install -o snell -g snell -m 0600" in server_reference
+    assert "runuser -u snell -- test -r" in server_reference
+
+
+def test_skill_defines_psk_sources_and_platform_scope():
+    skill = SKILL.read_text()
+    credentials = (ROOT / "references" / "credentials.md").read_text()
+
+    assert "Snell-backed Ponte NAT" in skill
+    assert "macOS Surge" in skill
+    assert "iOS" in skill
+    assert "禁止搜索隐藏凭据缓存" in credentials
+    assert "不跨 VPS" in credentials
+    assert "命令行参数" in credentials
+    assert "evidence `schema_version` 保持整数 `2`" in skill
+    assert "`manifest.json` / `input.json` 保持 `surge-snell.audit-run.v2`" in skill
