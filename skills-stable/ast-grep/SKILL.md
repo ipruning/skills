@@ -6,9 +6,10 @@ description: |
   gating, pattern pitfalls, and version pinning. Use when writing or
   debugging ast-grep rules, wiring sgconfig/scan into pre-commit or CI,
   banning or enforcing a code pattern repo-wide (custom lint rules, even
-  when the user never says "ast-grep"), or doing structural search/replace
-  beyond a one-line pattern. Not for plain text search (use rg), one-off
-  obvious patterns the CLI one-liner already solves, or the programmatic
+  when the user never says "ast-grep"), or one-off structural search/replace
+  that requires YAML rules, contextual or relational matching, composite
+  rules, or AST debugging. Not for plain text search (use rg), one-off
+  patterns that `ast-grep run -p/-r` expresses directly, or the programmatic
   APIs (napi/pyo3).
 ---
 
