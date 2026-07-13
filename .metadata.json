@@ -16,6 +16,20 @@
       "tracked": true,
       "branch": "main"
     },
+    "skills-beta/cascade": {
+      "source": "https://github.com/miguelrios/unc-skills/tree/main/cascade/skills/cascade",
+      "type": "github-subdir",
+      "group": "skills-beta",
+      "installed_at": "2026-07-14T05:19:20.98561+08:00",
+      "repo_url": "https://github.com/miguelrios/unc-skills.git",
+      "subdir": "cascade/skills/cascade",
+      "version": "1d606d5",
+      "tree_hash": "59e5c8475eb10d6fac6d5b4cdc60b360d319dc3a",
+      "file_hashes": {
+        "SKILL.md": "sha256:c23e3383c6526768f62d3014124aa9d73e51a9d8cf000469bc8302169e9d3e68",
+        "references/templates.md": "sha256:8a8c289f1e4579786cdf18c033a05733297aa973212bf339251f4bb2f5bdb7e4"
+      }
+    },
     "skills-beta/frontend-design": {
       "source": "https://github.com/anthropics/skills.git/skills/frontend-design",
       "type": "github-subdir",
