@@ -625,12 +625,18 @@ def test_payload_redacts_psk_from_raw_log(tmp_path: Path):
     fake_systemctl = fake_bin / "systemctl"
     fake_systemctl.write_text(
         "#!/usr/bin/env bash\n"
+        # systemd 255: pattern with no matches exits 1 (empty stderr) for
+        # list-unit-files and 0 for list-units; failed units carry a leading
+        # marker column in list-units output; real query failures report on stderr.
         'if [ "$1" = list-unit-files ] || [ "$1" = list-units ]; then\n'
         '  case "${FAKE_SYSTEMCTL_DISCOVERY:-unique}" in\n'
         '    unique) echo "snell.service enabled enabled"; exit 0;;\n'
-        "    none) exit 0;;\n"
+        '    none) if [ "$1" = list-unit-files ]; then exit 1; else exit 0; fi;;\n'
+        "    transient-failed)\n"
+        '      if [ "$1" = list-unit-files ]; then exit 1; fi\n'
+        '      echo "● snell.service loaded failed failed Fake snell"; exit 0;;\n'
         '    multiple) printf "snell.service enabled enabled\\nsnell-server.service enabled enabled\\n"; exit 0;;\n'
-        "    failed) exit 1;;\n"
+        '    failed) echo "Failed to list unit files: connection refused" >&2; exit 1;;\n'
         "  esac\n"
         "fi\n"
         'if [ "$1" = cat ]; then\n'
@@ -695,6 +701,11 @@ def test_payload_redacts_psk_from_raw_log(tmp_path: Path):
         failed_result = run_discovery_case(name, discovery)
         assert failed_result.returncode != 0
         assert expected_error in failed_result.stderr
+
+    transient_result = run_discovery_case("transient-failed", "transient-failed")
+    assert transient_result.returncode == 0, transient_result.stderr
+    transient_summary = (tmp_path / "transient-failed" / "logs" / "audit_summary.kv").read_text()
+    assert "snell_service_name=snell.service" in transient_summary
 
     override_result = run_discovery_case("explicit-override", "failed", "custom-snell.service")
     assert override_result.returncode == 0, override_result.stderr

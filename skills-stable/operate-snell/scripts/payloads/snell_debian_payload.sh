@@ -122,14 +122,21 @@ discover_service_name() {
     SERVICE_NAME="$SNELL_SERVICE_NAME"
     return
   fi
-  if ! unit_files="$(systemctl list-unit-files --type=service --no-legend '*snell*.service' 2>/dev/null)"; then
+  # systemd exits nonzero with empty output when a pattern matches nothing;
+  # only a reported stderr error is a failed discovery query.
+  if ! unit_files="$(systemctl list-unit-files --type=service --no-legend '*snell*.service' 2>"${LOG_DIR}/systemctl_unit_files.err")" \
+    && [ -s "${LOG_DIR}/systemctl_unit_files.err" ]; then
     die "failed to discover installed Snell service units; select one with --service"
   fi
-  if ! loaded_units="$(systemctl list-units --type=service --all --no-legend '*snell*.service' 2>/dev/null)"; then
+  if ! loaded_units="$(systemctl list-units --type=service --all --no-legend '*snell*.service' 2>"${LOG_DIR}/systemctl_units.err")" \
+    && [ -s "${LOG_DIR}/systemctl_units.err" ]; then
     die "failed to discover loaded Snell service units; select one with --service"
   fi
+  # list-units prefixes failed units with a marker column; take the first
+  # field on each line that is a unit name.
   candidates="$(printf '%s\n%s\n' "$unit_files" "$loaded_units" |
-    awk '$1 ~ /^[A-Za-z0-9_.@-]+\.service$/ { print $1 }' | sort -u)"
+    awk '{ for (i = 1; i <= NF; i++) if ($i ~ /^[A-Za-z0-9_.@-]+\.service$/) { print $i; break } }' |
+    sort -u)"
   count="$(printf '%s\n' "$candidates" | awk 'NF { count++ } END { print count + 0 }')"
   case "$count" in
   0)
