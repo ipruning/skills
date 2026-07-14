@@ -114,8 +114,11 @@ if runuser -u snell -- test -w /etc/snell; then
 fi
 ```
 
-Keep `/usr/local/bin/snell-server` root-owned and executable. After activation,
-verify `systemctl show <snell-unit> -p User -p Group` reports `snell` and the
+Keep `/usr/local/bin/snell-server` root-owned and executable. Install the unit
+below as `/etc/systemd/system/snell-server.service` mode `0644`.
+Run `systemd-analyze verify /etc/systemd/system/snell-server.service` before
+`daemon-reload`. After activation, verify
+`systemctl show snell-server.service -p User -p Group` reports `snell` and the
 running process can still read the same config path.
 
 ```ini

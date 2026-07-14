@@ -56,8 +56,10 @@ uv run --script "<operate-snell skill dir>/scripts/snell_audit.py" audit-fleet \
 ```
 
 `audit-snell` 看 stdout 的 `evidence_paths.audit_json`；`audit-fleet` 逐台打开 `results[].evidence_paths.audit_json`。传输或采集失败才默认非零；要让结构性 finding 也阻断，显式传 `--fail-on-issue`。
+脚本默认发现唯一的 `*snell*.service` unit；找不到候选、发现多个候选或 systemd 查询失败时，用 `--service <unit.service>` 明确选择，不按 unit 名猜运行实例。
 
-Snell policy 烟测不碰 VPS：
+Snell policy 烟测不碰 VPS，也不创建或切换 Surge profile。先按
+[references/snell-vps-triage.md](references/snell-vps-triage.md) 激活并验证临时 policy，再执行：
 
 ```bash
 uv run --script "<operate-snell skill dir>/scripts/snell_audit.py" \

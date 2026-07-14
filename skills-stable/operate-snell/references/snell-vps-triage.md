@@ -17,6 +17,23 @@ surge-cli --raw dump policy
 surge-cli --raw dump profile
 ```
 
+`smoke-surge` probes a concrete policy already present in the active runtime.
+It does not render, register, switch, or restore a profile.
+
+For a disposable policy, read `ConfigDirectoryPath` and `SelectedConfigName`
+from `~/Library/Application Support/com.nssurge.surge-mac/KDDefaults.plist`.
+Copy the selected `.conf` into `ConfigDirectoryPath`, keep the copy mode `0600`,
+add only the Snell policy and endpoint `DIRECT` rule, and pass the copy to
+`surge-cli --check`. Switch with the copy's basename without `.conf`; passing
+the filename extension does not select the profile.
+
+Treat `switch-profile` JSON `result=success` as an accepted request. Poll both
+`SelectedConfigName` and the active runtime policy/rule inventory with a
+deadline. In an exit trap, switch to the original basename, poll until its
+runtime fingerprint is restored and the temporary entries are absent, then
+delete the copy and credential file. A newly copied profile needs no `reload`,
+import, registry edit, or Surge restart.
+
 Test the Surge policy under investigation:
 
 ```bash
@@ -38,6 +55,8 @@ If using `smoke-surge`, top-level `status=ok` means all requested probes passed.
 `status=warn` means at least one probe was unsupported. Do not call UDP relay or
 NAT traversal healthy until the relevant `results[]` entry has
 `status="passed"` and the `parsed` value shows the expected result.
+A TCP or UDP policy object containing `error`, or an empty nested policy
+object, is a failed probe even when `surge-cli` exits zero or reports a delay.
 
 Interpret UDP relay and NAT traversal separately:
 
@@ -93,6 +112,30 @@ uv run --script "$SKILL_DIR/scripts/snell_audit.py" audit-fleet \
 `audit-snell` exits non-zero only when SSH, upload, remote execution, or
 collection failed. A completed audit with `status=issue` exits zero unless
 `--fail-on-issue` is set.
+
+If the first SSH step succeeds but a following SCP resets because Surge or
+another local router changes the control host's egress, do not classify that as
+a VPS finding. Either apply the separately authorized temporary `DIRECT` rule,
+or give one audit run a dedicated multiplexed connection:
+
+```bash
+control_socket=/tmp/snell-audit-example.sock
+uv run --script "$SKILL_DIR/scripts/snell_audit.py" audit-snell \
+  --host root@203.0.113.10 \
+  --port 14180 \
+  --run-id snell-audit-example \
+  --remote-base /var/tmp/snell-runs \
+  --out /tmp/snell-runs \
+  --ssh-option ControlMaster=auto \
+  --ssh-option ControlPersist=60s \
+  --ssh-option "ControlPath=$control_socket"
+ssh -S "$control_socket" -O exit root@203.0.113.10 2>/dev/null || true
+rm -f -- "$control_socket"
+```
+
+Use a run-specific socket and keep this out of global SSH configuration. A
+failed transfer can leave the remote run directory named in
+`persistent_effects`; remove that exact directory before retrying.
 
 ## Remote Audit Evidence Inventory
 

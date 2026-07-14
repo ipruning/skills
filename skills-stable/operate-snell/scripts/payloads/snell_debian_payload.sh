@@ -7,13 +7,14 @@ LOG_DIR="${RUN_DIR}/logs"
 RESULT_FILE="${RUN_DIR}/result.json"
 STDOUT_JSON_EMITTED=false
 
-SERVICE_NAME="snell-server"
+SERVICE_NAME=""
 DEFAULT_BINARY_PATH="/usr/local/bin/snell-server"
 DEFAULT_CONFIG_FILE="/etc/snell/snell-server.conf"
 
 SNELL_AUDIT_OPERATION=""
 SNELL_PORT="14180"
 SNELL_JOURNAL_SINCE="10 min ago"
+SNELL_SERVICE_NAME=""
 
 mkdir -p "$LOG_DIR"
 
@@ -98,6 +99,49 @@ validate_port() {
 validate_common() {
   [ -r "$INPUT_ENV" ] || die "missing input.env"
   validate_port
+}
+
+validate_service_name() {
+  case "$1" in
+  *.service)
+    if printf '%s' "$1" | grep -Eq '^[A-Za-z0-9_.@-]+\.service$'; then
+      return
+    fi
+    ;;
+  esac
+  die "SNELL_SERVICE_NAME must be a systemd .service unit name"
+}
+
+discover_service_name() {
+  local candidates
+  local count
+  local loaded_units
+  local unit_files
+  if [ -n "$SNELL_SERVICE_NAME" ]; then
+    validate_service_name "$SNELL_SERVICE_NAME"
+    SERVICE_NAME="$SNELL_SERVICE_NAME"
+    return
+  fi
+  if ! unit_files="$(systemctl list-unit-files --type=service --no-legend '*snell*.service' 2>/dev/null)"; then
+    die "failed to discover installed Snell service units; select one with --service"
+  fi
+  if ! loaded_units="$(systemctl list-units --type=service --all --no-legend '*snell*.service' 2>/dev/null)"; then
+    die "failed to discover loaded Snell service units; select one with --service"
+  fi
+  candidates="$(printf '%s\n%s\n' "$unit_files" "$loaded_units" |
+    awk '$1 ~ /^[A-Za-z0-9_.@-]+\.service$/ { print $1 }' | sort -u)"
+  count="$(printf '%s\n' "$candidates" | awk 'NF { count++ } END { print count + 0 }')"
+  case "$count" in
+  0)
+    die "no Snell service unit found; select a nonstandard unit with --service"
+    ;;
+  1)
+    SERVICE_NAME="$candidates"
+    ;;
+  *)
+    die "multiple Snell service units found; select one with --service"
+    ;;
+  esac
 }
 
 trim() {
@@ -420,6 +464,7 @@ write_summary_kv() {
     kv kernel "$(uname -r 2>/dev/null || true)"
     kv os_pretty_name "$(awk -F= '$1 == "PRETTY_NAME" { gsub(/"/, "", $2); print $2; exit }' /etc/os-release 2>/dev/null || true)"
 
+    kv snell_service_name "$SERVICE_NAME"
     kv snell_port "$SNELL_PORT"
     kv snell_binary_path "$binary_path"
     if [ -x "$binary_path" ]; then
@@ -550,6 +595,7 @@ run_audit() {
   local binary_path
   local config_file
   validate_common
+  discover_service_name
   exec_line="$(detect_exec_start_line)"
   binary_path="$(detect_binary_path "$exec_line")"
   config_file="$(detect_config_file "$exec_line")"

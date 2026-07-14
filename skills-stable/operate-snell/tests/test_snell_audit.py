@@ -15,6 +15,7 @@ PAYLOAD = ROOT / "scripts" / "payloads" / "snell_debian_payload.sh"
 SKILL = ROOT / "SKILL.md"
 TRIAGE = ROOT / "references" / "snell-vps-triage.md"
 OPERATOR_ACTION_PATTERNS = ROOT / "references" / "snell-operator-action-patterns.md"
+CREDENTIALS = ROOT / "references" / "credentials.md"
 
 
 def load_module():
@@ -54,6 +55,7 @@ def base_kv(**overrides: str) -> dict[str, str]:
         "snell_version_text": "snell-server v5.0.1",
         "snell_binary_path": "/usr/local/bin/snell-server",
         "snell_config_path": "/etc/snell/snell-server.conf",
+        "snell_service_name": "snell-server.service",
         "config_present": "yes",
         "config_owner_user": "root",
         "config_owner_group": "snell",
@@ -266,6 +268,7 @@ def test_audit_snell_dry_run_plans_without_connecting(
     args = argparse.Namespace(
         host="root@203.0.113.10",
         port=9999,
+        service="",
         out=tmp_path,
         remote_base="/var/tmp/snell-runs",
         ssh_option=[],
@@ -278,6 +281,7 @@ def test_audit_snell_dry_run_plans_without_connecting(
     plan = json.loads(capsys.readouterr().out)
     assert plan["dry_run"] is True
     assert plan["target"] == "root@203.0.113.10"
+    assert plan["service"] == "auto-discover unique *snell*.service"
     assert len(plan["commands"]) == 5
     assert any("rm -rf" in cmd for cmd in plan["commands"])
 
@@ -289,6 +293,7 @@ def test_parser_preserves_legacy_default_contract():
 
     assert args.out == Path("/tmp/surge-snell-runs")
     assert args.remote_base == "/var/tmp/surge-snell-runs"
+    assert args.service == ""
     assert snell_audit.RUN_SCHEMA_VERSION == "surge-snell.audit-run.v2"
 
 
@@ -499,6 +504,72 @@ def test_surge_probe_empty_json_fails(tmp_path: Path):
     assert result["json_ok"] is True
 
 
+@pytest.mark.parametrize(
+    ("test_name", "payload"),
+    [
+        ("tcp", {"policy": {"available": 187, "error": "Read stream EOF"}}),
+        ("udp", {"policy": {}}),
+        ("external-ip", {"address": ""}),
+        ("nat", {"nat-type": None}),
+    ],
+)
+def test_surge_probe_rejects_semantically_failed_payloads(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, test_name: str, payload: dict[str, object]
+):
+    snell_audit = load_module()
+    logs_dir = tmp_path / "logs"
+    logs_dir.mkdir()
+    monkeypatch.setattr(
+        snell_audit,
+        "run_subprocess",
+        lambda command, timeout: subprocess.CompletedProcess(command, 0, json.dumps(payload), ""),
+    )
+
+    result = snell_audit.run_surge_probe(
+        surge_cli="/tmp/fake-surge-cli",
+        policy="policy",
+        test_name=test_name,
+        logs_dir=logs_dir,
+        timeout=5,
+    )
+
+    assert result["status"] == "failed"
+    assert result["json_ok"] is True
+
+
+@pytest.mark.parametrize(
+    ("test_name", "payload"),
+    [
+        ("tcp", {"policy": {"available": 244, "receive": 313}}),
+        ("udp", {"policy": {"receive": 241}}),
+        ("external-ip", {"address": "203.0.113.1"}),
+        ("nat", {"nat-type": 3}),
+    ],
+)
+def test_surge_probe_accepts_semantically_successful_payloads(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, test_name: str, payload: dict[str, object]
+):
+    snell_audit = load_module()
+    logs_dir = tmp_path / "logs"
+    logs_dir.mkdir()
+    monkeypatch.setattr(
+        snell_audit,
+        "run_subprocess",
+        lambda command, timeout: subprocess.CompletedProcess(command, 0, json.dumps(payload), ""),
+    )
+
+    result = snell_audit.run_surge_probe(
+        surge_cli="/tmp/fake-surge-cli",
+        policy="policy",
+        test_name=test_name,
+        logs_dir=logs_dir,
+        timeout=5,
+    )
+
+    assert result["status"] == "passed"
+    assert result["json_ok"] is True
+
+
 def test_smoke_surge_unsupported_is_warn(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ):
@@ -554,6 +625,14 @@ def test_payload_redacts_psk_from_raw_log(tmp_path: Path):
     fake_systemctl = fake_bin / "systemctl"
     fake_systemctl.write_text(
         "#!/usr/bin/env bash\n"
+        'if [ "$1" = list-unit-files ] || [ "$1" = list-units ]; then\n'
+        '  case "${FAKE_SYSTEMCTL_DISCOVERY:-unique}" in\n'
+        '    unique) echo "snell.service enabled enabled"; exit 0;;\n'
+        "    none) exit 0;;\n"
+        '    multiple) printf "snell.service enabled enabled\\nsnell-server.service enabled enabled\\n"; exit 0;;\n'
+        "    failed) exit 1;;\n"
+        "  esac\n"
+        "fi\n"
         'if [ "$1" = cat ]; then\n'
         f"  printf '[Service]\\nExecStart={binary} -c {config}\\n'\n"
         "  exit 0\n"
@@ -594,6 +673,44 @@ def test_payload_redacts_psk_from_raw_log(tmp_path: Path):
     assert secret not in raw_log
     assert "psk = <redacted>" in raw_log
     assert "schema_version=surge-snell.audit.remote.v1" in summary
+    assert "snell_service_name=snell.service" in summary
+
+    def run_discovery_case(name: str, discovery: str, service: str = "") -> subprocess.CompletedProcess[str]:
+        case_dir = tmp_path / name
+        case_dir.mkdir()
+        (case_dir / "input.env").write_text(
+            f"SNELL_AUDIT_OPERATION=audit-snell\nSNELL_PORT=14180\nSNELL_SERVICE_NAME={service}\n"
+        )
+        case_env = env.copy()
+        case_env["FAKE_SYSTEMCTL_DISCOVERY"] = discovery
+        return subprocess.run(
+            ["bash", str(PAYLOAD)], cwd=case_dir, env=case_env, text=True, capture_output=True, check=False
+        )
+
+    for name, discovery, expected_error in [
+        ("no-candidate", "none", "no Snell service unit found"),
+        ("multiple-candidates", "multiple", "multiple Snell service units found"),
+        ("discovery-failed", "failed", "failed to discover installed Snell service units"),
+    ]:
+        failed_result = run_discovery_case(name, discovery)
+        assert failed_result.returncode != 0
+        assert expected_error in failed_result.stderr
+
+    override_result = run_discovery_case("explicit-override", "failed", "custom-snell.service")
+    assert override_result.returncode == 0, override_result.stderr
+    override_summary = (tmp_path / "explicit-override" / "logs" / "audit_summary.kv").read_text()
+    assert "snell_service_name=custom-snell.service" in override_summary
+
+
+def test_service_override_must_be_a_systemd_service_name():
+    snell_audit = load_module()
+
+    with pytest.raises(snell_audit.CliError, match="--service"):
+        snell_audit.build_audit_input_env(14180, "10 min ago", "snell;reboot")
+
+    assert "SNELL_SERVICE_NAME=custom-snell.service" in snell_audit.build_audit_input_env(
+        14180, "10 min ago", "custom-snell.service"
+    )
 
 
 def test_skill_docs_default_to_read_only_audit():
@@ -614,6 +731,29 @@ def test_skill_docs_default_to_read_only_audit():
     # No execution / persistence verbs leaked back in.
     assert "install-snell" not in combined
     assert "confirm-persistent" not in combined
+
+
+def test_surge_smoke_documents_temporary_profile_runtime_contract():
+    skill = SKILL.read_text()
+    triage = TRIAGE.read_text()
+    triage_normalized = " ".join(triage.split())
+
+    assert "不创建或切换 Surge profile" in skill
+    assert "It does not render, register, switch, or restore a profile" in triage
+    assert "`ConfigDirectoryPath` and `SelectedConfigName`" in triage
+    assert "basename without `.conf`" in triage
+    assert "runtime fingerprint is restored" in triage
+    assert "needs no `reload`" in triage
+    assert "empty nested policy object" in triage_normalized
+    assert "ControlMaster=auto" in triage
+    assert "persistent_effects" in triage
+
+
+def test_credentials_preserve_base64_padding_when_reading_psk():
+    credentials = CREDENTIALS.read_text()
+
+    assert "末尾的 `=` padding" in credentials
+    assert "不能按所有 `=` 分列" in credentials
 
 
 def test_server_recipe_keeps_config_read_only_for_service_user():
