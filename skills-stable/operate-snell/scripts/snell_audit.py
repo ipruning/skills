@@ -555,7 +555,8 @@ def build_findings(facts: dict[str, Any]) -> list[dict[str, Any]]:
             )
         )
 
-    if systemd["user"] in {"", "root"}:
+    root_service = systemd["user"] in {"", "root"}
+    if root_service:
         findings.append(
             finding(
                 "snell.service_identity_mismatch",
@@ -572,9 +573,11 @@ def build_findings(facts: dict[str, Any]) -> list[dict[str, Any]]:
         config_mode_bits = None
     insecure_mode = config_mode_bits is not None and bool(config_mode_bits & 0o037)
     unreadable = config["service_readable"] in {"no", "unknown"}
-    service_owns_config = bool(systemd["user"]) and config["owner_user"] == systemd["user"]
-    service_can_write = config["service_writable"] in {"yes", "unknown"}
-    service_can_replace = config["parent_service_writable"] in {"yes", "unknown"}
+    # A root service inherently owns and can rewrite its config; those signals
+    # restate service_identity_mismatch. Judge them only for a non-root service.
+    service_owns_config = not root_service and config["owner_user"] == systemd["user"]
+    service_can_write = not root_service and config["service_writable"] in {"yes", "unknown"}
+    service_can_replace = not root_service and config["parent_service_writable"] in {"yes", "unknown"}
     if config["present"] and (
         insecure_mode or unreadable or service_owns_config or service_can_write or service_can_replace
     ):

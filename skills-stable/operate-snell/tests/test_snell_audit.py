@@ -233,6 +233,54 @@ def test_non_root_identity_and_root_owned_group_readable_config_are_valid(tmp_pa
     assert pack["findings"] == []
 
 
+def test_root_service_reports_identity_without_restating_config_permissions(tmp_path: Path):
+    snell_audit = load_module()
+    run_dir = write_audit_fixture(
+        tmp_path,
+        kv=base_kv(
+            systemd_user="root",
+            systemd_group="root",
+            config_owner_user="root",
+            config_owner_group="root",
+            config_mode="600",
+            config_service_readable="yes",
+            config_service_writable="yes",
+            config_parent_owner_group="root",
+            config_parent_mode="700",
+            config_parent_service_writable="yes",
+        ),
+    )
+
+    pack = snell_audit.build_evidence_pack(local_dir=run_dir, target="root@example", transport_status="ok")
+
+    assert "snell.service_identity_mismatch" in finding_ids(pack)
+    assert "snell.config_permissions_mismatch" not in finding_ids(pack)
+
+
+def test_root_service_with_loose_config_mode_still_reports_permissions(tmp_path: Path):
+    snell_audit = load_module()
+    run_dir = write_audit_fixture(
+        tmp_path,
+        kv=base_kv(
+            systemd_user="root",
+            systemd_group="root",
+            config_owner_user="root",
+            config_owner_group="root",
+            config_mode="644",
+            config_service_readable="yes",
+            config_service_writable="yes",
+            config_parent_owner_group="root",
+            config_parent_mode="700",
+            config_parent_service_writable="yes",
+        ),
+    )
+
+    pack = snell_audit.build_evidence_pack(local_dir=run_dir, target="root@example", transport_status="ok")
+
+    assert "snell.service_identity_mismatch" in finding_ids(pack)
+    assert "snell.config_permissions_mismatch" in finding_ids(pack)
+
+
 def test_v6_udp_and_legacy_config_are_version_aware(tmp_path: Path):
     snell_audit = load_module()
     run_dir = write_audit_fixture(
