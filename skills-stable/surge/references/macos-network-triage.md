@@ -87,9 +87,27 @@ Check current state:
 # What outbound mode? (0=direct, 1=global, 2=rule)
 "$surge_cli" --raw environment
 
+# Which profile and concrete policies are active?
+"$surge_cli" --raw dump profile
+"$surge_cli" --raw dump policy
+
 # Shell proxy vars set?
 env | grep -i proxy
 ```
+
+## Local Evidence Validity
+
+Surge can make a local probe succeed without proving the same fact on the
+public network:
+
+- Under Fake IP DNS, an A result inside `198.18.0.0/15` is synthetic. It is not
+  the public address of the queried name. Record the active profile and
+  resolver path, then query a nameserver from the domain's authoritative
+  delegation directly or repeat the check from an unaffected host.
+- Under Enhanced Mode, `nc -z` or a successful TCP connect can prove only that
+  the local transparent proxy accepted the socket. It does not prove that the
+  remote host has that TCP port open. Require a protocol-authenticated request
+  plus the remote listener and firewall or provider-counter inventory.
 
 ## Symptom → Next Check
 

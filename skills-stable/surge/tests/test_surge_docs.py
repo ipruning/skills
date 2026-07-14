@@ -23,6 +23,18 @@ def test_triage_keeps_write_actions_in_operator_reference():
     assert "export http_proxy" in operator_text
 
 
+def test_triage_does_not_treat_intercepted_local_probes_as_public_evidence():
+    triage_text = TRIAGE.read_text()
+    normalized = " ".join(triage_text.split())
+
+    assert '"$surge_cli" --raw dump profile' in triage_text
+    assert '"$surge_cli" --raw dump policy' in triage_text
+    assert "198.18.0.0/15" in triage_text
+    assert "is synthetic" in triage_text
+    assert "`nc -z` or a successful TCP connect" in triage_text
+    assert "does not prove that the remote host has that TCP port open" in normalized
+
+
 def test_snell_routes_to_its_own_skill():
     skill_text = SKILL.read_text()
     sing_box_macos_text = SING_BOX_MACOS.read_text()
