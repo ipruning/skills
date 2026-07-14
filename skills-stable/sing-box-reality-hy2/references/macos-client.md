@@ -82,10 +82,40 @@ VIF, route Tailscale by DIRECT rules, and preserve MagicDNS through
 `100.100.100.100`. Verify with `route -n get <tailscale-peer-ipv4>`: a healthy
 live route resolves to the Tailscale utun interface, not the Surge VIF.
 
-After editing:
+For a disposable smoke test, copy the active profile to a dedicated temporary
+profile under the `ConfigDirectoryPath` recorded in
+`~/Library/Application Support/com.nssurge.surge-mac/KDDefaults.plist`. Keep
+the copy mode `0600` and add only the test policy plus the `SERVER_IP` DIRECT
+rule. Do not overwrite the active profile. Record `SelectedConfigName` before
+switching and pass the temporary basename without `.conf` to `switch-profile`;
+the filename with its extension does not select the profile. Restore the
+original basename in an exit trap, then delete the temporary profile and
+protected credential file. A new file in `ConfigDirectoryPath` needs no
+`reload`, import, registry edit, or Surge restart.
+
+The `SERVER_IP` DIRECT rule also applies to a local sing-box sidecar's own TCP
+and UDP sockets. Without it, Surge Enhanced Mode can capture the sidecar before
+the protocol reaches the VPS. A sidecar error shaped like
+`read udp 198.18.0.1:<port>-><SERVER_IP>:443: connection refused` is local VIF
+path evidence; verify the temporary DIRECT rule before changing the server.
+
+`surge-cli switch-profile` returning exit code zero is not activation proof: a
+missing profile can return `(null)` with exit code zero. Require a JSON
+`result=success`, then poll `dump policy` for the concrete test policy and
+`dump rule` for the `SERVER_IP` DIRECT rule with a deadline. Runtime profile
+activation is asynchronous. After restoration, poll until both temporary
+entries are absent; one immediate dump can still show the old profile. A
+deadline expiry fails the switch or restoration.
+
+For a durable profile edit:
 
 ```bash
-/Applications/Surge.app/Contents/Applications/surge-cli --check "$HOME/Library/Application Support/Surge/Profiles/surge.conf"
+defaults_plist="$HOME/Library/Application Support/com.nssurge.surge-mac/KDDefaults.plist"
+config_dir="$(plutil -extract ConfigDirectoryPath raw "$defaults_plist")"
+config_name="$(plutil -extract SelectedConfigName raw "$defaults_plist")"
+profile_path="$config_dir/$config_name.conf"
+
+/Applications/Surge.app/Contents/Applications/surge-cli --check "$profile_path"
 /Applications/Surge.app/Contents/Applications/surge-cli reload
 /Applications/Surge.app/Contents/Applications/surge-cli --raw set ProxyGroupSelection.PROXY=vps-1-hy2
 ```
@@ -104,6 +134,15 @@ Group-level tests on select groups may return `{}`. Test the concrete policy ins
 ## REALITY via Sidecar
 
 Only for macOS, not iOS.
+
+Use an installed binary only when its version passes
+[version-compatibility.md](version-compatibility.md). For a one-shot sidecar on
+a Mac without sing-box, stage the matching official release for `uname -m` in
+a mode `0700` temporary directory instead of installing it globally. Verify the
+asset digest from the release's checksum artifact when present; when the
+release has no checksum file, use the digest published in the official GitHub
+release asset metadata. Then require the staged binary to report the expected
+version.
 
 Run sing-box locally with a mixed inbound:
 

@@ -66,6 +66,8 @@ Important client rules:
   `"network": "tcp"` disables UDP.
 - HY2 outbound dials `SERVER_IP`.
 - HY2 TLS uses `server_name = HY2_DOMAIN`.
+- A disposable private-CA test adds `tls.certificate_path` pointing to the
+  public CA file. Do not use `insecure=true` when explicit trust works.
 - Omit HY2 `up_mbps` and `down_mbps` by default. This selects automatic BBR
   instead of a guessed Brutal rate.
 - Keep `direct` as a routing outbound, but do not include it in the user-facing
@@ -149,6 +151,11 @@ Skeleton:
   }
 }
 ```
+
+The production skeleton relies on the public certificate chain for
+`HY2_DOMAIN`. For the private-CA protocol-only shape in
+[testing.md](testing.md), add `"certificate_path": "__PUBLIC_CA_PATH__"` to
+that HY2 `tls` object.
 
 Validate:
 
@@ -356,12 +363,23 @@ if ! recent_log="$(journalctl -u sing-box@<name>.service --since "5 minutes ago"
   echo "cannot read the bounded sing-box journal" >&2
   exit 1
 fi
-if grep -Ei 'error|fatal|panic|UDP is not supported|icmp is not supported' <<<"$recent_log"; then
+unexpected_log="$(
+  grep -Ei 'error|fatal|panic|UDP is not supported|icmp is not supported' <<<"$recent_log" \
+    | grep -Ev 'connection upload closed: stream [0-9]+ canceled by remote with error code 0' \
+    || true
+)"
+if test -n "$unexpected_log"; then
+  printf '%s\n' "$unexpected_log" >&2
   exit 1
 fi
 ```
 
-The steady-state `warn` journal may legitimately be empty after the earlier positive `info` assertion; command failure and error records still fail this gate.
+The steady-state `warn` journal may legitimately be empty after the earlier
+positive `info` assertion. A controlled test client can cancel a QUIC stream
+after receiving its result; sing-box records the exact
+`connection upload closed: stream <n> canceled by remote with error code 0`
+shape at `ERROR` level. Ignore only that exact client-cancellation shape. Other
+error records and command failures still fail this gate.
 
 If the current SSH path or peer access uses Tailscale, also verify the tailnet
 route after enabling TUN:

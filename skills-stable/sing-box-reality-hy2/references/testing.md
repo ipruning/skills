@@ -24,6 +24,40 @@ Do not infer client proxy performance from server raw speed alone.
 Do not accept env-proxy tests as final Linux TUN proof. Final Linux evidence
 must clear proxy env and use `--noproxy "*"`.
 
+## Private-CA Protocol E2E
+
+When the user authorizes a disposable protocol test but no public domain is
+available, a reserved test name, a private CA, and a loopback REALITY origin
+can validate the REALITY and HY2 data planes. This does not validate public DNS,
+ACME issuance, renewal, or production camouflage; keep those gates unverified.
+
+Use an RSA-2048 leaf for this disposable origin. That is the validated shape
+for sing-box `1.13.14` with the Chrome uTLS fingerprint and OpenSSL `s_server`;
+an Ed25519 leaf produced `tls_choose_sigalg:no suitable signature algorithm`
+in this path. This is not a general production-certificate restriction.
+
+Point the REALITY handshake at a distinct loopback port and render that actual
+port into `handshake.server_port`. Point the HY2 server at the private leaf and
+key. Give clients only the public CA and add `tls.certificate_path`; do not
+replace explicit trust with `insecure=true`.
+
+An HTTP/3-capable curl on the server can prove the self-contained string
+masquerade without DNS or another Internet dependency:
+
+```bash
+curl --http3-only --noproxy "*" \
+  --resolve "$TEST_NAME:443:127.0.0.1" \
+  --cacert "$PUBLIC_CA_PATH" \
+  --connect-timeout 5 --max-time 15 \
+  -fsS -w '\nhttp_version=%{http_version} code=%{http_code}\n' \
+  "https://$TEST_NAME/"
+```
+
+Require the configured response body, `http_version=3`, and the expected HTTP
+status. This loopback assertion proves masquerade behavior, not public UDP/443
+reachability; an external authenticated HY2 request and firewall evidence must
+prove that separately.
+
 ## Server Raw Baseline
 
 Prefer an already installed Ookla CLI. Installing a remote repository shell
@@ -122,6 +156,19 @@ sing-box run -c client-mixed.json
 curl -fsS4 --proxy socks5h://127.0.0.1:2080 https://api.ipify.org
 ```
 
+For a disposable server, also test an authentication boundary without
+overwriting the retained credentials: first pass with the valid client, run a
+separate candidate with one deliberately wrong credential and require that the
+protected response marker is absent, then restore the valid client and pass
+again. A timeout or connection error is acceptable for the negative leg; a
+response from the protected endpoint is not.
+
+When REALITY uses the disposable single-process OpenSSL origin from the server
+reference, an invalid credential or unrelated public scanner can occupy the
+fallback connection. Immediately before the valid recovery request, restart
+and revalidate that transient origin. Otherwise a queued valid request can look
+like an authentication regression.
+
 The durable Linux check is TUN without proxy env:
 
 ```bash
@@ -144,6 +191,18 @@ With selector default `vless-reality-out`, HTTP/3 must succeed and the journal
 must show a VLESS packet connection. This is the regression test for an
 accidental `"network": "tcp"` restriction. Then select `hy2-h3-out`, repeat the
 same target, and require a Hysteria2 packet connection.
+
+If the local curl build lacks HTTP/3 and a headless browser is used instead,
+give the browser a dedicated temporary `--user-data-dir` and an explicit
+wall-clock deadline. Kill the process and remove that directory during cleanup,
+including on probe failure. Require an HTTP response with negotiated `h3`;
+browser startup or exit code alone is not protocol evidence. Do not kill or
+reuse the user's existing browser instance. A deadline exit does not invalidate
+an already captured response: require the expected body plus target-correlated
+netlog events for QUIC certificate verification, `HTTP3_HEADERS_DECODED` with
+the expected status, and `HTTP3_DATA_FRAME_RECEIVED`. If the isolated process
+produces no such protocol evidence before the deadline, report this layer as
+unverified rather than inferring an HY2 failure.
 
 If headers include `HTTP/1.1 200 Connection established`, the sample used an
 HTTP proxy and is not TUN evidence.
@@ -174,6 +233,7 @@ Mbps = speed_download * 8 / 1000000
 - A low global UDP sysctl value is not proof of a small sing-box socket. Inspect `ss -u -a -m -p` and UDP error counters during an active HY2 transfer before tuning it.
 - `UDP is not supported by outbound: proxy` with VLESS selected means the selected VLESS outbound was restricted to TCP; omit `network` to restore the validated TCP+UDP default.
 - `icmp is not supported by default outbound: proxy` means TUN ICMP reached the selector. Add an explicit ICMP direct or reject rule; VLESS and HY2 do not carry it.
+- `connection upload closed: stream <n> canceled by remote with error code 0` inside a bounded Surge or HTTP/3 probe window is a client cancellation after the probe received its result. Correlate it with an active, non-restarting service; do not call that exact line a server crash or suppress other error shapes.
 - `inactive (dead)`, exit status 0, and a journal line saying `Stopped sing-box service` prove a clean external stop, not a crash. Inspect timers, test harnesses, and operator actions before changing the config.
 
 ## Live SOP Cross-Validation
