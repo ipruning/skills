@@ -187,6 +187,19 @@ def run_subprocess(command: list[str], *, timeout: int | None = None) -> subproc
     return subprocess.run(command, text=True, capture_output=True, timeout=timeout, check=False)
 
 
+def run_transport_step(command: list[str], *, timeout: int | None = None) -> subprocess.CompletedProcess[str]:
+    # A hung SSH step must land in the evidence pack as transport_status=failed
+    # with persistent_effects, not escape as a TimeoutExpired traceback.
+    try:
+        return run_subprocess(command, timeout=timeout)
+    except subprocess.TimeoutExpired as exc:
+        stderr = subprocess_output_text(exc.stderr)
+        message = f"timed out after {timeout}s: {shlex.join(command)}"
+        if stderr.strip():
+            message = f"{message}\n{stderr}"
+        return subprocess.CompletedProcess(command, 124, subprocess_output_text(exc.stdout), message)
+
+
 def build_audit_input_env(port: int, journal_since: str, service: str = "") -> str:
     return "".join(
         [
@@ -252,10 +265,10 @@ def upload_audit_run(
         f"rm -rf -- {shlex.quote(remote_dir)}; "
         f"mkdir -m 700 -p {shlex.quote(remote_dir)}"
     )
-    ssh_result = run_subprocess(["ssh", *ssh_options(args.ssh_option), host, remote_prepare], timeout=args.timeout)
+    ssh_result = run_transport_step(["ssh", *ssh_options(args.ssh_option), host, remote_prepare], timeout=args.timeout)
     if ssh_result.returncode != 0:
         return ssh_result
-    return run_subprocess(
+    return run_transport_step(
         ["scp", "-r", *ssh_options(args.ssh_option), f"{local_dir}/.", f"{host}:{remote_dir}/"],
         timeout=args.timeout,
     )
@@ -279,7 +292,7 @@ def run_remote_audit(manifest: dict[str, Any], args: argparse.Namespace) -> subp
             'exit "$rc"',
         ]
     )
-    return run_subprocess(["ssh", *ssh_options(args.ssh_option), host, remote_command], timeout=args.timeout)
+    return run_transport_step(["ssh", *ssh_options(args.ssh_option), host, remote_command], timeout=args.timeout)
 
 
 def collect_audit_run(
@@ -287,7 +300,7 @@ def collect_audit_run(
 ) -> subprocess.CompletedProcess[str]:
     host = validate_host(manifest["target"])
     remote_dir = validate_remote_path(manifest["remote_dir"])
-    return run_subprocess(
+    return run_transport_step(
         ["scp", "-r", *ssh_options(args.ssh_option), f"{host}:{remote_dir}/.", f"{local_dir}/"],
         timeout=args.timeout,
     )
@@ -296,7 +309,7 @@ def collect_audit_run(
 def cleanup_remote_audit_run(manifest: dict[str, Any], args: argparse.Namespace) -> subprocess.CompletedProcess[str]:
     host = validate_host(manifest["target"])
     remote_dir = validate_remote_path(manifest["remote_dir"])
-    return run_subprocess(
+    return run_transport_step(
         [
             "ssh",
             *ssh_options(getattr(args, "ssh_option", [])),

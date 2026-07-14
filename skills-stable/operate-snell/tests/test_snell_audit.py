@@ -484,6 +484,28 @@ def test_single_audit_transport_failure_exits_nonzero(monkeypatch: pytest.Monkey
     assert "transport.audit_failed" in finding_ids(pack)
 
 
+def test_single_audit_ssh_timeout_becomes_transport_failure(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    snell_audit = load_module()
+    local_dir = tmp_path / "run"
+    local_dir.mkdir()
+    manifest = {"target": "root@example", "remote_dir": "/var/tmp/snell-runs/test-run"}
+
+    def hang(command: list[str], *, timeout: int | None = None) -> subprocess.CompletedProcess[str]:
+        raise subprocess.TimeoutExpired(command, timeout or 0)
+
+    monkeypatch.setattr(snell_audit, "prepare_audit_run", lambda args, host: (local_dir, manifest))
+    monkeypatch.setattr(snell_audit, "run_subprocess", hang)
+    args = argparse.Namespace(port=14180, ssh_option=[], timeout=900, fail_on_issue=False)
+
+    pack, rc = snell_audit.run_audit_for_host(args, "root@example")
+
+    assert rc == 124
+    assert pack["transport_status"] == "failed"
+    transport = next(item for item in pack["findings"] if item["id"] == "transport.audit_failed")
+    assert any("timed out after 900s" in line for line in transport["evidence"])
+    assert pack["persistent_effects"] == ["remote audit directory may remain: /var/tmp/snell-runs/test-run"]
+
+
 def test_surge_probe_empty_json_fails(tmp_path: Path):
     snell_audit = load_module()
     fake_cli = tmp_path / "surge-cli"
