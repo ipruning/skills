@@ -1,4 +1,4 @@
 interface:
   display_name: "运维 Linux 服务器"
-  short_description: "运维与审计 Linux：健康、失陷、SSH、防火墙、systemd 和 Snell 变更"
+  short_description: "运维与审计 Linux：健康、SSH、防火墙、systemd 和运行时"
   default_prompt: "使用 $operate-linux-servers 运维或审计 Linux 服务器；按主机角色和请求范围取证，默认只读，写前确认发行版、可达性与回滚，写后验收 runtime 状态。"

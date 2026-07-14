@@ -39,17 +39,15 @@ sing-box version
 systemctl cat sing-box@.service
 ```
 
-The Arch package must report `v1.13.14` before this template is applied. If the
-distribution package has crossed a stable major version, stop and refresh the
-template against that version instead of forcing old JSON into the new core.
-
-For `v1.13.14`, REALITY client code explicitly requires `with_utls` and
-`utls.enabled=true`; a build without it fails initialization. This is a
-REALITY implementation requirement for this version even though current
-sing-box documentation discourages generic uTLS fingerprinting. Recheck this
-constraint when crossing stable versions.
+Apply the package only under the gate in
+[version-compatibility.md](version-compatibility.md). For the validated
+baseline, REALITY requires the `with_utls` build tag and `utls.enabled=true`;
+a build without either fails initialization.
 
 ## Mixed Smoke Test Config
+
+Resolve the required values and their authorized source through
+[client-inputs.md](client-inputs.md) before rendering this profile.
 
 Use mixed first only as a short smoke test. It avoids route takeover while
 proving credentials and protocol reachability.
@@ -64,10 +62,12 @@ Important client rules:
 - VLESS TLS uses `server_name = REALITY_SNI`.
 - VLESS REALITY uses `public_key` and `short_id`.
 - Include `tls.utls` with Chrome fingerprint.
-- Omit VLESS `network`; `v1.13.14` enables TCP and UDP by default. `"network":
-  "tcp"` disables UDP.
+- Omit VLESS `network`; the validated baseline enables TCP and UDP by default.
+  `"network": "tcp"` disables UDP.
 - HY2 outbound dials `SERVER_IP`.
 - HY2 TLS uses `server_name = HY2_DOMAIN`.
+- A disposable private-CA test adds `tls.certificate_path` pointing to the
+  public CA file. Do not use `insecure=true` when explicit trust works.
 - Omit HY2 `up_mbps` and `down_mbps` by default. This selects automatic BBR
   instead of a guessed Brutal rate.
 - Keep `direct` as a routing outbound, but do not include it in the user-facing
@@ -152,6 +152,11 @@ Skeleton:
 }
 ```
 
+The production skeleton relies on the public certificate chain for
+`HY2_DOMAIN`. For the private-CA protocol-only shape in
+[testing.md](testing.md), add `"certificate_path": "__PUBLIC_CA_PATH__"` to
+that HY2 `tls` object.
+
 Validate:
 
 ```bash
@@ -168,7 +173,7 @@ Use TUN after mixed passes. For self-use Linux hosts, TUN is the final mode.
 Do not start TUN over SSH unless route exclusions protect the current SSH path,
 a rollback exists, or the machine is disposable.
 
-Mandatory 1.13.x fixes:
+TUN policy:
 
 Use IPv4-only DNS by default for Linux workstation TUN:
 
@@ -187,12 +192,10 @@ Use IPv4-only DNS by default for Linux workstation TUN:
 
 Do not use `prefer_ipv4` as the durable default unless IPv6 is verified across
 DNS, routing, package mirrors, and curl. `prefer_ipv4` still returns AAAA
-answers, so tools such as pacman/libcurl can choose IPv6 and fail even when IPv4
-works. Known symptom on Arch-family hosts: mirrors that publish AAAA records fail with
-TLS EOF by default while `curl -4` to the same URL succeeds (a concrete
-reproducer is `stable-mirror.omarchy.org` on an Omarchy box). Treat this like
-Surge `ipv6 = false`: disable IPv6 answers at DNS until the host has proven IPv6
-routing.
+answers, so applications can choose IPv6 and fail even when IPv4 works. The
+diagnostic shape is an AAAA answer plus a broken IPv6 route while the same
+request succeeds with `curl -4`. Disable IPv6 answers until the host proves its
+IPv6 DNS, route, and application path.
 
 ```json
 "route": {
@@ -333,6 +336,51 @@ With selector default `vless-reality-out`, the HTTP/3 request must succeed and
 the journal must show VLESS packet traffic. If curl lacks HTTP/3 support, use
 another UDP-aware client and retain the same log assertion.
 
+While the initial validation log level is still `info`, require positive route evidence before switching to `warn`:
+
+```bash
+if ! validation_log="$(journalctl -u sing-box@<name>.service --since "5 minutes ago" --no-pager)"; then
+  echo "cannot read the bounded sing-box validation journal" >&2
+  exit 1
+fi
+test -n "$validation_log" || { echo "validation journal is empty" >&2; exit 1; }
+grep -F 'inbound/tun[tun-in]: started at singtun0' <<<"$validation_log" >/dev/null \
+  || { echo "missing TUN startup evidence" >&2; exit 1; }
+grep -E 'outbound/vless\[.*\]: outbound packet connection' <<<"$validation_log" >/dev/null \
+  || { echo "missing VLESS packet evidence" >&2; exit 1; }
+```
+
+Open fresh Bash and Zsh login shells and repeat the proxy-variable assertion;
+the current shell is insufficient because a stale startup hook may only appear
+on the next login. Then restore durable log level to `warn`, restart, generate
+representative TCP, UDP, DNS, and ICMP traffic, and let the service become idle.
+
+Complete steady-state validation before calling TUN durable:
+
+```bash
+test -z "${HTTP_PROXY-}${HTTPS_PROXY-}${ALL_PROXY-}${http_proxy-}${https_proxy-}${all_proxy-}"
+if ! recent_log="$(journalctl -u sing-box@<name>.service --since "5 minutes ago" --no-pager)"; then
+  echo "cannot read the bounded sing-box journal" >&2
+  exit 1
+fi
+unexpected_log="$(
+  grep -Ei 'error|fatal|panic|UDP is not supported|icmp is not supported' <<<"$recent_log" \
+    | grep -Ev 'connection upload closed: stream [0-9]+ canceled by remote with error code 0' \
+    || true
+)"
+if test -n "$unexpected_log"; then
+  printf '%s\n' "$unexpected_log" >&2
+  exit 1
+fi
+```
+
+The steady-state `warn` journal may legitimately be empty after the earlier
+positive `info` assertion. A controlled test client can cancel a QUIC stream
+after receiving its result; sing-box records the exact
+`connection upload closed: stream <n> canceled by remote with error code 0`
+shape at `ERROR` level. Ignore only that exact client-cancellation shape. Other
+error records and command failures still fail this gate.
+
 If the current SSH path or peer access uses Tailscale, also verify the tailnet
 route after enabling TUN:
 
@@ -375,10 +423,11 @@ ICMP direct or reject rule is missing. Do not route ICMP to VLESS or HY2.
 
 ## Performance Decisions
 
-Keep the upstream TUN stack default. In `v1.13.14`, a build with gVisor defaults
-to the mixed stack: system TCP plus gVisor UDP. Set `stack` only to diagnose a
-reproducible compatibility problem. For a workstation whose physical underlay
-MTU is `1500`, use this conservative baseline:
+Keep the upstream TUN stack default. The validated build uses mixed stack when
+gVisor is present and system stack otherwise; the source anchor is in
+[version-compatibility.md](version-compatibility.md). Set `stack` only to
+diagnose a reproducible compatibility problem. For a workstation whose
+physical underlay MTU is `1500`, use this conservative baseline:
 
 ```json
 {
@@ -429,6 +478,8 @@ configs, do not leave both stacks active. After TUN is active and verified:
 ```bash
 systemctl list-unit-files --no-pager | grep -Ei 'clash|mihomo' || true
 systemctl list-units --type=service --all --no-pager | grep -Ei 'clash|mihomo' || true
+systemctl --user list-unit-files --no-pager | grep -Ei 'clash|mihomo' || true
+systemctl --user list-units --type=service --all --no-pager | grep -Ei 'clash|mihomo' || true
 ps -eo pid,ppid,user,comm,args | grep -Ei 'clash|mihomo' | grep -v grep || true
 ss -lntup | grep -E ':(7890|7891|7892|7893|9090|9097|2080)\b' || true
 ```
@@ -438,17 +489,24 @@ traced to the old process or unit. Do not assume every `/opt/clash`,
 `~/.config/sing-box`, or systemd path belongs to the migration. Record the
 source, owner, consumer, backup path, and restore command before moving it.
 
-After that inventory, move only the confirmed old unit and daemon directory:
+After that inventory, stop and mask only the confirmed old service. Masking
+creates an `/etc/systemd/system/<unit> -> /dev/null` symlink; do not move that
+symlink afterward or the mask is undone:
 
 ```bash
 sudo systemctl disable --now mihomo.service 2>/dev/null || true
 sudo systemctl mask mihomo.service 2>/dev/null || true
 sudo install -d -m 700 /root/proxy-cleanup
-sudo mv /etc/systemd/system/mihomo.service /root/proxy-cleanup/mihomo.service.etc.$(date +%Y%m%d-%H%M%S) 2>/dev/null || true
-sudo mv /usr/lib/systemd/system/mihomo.service /root/proxy-cleanup/mihomo.service.usr.$(date +%Y%m%d-%H%M%S) 2>/dev/null || true
-sudo systemctl daemon-reload
-sudo mv /opt/clash /root/proxy-cleanup/opt-clash.$(date +%Y%m%d-%H%M%S) 2>/dev/null || true
+systemctl is-enabled mihomo.service
+systemctl is-active mihomo.service || true
 ```
+
+Use `dpkg-query -S`, `pacman -Qo`, or the host's package manager to identify a
+unit under `/usr/lib/systemd/system`; remove its package only when the user
+explicitly authorizes uninstall. Never quarantine a package-owned unit file.
+Quarantine an app-owned daemon directory such as `/opt/clash` only after its
+owner and consumer are confirmed, then run `systemctl daemon-reload` and verify
+the mask again.
 
 Clean shell hooks and stale user-level configs:
 
@@ -462,6 +520,74 @@ Show the candidate file list and obtain confirmation before moving user-level
 directories. Keep the active sing-box client config. If stale files under the
 user's home are root-owned, ask the user to run the specific root-owned
 quarantine command.
+
+After cleanup, repeat the inventory and require all confirmed old components to
+be absent:
+
+```bash
+set -o pipefail
+
+systemctl list-unit-files --no-pager \
+  | awk 'tolower($1) ~ /(clash|mihomo)/ && $2 ~ /^enabled/ { print > "/dev/stderr"; bad = 1 } END { exit bad }' \
+  || { echo "enabled system proxy unit or unreadable system unit inventory" >&2; exit 1; }
+
+systemctl --user list-unit-files --no-pager \
+  | awk 'tolower($1) ~ /(clash|mihomo)/ && $2 ~ /^enabled/ { print > "/dev/stderr"; bad = 1 } END { exit bad }' \
+  || { echo "enabled user proxy unit or unreadable user unit inventory" >&2; exit 1; }
+
+if ! system_running="$(systemctl list-units --type=service --state=running --no-pager)"; then
+  echo "cannot read running system units" >&2
+  exit 1
+fi
+if grep -Ei 'clash|mihomo' <<<"$system_running"; then exit 1; fi
+
+if ! user_running="$(systemctl --user list-units --type=service --state=running --no-pager)"; then
+  echo "cannot read running user units" >&2
+  exit 1
+fi
+if grep -Ei 'clash|mihomo' <<<"$user_running"; then exit 1; fi
+
+process_matches="$(pgrep -a -f 'clash|mihomo' 2>&1)"
+pgrep_code=$?
+case "$pgrep_code" in
+  0) printf '%s\n' "$process_matches" >&2; exit 1 ;;
+  1) ;;
+  *) printf '%s\n' "$process_matches" >&2; exit 1 ;;
+esac
+
+if ! socket_inventory="$(ss -lntup)"; then
+  echo "cannot read listener inventory" >&2
+  exit 1
+fi
+if grep -E ':(7890|7891|7892|7893|9090|9097)\b' <<<"$socket_inventory"; then exit 1; fi
+
+shell_files=(
+  ~/.bashrc ~/.bash_profile ~/.profile ~/.zshrc ~/.zprofile ~/.zshenv
+  /etc/profile /etc/bash.bashrc /etc/zsh/zshrc
+)
+existing_shell_files=()
+for file_path in "${shell_files[@]}"; do
+  if [[ -f "$file_path" ]]; then existing_shell_files+=("$file_path"); fi
+done
+if ((${#existing_shell_files[@]})); then
+  shell_matches="$(grep -Eni 'watch_proxy|HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|http_proxy|https_proxy|all_proxy' \
+    "${existing_shell_files[@]}" 2>&1)"
+  grep_code=$?
+  case "$grep_code" in
+    0) printf '%s\n' "$shell_matches" >&2; exit 1 ;;
+    1) ;;
+    *) printf '%s\n' "$shell_matches" >&2; exit 1 ;;
+  esac
+fi
+```
+
+Run the user-manager checks as the affected login user, not through a root shell. If `systemctl --user` cannot connect to that user's manager, user-level cleanup remains unverified and the durable-cleanup gate has not passed.
+
+Check every owned path from the pre-cleanup inventory. Do not treat unrelated
+files that merely contain `clash` or `mihomo` in their name as cleanup targets.
+A deliberately masked unit may remain until its package is explicitly
+uninstalled; it passes only when it is masked or disabled, inactive, owns no
+process or port, and cannot start.
 
 ## Linux Recommendation
 

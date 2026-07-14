@@ -7,13 +7,14 @@ LOG_DIR="${RUN_DIR}/logs"
 RESULT_FILE="${RUN_DIR}/result.json"
 STDOUT_JSON_EMITTED=false
 
-SERVICE_NAME="snell-server"
+SERVICE_NAME=""
 DEFAULT_BINARY_PATH="/usr/local/bin/snell-server"
 DEFAULT_CONFIG_FILE="/etc/snell/snell-server.conf"
 
 SNELL_AUDIT_OPERATION=""
 SNELL_PORT="14180"
 SNELL_JOURNAL_SINCE="10 min ago"
+SNELL_SERVICE_NAME=""
 
 mkdir -p "$LOG_DIR"
 
@@ -98,6 +99,56 @@ validate_port() {
 validate_common() {
   [ -r "$INPUT_ENV" ] || die "missing input.env"
   validate_port
+}
+
+validate_service_name() {
+  case "$1" in
+  *.service)
+    if printf '%s' "$1" | grep -Eq '^[A-Za-z0-9_.@-]+\.service$'; then
+      return
+    fi
+    ;;
+  esac
+  die "SNELL_SERVICE_NAME must be a systemd .service unit name"
+}
+
+discover_service_name() {
+  local candidates
+  local count
+  local loaded_units
+  local unit_files
+  if [ -n "$SNELL_SERVICE_NAME" ]; then
+    validate_service_name "$SNELL_SERVICE_NAME"
+    SERVICE_NAME="$SNELL_SERVICE_NAME"
+    return
+  fi
+  # systemd exits nonzero with empty output when a pattern matches nothing;
+  # only a reported stderr error is a failed discovery query.
+  if ! unit_files="$(systemctl list-unit-files --type=service --no-legend '*snell*.service' 2>"${LOG_DIR}/systemctl_unit_files.err")" \
+    && [ -s "${LOG_DIR}/systemctl_unit_files.err" ]; then
+    die "failed to discover installed Snell service units; select one with --service"
+  fi
+  if ! loaded_units="$(systemctl list-units --type=service --all --no-legend '*snell*.service' 2>"${LOG_DIR}/systemctl_units.err")" \
+    && [ -s "${LOG_DIR}/systemctl_units.err" ]; then
+    die "failed to discover loaded Snell service units; select one with --service"
+  fi
+  # list-units prefixes failed units with a marker column; take the first
+  # field on each line that is a unit name.
+  candidates="$(printf '%s\n%s\n' "$unit_files" "$loaded_units" |
+    awk '{ for (i = 1; i <= NF; i++) if ($i ~ /^[A-Za-z0-9_.@-]+\.service$/) { print $i; break } }' |
+    sort -u)"
+  count="$(printf '%s\n' "$candidates" | awk 'NF { count++ } END { print count + 0 }')"
+  case "$count" in
+  0)
+    die "no Snell service unit found; select a nonstandard unit with --service"
+    ;;
+  1)
+    SERVICE_NAME="$candidates"
+    ;;
+  *)
+    die "multiple Snell service units found; select one with --service"
+    ;;
+  esac
 }
 
 trim() {
@@ -397,12 +448,17 @@ hardening_directives() {
 write_summary_kv() {
   local binary_path=$1
   local config_file=$2
+  local config_parent_dir
   local directives
   local mem_total
   local swap_free
   local swap_total
   local root_available
+  local service_user
   directives="$(hardening_directives)"
+  config_parent_dir="$(dirname -- "$config_file")"
+  service_user="$(service_show User)"
+  if [ -z "$service_user" ]; then service_user=root; fi
   mem_total="$(awk '/^MemTotal:/ { print $2; exit }' /proc/meminfo 2>/dev/null || true)"
   swap_total="$(awk '/^SwapTotal:/ { print $2; exit }' /proc/meminfo 2>/dev/null || true)"
   swap_free="$(awk '/^SwapFree:/ { print $2; exit }' /proc/meminfo 2>/dev/null || true)"
@@ -415,6 +471,7 @@ write_summary_kv() {
     kv kernel "$(uname -r 2>/dev/null || true)"
     kv os_pretty_name "$(awk -F= '$1 == "PRETTY_NAME" { gsub(/"/, "", $2); print $2; exit }' /etc/os-release 2>/dev/null || true)"
 
+    kv snell_service_name "$SERVICE_NAME"
     kv snell_port "$SNELL_PORT"
     kv snell_binary_path "$binary_path"
     if [ -x "$binary_path" ]; then
@@ -427,6 +484,27 @@ write_summary_kv() {
     kv snell_config_path "$config_file"
     if [ -r "$config_file" ]; then
       kv config_present "yes"
+      kv config_owner_user "$(stat -c '%U' "$config_file" 2>/dev/null || true)"
+      kv config_owner_group "$(stat -c '%G' "$config_file" 2>/dev/null || true)"
+      kv config_mode "$(stat -c '%a' "$config_file" 2>/dev/null || true)"
+      if [ "$service_user" = root ]; then
+        kv config_service_readable "yes"
+        kv config_service_writable "yes"
+      elif command -v runuser >/dev/null 2>&1 && id "$service_user" >/dev/null 2>&1; then
+        if runuser -u "$service_user" -- test -r "$config_file"; then
+          kv config_service_readable "yes"
+        else
+          kv config_service_readable "no"
+        fi
+        if runuser -u "$service_user" -- test -w "$config_file"; then
+          kv config_service_writable "yes"
+        else
+          kv config_service_writable "no"
+        fi
+      else
+        kv config_service_readable "unknown"
+        kv config_service_writable "unknown"
+      fi
       if config_key_present "$config_file" psk; then kv config_psk_present "yes"; else kv config_psk_present "no"; fi
       kv config_listen "$(config_value "$config_file" listen)"
       kv config_legacy_keys "$(config_legacy_keys "$config_file")"
@@ -437,10 +515,30 @@ write_summary_kv() {
       fi
     else
       kv config_present "no"
+      kv config_owner_user ""
+      kv config_owner_group ""
+      kv config_mode ""
+      kv config_service_readable ""
+      kv config_service_writable ""
       kv config_psk_present "no"
       kv config_listen ""
       kv config_legacy_keys ""
       kv config_dns_ip_preference_present "no"
+    fi
+    kv config_parent_path "$config_parent_dir"
+    kv config_parent_owner_user "$(stat -c '%U' "$config_parent_dir" 2>/dev/null || true)"
+    kv config_parent_owner_group "$(stat -c '%G' "$config_parent_dir" 2>/dev/null || true)"
+    kv config_parent_mode "$(stat -c '%a' "$config_parent_dir" 2>/dev/null || true)"
+    if [ "$service_user" = root ]; then
+      kv config_parent_service_writable "yes"
+    elif command -v runuser >/dev/null 2>&1 && id "$service_user" >/dev/null 2>&1; then
+      if runuser -u "$service_user" -- test -w "$config_parent_dir"; then
+        kv config_parent_service_writable "yes"
+      else
+        kv config_parent_service_writable "no"
+      fi
+    else
+      kv config_parent_service_writable "unknown"
     fi
 
     kv systemd_active "$(service_show ActiveState)"
@@ -448,7 +546,7 @@ write_summary_kv() {
     kv systemd_result "$(service_show Result)"
     kv systemd_nrestarts "$(service_show NRestarts)"
     kv systemd_limit_nofile "$(service_show LimitNOFILE)"
-    kv systemd_user "$(service_show User)"
+    kv systemd_user "$service_user"
     kv systemd_group "$(service_show Group)"
     kv systemd_restart "$(service_show Restart)"
     kv systemd_main_pid "$(service_show MainPID)"
@@ -504,6 +602,7 @@ run_audit() {
   local binary_path
   local config_file
   validate_common
+  discover_service_name
   exec_line="$(detect_exec_start_line)"
   binary_path="$(detect_binary_path "$exec_line")"
   config_file="$(detect_config_file "$exec_line")"
