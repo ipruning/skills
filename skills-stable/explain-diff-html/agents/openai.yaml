@@ -1,4 +1,0 @@
-interface:
-  display_name: "Explain Diff HTML"
-  short_description: "把代码变更讲成带背景、图解和测验的独立 HTML 工件"
-  default_prompt: "使用 $explain-diff-html 为这个变更生成并保存包含背景、图解、代码 walkthrough 和测验的独立交互式 HTML 讲解页。"

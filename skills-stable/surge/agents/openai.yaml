@@ -1,4 +1,0 @@
-interface:
-  display_name: "Surge"
-  short_description: "只读诊断 macOS Surge、DNS、路由和 Tailscale 共存"
-  default_prompt: "使用 $surge 诊断 macOS Surge 运行路径并输出证据与手动计划；不切换网络、不改 profile、不执行修复。Snell 专属工作交给 $operate-snell，REALITY+HY2 交给 $sing-box-reality-hy2。"

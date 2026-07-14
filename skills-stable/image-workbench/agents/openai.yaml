@@ -1,4 +1,0 @@
-interface:
-  display_name: "图像工作台"
-  short_description: "用本地 CLI 做保真修复、截图标注、变体比较和生成图质检"
-  default_prompt: "使用 $image-workbench 主导需要本地 CLI 的保真编辑、迭代修复、截图标注、变体比较或生成图视觉 QA，并检查最终位图；普通单次生成或编辑使用内建 imagegen。"

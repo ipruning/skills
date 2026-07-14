@@ -1,4 +1,0 @@
-interface:
-  display_name: "设计 Convex 系统"
-  short_description: "设计、评估并审计 Convex 系统的数据与运行边界"
-  default_prompt: "使用 $design-convex-systems 根据请求选择 Fit、Design 或 Audit，并输出对应的 Convex 结论与系统边界。"

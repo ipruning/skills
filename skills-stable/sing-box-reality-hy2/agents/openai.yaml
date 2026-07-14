@@ -1,6 +1,0 @@
-interface:
-  display_name: "sing-box REALITY HY2"
-  short_description: "部署、修复、测试或监控 REALITY+HY2 服务器与客户端"
-  default_prompt: >-
-    使用 $sing-box-reality-hy2 处理 VLESS REALITY + HY2 窄栈；按 SKILL.md 路由到当前请求面的
-    reference，iOS/SFI 不在覆盖内；常驻 HY2/QUIC 监控同时使用 $end-to-end-monitoring。
