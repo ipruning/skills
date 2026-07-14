@@ -1183,6 +1183,9 @@ def build_codex_command(options: SummarizeOptions, *, output_path: Path) -> list
         "codex",
         "exec",
         "--ignore-user-config",
+        # Without --strict-config, Codex silently ignores unknown -c keys and
+        # the isolation overrides below stop applying without any signal.
+        "--strict-config",
         "--config",
         "skills.include_instructions=false",
         "--config",

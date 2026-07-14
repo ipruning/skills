@@ -404,6 +404,7 @@ class LarkMeetingSttTests(unittest.TestCase):
         self.assertEqual(default_cmd[-1], "-")
         self.assertEqual(default_cmd[default_cmd.index("--output-last-message") + 1], str(output_path))
         self.assertIn("--ignore-user-config", default_cmd)
+        self.assertIn("--strict-config", default_cmd)
         configs = [default_cmd[index + 1] for index, value in enumerate(default_cmd) if value == "--config"]
         self.assertEqual(
             configs,
