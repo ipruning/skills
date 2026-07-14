@@ -39,13 +39,12 @@ skills/
 
 ## Structural search maintenance
 
-Use the smallest tool that fits: `rg` for exact text; `ast-grep run` for a one-off source-structure investigation; a YAML rule with `valid` and `invalid` tests for a complex or recurring constraint; and `ast-grep scan` wired through `prek` only when the constraint must block merges. Do not add project configuration or a standing gate for an investigation. See `skills-stable/ast-grep/SKILL.md` before authoring or gating rules.
+Use the smallest tool that fits: `rg` for exact text; `ast-grep run` for a one-off source-structure investigation; a YAML rule with `valid` and `invalid` tests for a complex or recurring constraint; and `ast-grep scan` wired through `prek` only when the constraint must block merges. Do not add project configuration or a standing gate for an investigation.
 
-These read-only examples target Python skill scripts in this repository:
+This read-only example targets a Python skill script in this repository:
 
 ```sh
-mise exec -- ast-grep run -p 'subprocess.run($$$ARGS)' -l python skills-stable/summarize-lark-meetings/scripts
-mise exec -- ast-grep run -p 'getattr($OBJ, $ATTR)' -l python skills-stable/things/scripts
+mise exec -- ast-grep run -p 'getattr($OBJ, $ATTR)' -l python skills-beta/things/scripts
 ```
 
 ## Checkout and publication policy
