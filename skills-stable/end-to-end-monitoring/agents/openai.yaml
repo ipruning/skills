@@ -1,4 +1,0 @@
-interface:
-  display_name: "端到端监控"
-  short_description: "设计、部署、修复并验证独立于任务运行的长期生产监控链路"
-  default_prompt: "使用 $end-to-end-monitoring 设计、部署、修复或验证开放期限、独立于当前任务运行的生产监控链路，并逐环核对信号、告警、通知和责任边界。"

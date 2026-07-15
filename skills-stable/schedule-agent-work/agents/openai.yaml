@@ -1,4 +1,0 @@
-interface:
-  display_name: "调度 Agent 工作"
-  short_description: "让 Agent 在有限期或状态变化前稍后执行、持续检查和跟进"
-  default_prompt: "使用 $schedule-agent-work 为有限期或有停止状态的 Agent 工作选择新线程或续跑当前线程，补全节奏、汇报门槛和停止条件，并用当前环境的调度机制创建调度项。"

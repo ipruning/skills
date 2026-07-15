@@ -1,4 +1,0 @@
-interface:
-  display_name: "审计产品需求真伪"
-  short_description: "审计真实需求、采用风险、交付可行性、最小验证路径与投入决策"
-  default_prompt: "使用 $audit-product-demand 审计这个产品想法、功能请求、创业方向或 MVP，分级需求证据并评估采用风险与交付可行性，给出最小验证动作和 continue、narrow、pause for validation 或 kill 信号。"

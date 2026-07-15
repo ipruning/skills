@@ -1,4 +1,0 @@
-interface:
-  display_name: "Start Convex Web App"
-  short_description: "Start a React + TanStack Router + Vite + Convex app baseline"
-  default_prompt: "Use $start-convex-web-app to bootstrap a new React + TanStack Router + Vite + Convex app, or establish an existing app's initial auth, data, and first-feature baseline."

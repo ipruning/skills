@@ -1,4 +1,0 @@
-interface:
-  display_name: "Operate Snell"
-  short_description: "部署、审计、修复并验证 Snell VPS 与 macOS Surge"
-  default_prompt: "使用 $operate-snell 审计、部署、修复或验证 Snell；先只读取证，写入前确认目标、PSK 来源、版本、回滚和授权，写后从 VPS 与 macOS Surge 完成端到端验收，iOS 门禁明确留给设备侧验证。"
