@@ -1,8 +1,0 @@
-interface:
-  display_name: "brrr.now Push 通知"
-  short_description: "把完成、失败等事件推送到用户手机"
-  default_prompt: >-
-    使用 $brrr-now 处理「跑完叫我」「到点提醒我」这类请求：先推断触发事件、
-    可识别对象、当前影响、用户行动、紧急程度和送达兜底，再用 sender script
-    发送。通知应能脱离聊天独立读懂；默认普通级别，用户明确要求才升级到
-    time-sensitive 或 critical。
