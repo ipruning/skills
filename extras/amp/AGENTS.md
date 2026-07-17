@@ -99,3 +99,5 @@ GH_TOKEN="$(gh auth token --user <login>)" gh <command>
 下列名称在 zsh 中是特殊、tied 或只读参数，赋值会静默破坏 shell 状态或报错，禁止用作变量名、循环变量：`path` `status` `commands` `options` `functions` `aliases` `argv` `pipestatus` `RANDOM` `SECONDS`。改用 `file_path`、`exit_code`、`cmds` 等。JSON 字段、文件内容不受此限。
 
 命令输出可能超出可读范围时，先重定向到日志文件，再用 `rg` 摘取关键行。
+
+需要浏览器交互时，用 `agent-browser`，按 `open → snapshot -i → 操作 @ref → 重新 snapshot` 循环；未知命令再查 `agent-browser --help`，完成后 `close`。
