@@ -10,7 +10,7 @@ dependencies = [
     "openai>=2.43.0",
     "pillow>=12.2.0",
     "tiktoken>=0.13.0",
-    "torch>=2.12.1",
+    "torch>=2.13.0",
     "turbopuffer>=2.4.0",
     "typer>=0.26.7",
 ]
