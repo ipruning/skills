@@ -83,38 +83,6 @@ hooks = [
 ]
 
 [[repos]]
-repo = "https://github.com/astral-sh/ruff-pre-commit"
-rev = "v0.16.0"
-hooks = [
-    {
-        id = "ruff-check",
-        name = "ruff check",
-        stages = ["pre-commit"],
-        priority = 20
-    },
-    {
-        id = "ruff-format",
-        name = "ruff format",
-        args = ["--check"],
-        stages = ["pre-commit"],
-        priority = 20
-    }
-]
-
-[[repos]]
-repo = "https://github.com/astral-sh/ty-pre-commit"
-rev = "v0.0.64"
-hooks = [
-    {
-        id = "ty",
-        name = "ty",
-        args = ["--isolated"],
-        stages = ["pre-push"],
-        priority = 20
-    }
-]
-
-[[repos]]
 repo = "https://github.com/biomejs/pre-commit"
 rev = "v2.5.5"
 hooks = [
@@ -189,6 +157,33 @@ hooks = [
 [[repos]]
 repo = "local"
 hooks = [
+    {
+        id = "ruff-check",
+        name = "ruff check",
+        entry = "uv run ruff check",
+        language = "system",
+        types = ["python"],
+        stages = ["pre-commit"],
+        priority = 20
+    },
+    {
+        id = "ruff-format",
+        name = "ruff format",
+        entry = "uv run ruff format --check",
+        language = "system",
+        types = ["python"],
+        stages = ["pre-commit"],
+        priority = 20
+    },
+    {
+        id = "ty",
+        name = "ty",
+        entry = "uv run ty check",
+        language = "system",
+        pass_filenames = false,
+        stages = ["pre-push"],
+        priority = 20
+    },
     {
         id = "check-lint-excludes",
         name = "lint excludes match .metadata.json",

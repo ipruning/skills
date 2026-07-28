@@ -19,8 +19,8 @@ dependencies = [
 dev = [
     "basedpyright>=1.39.8",
     "pytest>=9.1.1",
-    "ruff>=0.15.18",
-    "ty>=0.0.51",
+    "ruff>=0.16.0",
+    "ty>=0.0.64",
 ]
 
 [tool.ruff]
@@ -53,16 +53,17 @@ exclude = [
 ]
 indent-width = 4
 line-length = 120
+preview = true
 target-version = "py314"
 
 [tool.ruff.lint]
-extend-select = ["BLE001"]
 ignore = ["E501", "TID252"]
-select = ["E", "W", "F", "UP", "B", "SIM", "I", "TID"]
 unfixable = ["F401"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402"]
+# Things uses the host's local calendar date, not a timezone-normalized instant.
+"skills-beta/things/scripts/things_query.py" = ["DTZ011"]
 
 [tool.ruff.format]
 skip-magic-trailing-comma = false
@@ -105,7 +106,11 @@ indent-width = 4
 [tool.ty.environment]
 python-version = "3.14"
 
+[tool.ty.analysis]
+strict-equality-semantics = true
+
 [tool.ty.rules]
+all = "error"
 unresolved-import = "warn"
 
 [tool.ty.src]
