@@ -160,7 +160,7 @@ hooks = [
     {
         id = "ruff-check",
         name = "ruff check",
-        entry = "uv run ruff check",
+        entry = "uv run --locked ruff check --force-exclude",
         language = "system",
         types = ["python"],
         stages = ["pre-commit"],
@@ -169,7 +169,7 @@ hooks = [
     {
         id = "ruff-format",
         name = "ruff format",
-        entry = "uv run ruff format --check",
+        entry = "uv run --locked ruff format --check --force-exclude",
         language = "system",
         types = ["python"],
         stages = ["pre-commit"],
@@ -178,7 +178,7 @@ hooks = [
     {
         id = "ty",
         name = "ty",
-        entry = "uv run ty check",
+        entry = "uv run --locked ty check",
         language = "system",
         pass_filenames = false,
         stages = ["pre-push"],
