@@ -51,10 +51,12 @@ backend = "aqua:charmbracelet/gum"
 [tools.gum."platforms.linux-x64"]
 checksum = "sha256:69ee169bd6387331928864e94d47ed01ef649fbfe875baed1bbf27b5377a6fdb"
 url = "https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0_Linux_x86_64.tar.gz"
+url_api = "https://api.github.com/repos/charmbracelet/gum/releases/assets/290080949"
 
 [tools.gum."platforms.macos-arm64"]
 checksum = "sha256:e2a4b8596efa05821d8c58d0c1afbcd7ad1699ba69c689cc3ff23a4a99c8b237"
 url = "https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0_Darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/charmbracelet/gum/releases/assets/290080948"
 
 [[tools.jq]]
 version = "1.8.2"
@@ -63,11 +65,13 @@ backend = "aqua:jqlang/jq"
 [tools.jq."platforms.linux-x64"]
 checksum = "sha256:b1c22172dd303f3be49e935aa56aa48a8b7a46e0bc838b4997d3bb451495870f"
 url = "https://github.com/jqlang/jq/releases/download/jq-1.8.2/jq-linux-amd64"
+url_api = "https://api.github.com/repos/jqlang/jq/releases/assets/453012752"
 provenance = "github-attestations"
 
 [tools.jq."platforms.macos-arm64"]
 checksum = "sha256:2d75340ba57a4b4b4c8708a21c2dc8e958a48aaa8bba13b27f77f6e4c0eca07e"
 url = "https://github.com/jqlang/jq/releases/download/jq-1.8.2/jq-macos-arm64"
+url_api = "https://api.github.com/repos/jqlang/jq/releases/assets/453012783"
 provenance = "github-attestations"
 
 [[tools.ls-lint]]
@@ -77,10 +81,12 @@ backend = "aqua:loeffel-io/ls-lint"
 [tools.ls-lint."platforms.linux-x64"]
 checksum = "sha256:b5a0d2e4427ad039fbc574551f17679f38f142b25d15e0e538769f8cf15af397"
 url = "https://github.com/loeffel-io/ls-lint/releases/download/v2.3.1/ls-lint-linux-amd64"
+url_api = "https://api.github.com/repos/loeffel-io/ls-lint/releases/assets/260857547"
 
 [tools.ls-lint."platforms.macos-arm64"]
 checksum = "sha256:e4ed2ce2b7b61d6685769e34c6375ccecb14a3f00ee59438cf82d01d6236a3c4"
 url = "https://github.com/loeffel-io/ls-lint/releases/download/v2.3.1/ls-lint-darwin-arm64"
+url_api = "https://api.github.com/repos/loeffel-io/ls-lint/releases/assets/260857541"
 
 [[tools.markdownlint-cli2]]
 version = "0.23.2"
@@ -107,13 +113,13 @@ version = "3.14.6"
 backend = "core:python"
 
 [tools.python."platforms.linux-x64"]
-checksum = "sha256:0881fbde2c78605720fb2e240d1a6df38652a896e40a5fce2e10908dbee5f5b7"
-url = "https://github.com/astral-sh/python-build-standalone/releases/download/20260610/cpython-3.14.6+20260610-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
+checksum = "sha256:86bf107f65fc30b56f2b263b26797fcbb1661f5315910cdbf27f733eb8738b74"
+url = "https://github.com/astral-sh/python-build-standalone/releases/download/20260718/cpython-3.14.6+20260718-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz"
 provenance = "github-attestations"
 
 [tools.python."platforms.macos-arm64"]
-checksum = "sha256:875516e13be36296f8f7dd0972b22ba3bed069ed08d27d5f0069caf227522921"
-url = "https://github.com/astral-sh/python-build-standalone/releases/download/20260610/cpython-3.14.6+20260610-aarch64-apple-darwin-install_only_stripped.tar.gz"
+checksum = "sha256:5e8e0746cb0108d138f510cfbb28c4b031b9ed63bbbe3e43a34c77d4663c4fa1"
+url = "https://github.com/astral-sh/python-build-standalone/releases/download/20260718/cpython-3.14.6+20260718-aarch64-apple-darwin-install_only_stripped.tar.gz"
 provenance = "github-attestations"
 
 [[tools.shellcheck]]
@@ -123,10 +129,12 @@ backend = "aqua:koalaman/shellcheck"
 [tools.shellcheck."platforms.linux-x64"]
 checksum = "sha256:8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198"
 url = "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz"
+url_api = "https://api.github.com/repos/koalaman/shellcheck/releases/assets/279056942"
 
 [tools.shellcheck."platforms.macos-arm64"]
 checksum = "sha256:56affdd8de5527894dca6dc3d7e0a99a873b0f004d7aabc30ae407d3f48b0a79"
 url = "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.darwin.aarch64.tar.xz"
+url_api = "https://api.github.com/repos/koalaman/shellcheck/releases/assets/279056932"
 
 [[tools.tombi]]
 version = "1.2.4"
