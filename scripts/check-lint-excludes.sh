@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-#MISE description="Verify lint config excludes match the non-_ .metadata.json entries"
 
 set -euo pipefail
 

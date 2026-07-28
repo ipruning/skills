@@ -1,5 +1,5 @@
 ls:
-    .mise/tasks:
+    scripts:
         .bash: kebab-case
         .py: kebab-case
         .sh: kebab-case

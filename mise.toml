@@ -3,6 +3,7 @@ min_version = { hard = "2026.7.15" }
 [tools]
 "github:huacnlee/autocorrect" = "2.16.3"
 "github:runkids/skillshare" = "0.20.22"
+actionlint = "1.7.12"
 biome = "2.5.5"
 gum = "0.17.0"
 jq = "1.8.2"
@@ -25,3 +26,15 @@ lockfile_platforms = ["macos-arm64", "linux-x64"]
 
 [settings.ruby]
 compile = false
+
+[tasks.check-lint-excludes]
+description = "Verify lint config excludes match the non-_ .metadata.json entries"
+run = "scripts/check-lint-excludes.sh"
+
+[tasks.format]
+description = "Run formatters"
+run = "scripts/format.sh"
+
+[tasks.lint]
+description = "Run linters"
+run = "scripts/lint.sh"

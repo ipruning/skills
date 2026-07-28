@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-#MISE description="Run formatters"
 
 set -euo pipefail
 
@@ -182,22 +181,11 @@ task_summary_print() {
 # Main
 # ---------------------------------------------------------------------------
 
-task_summary_start "Format"
+task_summary_start "Lint"
 
-task_summary_run "uv sync --frozen" uv sync --frozen
+task_summary_run "uv sync" uv sync --frozen
 
-task_summary_run "ruff format ." uv run ruff format .
-
-task_summary_run "ruff check . --fix" uv run ruff check . --fix
-
-task_summary_run "tombi format ." tombi format .
-
-task_summary_run "biome format . --write" biome format . --write
-
-task_summary_run "autocorrect --fix ." autocorrect --fix . .agents/ .mise/
-
-if [[ "${CI:-}" == "true" ]]; then
-    task_summary_run "working tree clean" bash -c 'git diff --exit-code'
-fi
+task_summary_run "prek run --all-files (pre-commit)" env SKIP=no-commit-to-branch prek run --all-files --hook-stage pre-commit
+task_summary_run "prek run --all-files (pre-push)" prek run --all-files --hook-stage pre-push
 
 task_summary_print
