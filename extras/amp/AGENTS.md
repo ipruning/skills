@@ -12,7 +12,24 @@
 
 ## Git 与 GitHub 身份
 
-在配置了多个 Git 身份的环境中，对每个仓库的首次 commit 前，确认该仓库生效的 Git 用户名和邮箱与目标身份一致。
+Git 提交身份与 GitHub 登录身份彼此独立，不得互相推导或强行对齐。
+
+对每个仓库首次 commit 前，检查实际生效的 Git 身份及其配置来源：
+
+```bash
+git config --show-origin --get user.name
+git config --show-origin --get user.email
+```
+
+用户名和邮箱均已配置时直接沿用。不得根据 `gh` login、GitHub profile 或 noreply 邮箱覆盖有效 Git 配置，也不得仅为「对齐」GitHub 账号而写入 repo-local `user.name` 或 `user.email`。配置缺失或明显属于错误组织，且无法唯一确定正确身份时，在 commit 前询问。
+
+commit 后、push 前核对实际写入的身份；身份不符时不得 push：
+
+```bash
+git show -s --format='%an <%ae>%n%cn <%ce>' HEAD
+```
+
+GitHub login 只决定 `gh` 和 Git push 使用哪个账号的凭据，不决定 Git commit 的用户名或邮箱。
 
 GitHub 多账号时，先从目标 repo、组织或用户明确指示中唯一确定 login；除「Skill 冲突与反馈」一节另有规定外，不能唯一确定时在写操作前询问。不得切换 `gh` 的全局 active 账号；指定身份没有权限时，不改用其他账号。
 
