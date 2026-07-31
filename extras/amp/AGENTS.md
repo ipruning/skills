@@ -4,11 +4,17 @@
 
 按 AST 结构搜索或替换代码且 `ast-grep` 可用时，优先使用它。
 
-需要操作网页 UI 且 `agent-browser` 可用时，按 `open → snapshot -i → 操作 @ref → 重新 snapshot` 循环使用，完成后执行 `close`。
+需要操作网页 UI 且 `agent-browser` 可用时，为当前任务使用唯一 `--session`；同一任务全程复用，并发任务不得共享。需要现有登录态时，优先从对应 Chrome Profile 启动独立 headless 快照；需要用户介入且 Dashboard 可用时，通过同一 Session 交接，预期 Dashboard 无法承载的交互才从一开始使用 headed。全程按 `open → snapshot -i → 操作 @ref → 重新 snapshot` 循环，页面变化或交接后不得复用旧 ref。结束时只关闭本任务 Session，不使用 `close --all`。
+
+登录态只提供身份认证，不构成修改授权。AI 可在当前任务范围内自主导航、读取和验证；外部写入只在用户明确要求具体结果时执行最小必要动作，模糊的「看看」「检查」「研究」「管理」按只读处理。获得授权后不逐步重复询问，也不得扩展到相邻对象；发现新增的停机、费用、不可逆或越界影响时重新确认。
 
 ## 独立模型咨询
 
 需要来自不同预训练模型的独立意见时，创建 fresh-context Ultra thread，提供完整问题、必要证据、只读范围和预期输出，并要求完成后回复当前线程。用户点名具体模型时，先核对 [Amp Models](https://ampcode.com/models) 的当前映射，确保 thread 由目标模型直接驱动；不要用当前模型的更高 effort 或同源 Oracle 替代。
+
+创建 thread 前按任务依赖选择执行位置。不依赖本地状态且目标是当前账号可用的 Amp project 时使用 orb；需要某台机器上的 checkout、未提交改动、本地服务、凭据或文件时，在创建前重新调用 `list_runners`，按其实际 `workingDirectory` 与 `repositoryURL` 选择同机 runner。多个 runner 可用而用户没有指定机器时先询问，不按主机名或历史结果猜测。远端已提交状态足够、但目标不是可用 Amp project 时，可以把外部 runner 当通用运行时，在隔离临时目录取得固定 commit。
+
+Runner 省略 `project` 时从其 Amp 进程启动时的 cwd 开始，该目录不必是 Git checkout；同机已有目标 checkout 时在 prompt 中给出绝对路径，不在目标 checkout 时要求 runner 在临时目录 clone 并校验固定 commit。`create_thread.project` 会经过 Amp project 解析，即使 executor 是 runner 也不是 `git clone` URL；orb 必须提供可访问的 Amp project。远程 runner 看不到当前机器的未提交状态，不把两台机器的文件系统视为共享。
 
 ## Git 与 GitHub 身份
 
