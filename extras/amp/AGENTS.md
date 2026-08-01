@@ -1,3 +1,5 @@
+# Amp 全局指引
+
 使用与用户相同的语言回复。中文使用直角引号「」；中文与英文单词、缩写或数字相邻时，插入 1 个半角空格。
 
 ## 代码搜索与网页交互
@@ -10,11 +12,23 @@
 
 ## 独立模型咨询
 
-需要来自不同预训练模型的独立意见时，创建 fresh-context Ultra thread，提供完整问题、必要证据、只读范围和预期输出，并要求完成后回复当前线程。用户点名具体模型时，先核对 [Amp Models](https://ampcode.com/models) 的当前映射，确保 thread 由目标模型直接驱动；不要用当前模型的更高 effort 或同源 Oracle 替代。
+需要来自不同预训练模型的独立意见时，创建 fresh-context Ultra thread，提供完整问题、必要证据、只读范围和预期输出。无需阻塞当前工作时要求它完成后回复；必须等待结果才能继续时不要求回复，改用 `wait_for_threads`。用户点名具体模型时，先核对 [Amp Models](https://ampcode.com/models) 的当前映射，确保 thread 由目标模型直接驱动；不要用当前模型的更高 effort 或同源 Oracle 替代。行为盲测遵循下文，不继承咨询的证据、输出或回调要求。
 
-创建 thread 前按任务依赖选择执行位置。不依赖本地状态且目标是当前账号可用的 Amp project 时使用 orb；需要某台机器上的 checkout、未提交改动、本地服务、凭据或文件时，在创建前重新调用 `list_runners`，按其实际 `workingDirectory` 与 `repositoryURL` 选择同机 runner。多个 runner 可用而用户没有指定机器时先询问，不按主机名或历史结果猜测。远端已提交状态足够、但目标不是可用 Amp project 时，可以把外部 runner 当通用运行时，在隔离临时目录取得固定 commit。
+## Thread 执行位置
 
-Runner 省略 `project` 时从其 Amp 进程启动时的 cwd 开始，该目录不必是 Git checkout；同机已有目标 checkout 时在 prompt 中给出绝对路径，不在目标 checkout 时要求 runner 在临时目录 clone 并校验固定 commit。`create_thread.project` 会经过 Amp project 解析，即使 executor 是 runner 也不是 `git clone` URL；orb 必须提供可访问的 Amp project。远程 runner 看不到当前机器的未提交状态，不把两台机器的文件系统视为共享。
+- 只依赖远端已提交状态且 Amp 云端可访问目标 project 或 repository 时使用 Orb。可访问性未知时直接用正式任务创建一次；成功后沿用该 thread，明确不可访问时不换写法重试。失败只对当时状态有效，出现目标或权限已变化的新证据后可以再试一次。
+- 依赖未提交改动、本地服务、机器凭据、设备或仅存在于某台机器的文件时，创建前重新调用 `list_runners`，只选择元数据能对应所需机器和 checkout 的 runner。Runner 数量不构成匹配证据；多个 runner 都适用且选择会影响结果时询问用户。
+- 只依赖远端固定 commit、但 Orb 无法访问目标时，可以使用外部 runner 在隔离临时目录取得该 commit；不复用状态不符的 checkout。
+
+Runner 省略 `project` 时从 Amp 进程的 cwd 启动；绝对路径写进 prompt，不填入 `project`。把环境核验设为 thread 的第一步：报告 cwd，并只读检查目标 checkout 的 remote、分支、HEAD 和工作区状态。核验不符时不切换、不 reset、也不复制该 checkout；任务需要固定 commit 时使用隔离临时目录并在结束后清理。
+
+## AI 行为验收
+
+创建被测 thread 前冻结初始状态、允许与禁止的副作用、可观察证据、通过条件和停止条件，但不把这些 rubric 发给被测 AI。Prompt 只包含真实 actor 在该情景下自然会提供的目标、对象和约束；缺失信息属于被测情景时保留缺失，否则由 harness 通过环境提供。固定 commit、fixture 和控制面状态不属于被测行为时，也由 harness 预先准备。
+
+高风险行为只在 sandbox 外层已经验证隔离边界的环境中实测；假凭据、假数据和隔离控制面必须无法触及宿主机、共享服务、真实联系人或真实数据。无法验证隔离时只做计划测试，不声称实际行为已通过。
+
+单轮案例结束后用 `read_thread` 提取工具调用、结果、错误和最终回复。多轮案例预先冻结 actor 台词及触发条件，再按条件用 `thread_interact` 发送；脚本未覆盖的分支结束本案例，不临时提示或纠正。`read_thread` 是语义提取，未返回某个事件不能证明它没有发生；关键结论区分工具原始结果、AI 解释和最终自述，需要证明事件未发生或核对精确顺序时使用 sandbox 外层的不可变 trace。无法读取 thread、只能依赖回调时，将结果标为自述型验收，不与行为盲测等同。
 
 ## Git 与 GitHub 身份
 
@@ -89,26 +103,33 @@ Skill 指令与当前源码、配置、运行环境或实测结果冲突时，�
 
 ## 阻塞通知
 
-仅当任务需要用户执行某个具体操作才能继续、且当前没有其他部分可以推进时，通知 1 次。通知只说明需要用户返回 Amp 处理，不包含凭据、路径、命令或日志。
+仅当任务需要用户执行某个具体操作才能继续、且当前没有其他部分可以推进时，发送 1 次 `time-sensitive` 通知。通知按当前任务填写：
 
-当前环境存在 `sag` 时，先执行：
+- `title`：`<任务对象>：<需要用户执行的操作>`。
+- `subtitle`：已完成的进度和当前阻塞范围；没有补充信息时省略。
+- `message`：已经完成到哪里、用户现在要做什么，以及不操作会阻塞什么。
+- `thread_id`：当前 Amp Thread ID。
+- `open_url`：当前 Amp Thread URL。
+
+标题、副标题和正文只使用适合锁屏展示的任务上下文，详细步骤留在 Amp Thread。存在 `brrr-now` Skill 时加载并按其发送；否则在 `BRRR_SECRET` 非空时使用以下请求，将示例字段替换为当前任务的具体信息：
 
 ```bash
-sag speak --lang zh --timeout 30s \
-  "当前任务需要你的操作才能继续，请查看 Amp。"
-```
-
-`sag` 不可用或执行失败，且 `BRRR_SECRET` 非空时，发送 brrr Push：
-
-```bash
+payload='{
+  "title": "Linear Controller：确认删除 3 项共享 Secret",
+  "subtitle": "私有迁移已完成 · 安全收尾",
+  "message": "回复「删除 Project secrets」。不确认则其他 Project Orb 仍会继承这些凭据。",
+  "thread_id": "<当前 Amp Thread ID>",
+  "open_url": "<当前 Amp Thread URL>",
+  "interruption_level": "time-sensitive"
+}'
 printf 'header = "Authorization: Bearer %s"\n' "$BRRR_SECRET" | \
 curl -fsS --max-time 10 -X POST -K - \
   -H "Content-Type: application/json" \
-  --data '{"title":"Amp 任务等待操作","message":"当前任务需要你的操作才能继续，请返回 Amp 查看详情。","interruption_level":"time-sensitive"}' \
+  --data-binary "$payload" \
   https://api.brrr.now/v1/send
 ```
 
-两种渠道都不可用或通知失败时，不为修复通知能力扩展任务；汇报阻塞状态并结束。
+brrr 不可用或发送失败且当前环境存在 `sag` 时，用 `sag speak` 朗读「<任务对象>需要你的操作：<具体动作>。请查看 Amp。」；两种渠道都不可用时，在 Amp 中汇报阻塞状态并结束，不为修复通知能力扩展任务。
 
 ## 临时兼容代码
 
