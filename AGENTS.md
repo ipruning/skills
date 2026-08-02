@@ -63,10 +63,11 @@ The **primary checkout** is the checkout reported by `skillshare status --json` 
 ## Working on Skillshare extras
 
 - Use `extras/<name>/...` for non-skill resources. For global harness prompts, keep the simple target-grouped layout: `extras/amp/AGENTS.md`, `extras/codex/AGENTS.md`, and `extras/claude/CLAUDE.md`.
+- Treat `extras/amp/AGENTS.md` as the source document for manual publication to Amp's **Personal Settings → Advanced → Global AGENTS.md**. Do not add an Amp extras target or write it to `~/.config/amp`; after an authorized update, verify the saved cloud setting instead of a local file.
 - Do not use Skillshare `agents_source` for `AGENTS.md` / `CLAUDE.md`; Skillshare agents are single-file sub-agent definitions, while these files are always-loaded harness instructions.
 - Keep global harness prompt files as complete, directly editable documents. Avoid shared-template generators unless the user explicitly asks for a generated model again.
 - When adding a new extra or target, update the active Skillshare config (`extras_source` and `extras:` entries) in the environment that syncs it. If that config is maintained by another repo, make that repo change as a separate logical commit.
-- Use `mode: copy` for extras whose target is a tool root containing unrelated files, such as `~/.codex`, `~/.claude`, or `~/.config/amp`. Use `merge` only for dedicated target directories where pruning Skillshare-managed symlinks is safe.
+- Use `mode: copy` for extras whose target is a tool root containing unrelated files, such as `~/.codex` or `~/.claude`. Use `merge` only for dedicated target directories where pruning Skillshare-managed symlinks is safe.
 - Before a real sync after config changes, run `skillshare extras list --json` and `skillshare sync extras --dry-run --force --json`; confirm the expected targets, modes, and `pruned` counts. After syncing copy-mode prompt files, `cmp` the source and live target.
 
 ## Code Style
