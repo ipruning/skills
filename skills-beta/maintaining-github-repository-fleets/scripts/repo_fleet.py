@@ -363,7 +363,16 @@ def make_workspace_plan(
             continue
         state = repository_state(Path(local["path"]), branch, runner)
         if not state["eligible"]:
-            blocked.append({"name": name, "reason": "checkout_ineligible", "state": state})
+            relationship = (
+                cached_relation(Path(local["path"]), state["head"], sha, runner) if state["head"] else "unknown"
+            )
+            blocked.append({
+                "name": name,
+                "reason": "checkout_ineligible",
+                "expected_remote_sha": sha,
+                "relationship": relationship,
+                "state": state,
+            })
         elif state["head"] == sha:
             blocked.append({"name": name, "reason": "already_current"})
         elif "fast-forward" not in allowed:

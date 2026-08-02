@@ -122,6 +122,42 @@ def test_workspace_plan_clone_ff_archived_empty_and_no_mutations(
     fleet.validate_plan(plan)
 
 
+def test_workspace_plan_preserves_remote_evidence_for_ineligible_checkout(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    local = tmp_path / "local"
+    init_repo(local, "https://github.com/acme/local.git")
+    (local / "untracked").write_text("dirty")
+    monkeypatch.setattr(
+        fleet,
+        "remote_inventory",
+        lambda *_: [{"name": "local", "isArchived": False, "defaultBranchRef": {"name": "main"}}],
+    )
+    monkeypatch.setattr(fleet, "exact_remote_sha", lambda *_: "f" * 40)
+    monkeypatch.setattr(fleet, "cached_relation", lambda *_: "unknown_until_fetch")
+
+    plan = fleet.make_workspace_plan("acme", "me", tmp_path, True, [], ["fast-forward"])
+
+    assert plan["actions"] == []
+    assert plan["blocked"] == [
+        {
+            "name": "local",
+            "reason": "checkout_ineligible",
+            "expected_remote_sha": "f" * 40,
+            "relationship": "unknown_until_fetch",
+            "state": {
+                "head": git(local, "rev-parse", "HEAD"),
+                "branch": "main",
+                "clean": False,
+                "tracking": None,
+                "operation_in_progress": False,
+                "eligible": False,
+            },
+        }
+    ]
+    fleet.validate_plan(plan)
+
+
 def test_audit_plan_reports_missing_requested_repo_and_validates(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
