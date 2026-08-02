@@ -9,27 +9,14 @@ fail_fast = false
 
 # =============================================================================
 # Priority Layout:
-#   0          — Gate checks (fast, fail-fast guards)
-#   10, 11, 12 — Fixers (modify files, each gets unique priority to run serially)
-#   20         — All read-only checks (run concurrently)
+#   0  — Gate checks (fast, fail-fast guards)
+#   20 — All read-only checks (run concurrently)
 # =============================================================================
 
 [[repos]]
 repo = "https://github.com/pre-commit/pre-commit-hooks"
 rev = "v6.0.0"
 hooks = [
-    {
-        id = "end-of-file-fixer",
-        name = "fix end of file fixer",
-        stages = ["pre-commit"],
-        priority = 10
-    },
-    {
-        id = "trailing-whitespace",
-        name = "fix trailing whitespace",
-        stages = ["pre-commit"],
-        priority = 11
-    },
     {
         id = "check-yaml",
         name = "check YAML files",
@@ -144,13 +131,14 @@ rev = "0.9.1"
 hooks = [
     {
         id = "nbstripout",
-        name = "nbstripout",
+        name = "check notebook metadata",
         args = [
+            "--verify",
             "--keep-output",
             "--extra-keys=metadata.kernelspec metadata.language_info.version"
         ],
         stages = ["pre-commit"],
-        priority = 12
+        priority = 20
     }
 ]
 
@@ -193,6 +181,15 @@ hooks = [
         always_run = true,
         stages = ["pre-commit", "pre-push"],
         priority = 0
+    },
+    {
+        id = "check-file-hygiene",
+        name = "check trailing whitespace and end of file",
+        entry = "uv run --script scripts/check-file-hygiene.py",
+        language = "system",
+        types = ["text"],
+        stages = ["pre-commit"],
+        priority = 20
     },
     {
         id = "shellcheck",
