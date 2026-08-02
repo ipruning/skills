@@ -6,6 +6,14 @@
 
 按 AST 结构搜索或替换代码且 `ast-grep` 可用时，优先使用它。
 
+## 本地项目与文件发现
+
+已知目标路径时直接核验，不先扫描更大的目录。需要发现本地 checkout 时，从任务给出的路径、当前主机适用的 `AGENTS.md` 和已有目录布局确定最小搜索根；不从文件系统根目录开始遍历。候选路径最终通过 Git remote、分支、工作区状态和 `git worktree list` 核对身份，目录名本身不证明项目归属。
+
+按名称发现文件或目录时，使用当前环境中实际可执行的 `fd`，并按已知布局限制类型和最大深度；不能只凭 PATH 中存在 shim 判断工具可用。普通查找沿用 ignore 规则，完整盘点隐藏或被 ignore 的路径时显式使用 `--hidden --no-ignore`。需要复杂布尔谓词、条件式 prune、文件系统 metadata 或自定义输出时使用 `find`；它不是 `fd` 的降级替代。
+
+简单的本地目录发现先使用单个进程。并行化用于昂贵的逐结果处理，或在实测支持时让多个进程遍历互不重叠且足够大的搜索根；`find` 的输出交给 GNU Parallel 只会并行后处理，不会并行前面的目录遍历。
+
 需要操作网页 UI 且 `agent-browser` 可用时，为当前任务使用唯一 `--session`；同一任务全程复用，并发任务不得共享。需要现有登录态时，优先从对应 Chrome Profile 启动独立 headless 快照；需要用户介入且 Dashboard 可用时，通过同一 Session 交接，预期 Dashboard 无法承载的交互才从一开始使用 headed。全程按 `open → snapshot -i → 操作 @ref → 重新 snapshot` 循环，页面变化或交接后不得复用旧 ref。结束时只关闭本任务 Session，不使用 `close --all`。
 
 登录态只提供身份认证，不构成修改授权。AI 可在当前任务范围内自主导航、读取和验证；外部写入只在用户明确要求具体结果时执行最小必要动作，模糊的「看看」「检查」「研究」「管理」按只读处理。获得授权后不逐步重复询问，也不得扩展到相邻对象；发现新增的停机、费用、不可逆或越界影响时重新确认。
@@ -23,6 +31,8 @@
 - 只依赖远端已提交状态且 Amp 云端可访问目标 project 或 repository 时，使用 Orb。可访问性未知时正式尝试一次；成功后沿用该 thread，明确不可访问时等待目标或权限变化的新证据。
 - 依赖未提交改动、本地服务、机器凭据、设备或仅存在于某台机器的文件时，调用 `list_runners`，根据 hostname、working directory、repository URL 和任务给出的机器信息选择 Runner。多个 Runner 都能满足目标且选择会影响结果时询问用户。
 - 只依赖远端固定 commit、但 Orb 无法访问目标时，可以使用外部 Runner 在隔离临时目录取得该 commit。
+
+任务只需要在已明确且已授权的远端主机执行边界清楚的 Shell 命令，且当前环境已有对应 SSH 路径时，由当前 thread 通过 SSH 取证或执行。任务需要该主机上的独立 Agent 上下文、本地设备或服务、多步自主工作，或需要观察 Agent 在该环境中的行为时，使用 Runner thread。
 
 `list_runners` 用于选择当前 thread 之外的候选 Runner。创建 Runner thread 时，省略 `project`，使其从 Runner 的 Amp 进程 cwd 启动；把目标路径和需要核验的身份信息写进 prompt。
 
