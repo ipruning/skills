@@ -16,11 +16,17 @@
 
 ## Thread 执行位置
 
-- 只依赖远端已提交状态且 Amp 云端可访问目标 project 或 repository 时使用 Orb。可访问性未知时直接用正式任务创建一次；成功后沿用该 thread，明确不可访问时不换写法重试。失败只对当时状态有效，出现目标或权限已变化的新证据后可以再试一次。
-- 依赖未提交改动、本地服务、机器凭据、设备或仅存在于某台机器的文件时，创建前重新调用 `list_runners`，只选择元数据能对应所需机器和 checkout 的 runner。Runner 数量不构成匹配证据；多个 runner 都适用且选择会影响结果时询问用户。
-- 只依赖远端固定 commit、但 Orb 无法访问目标时，可以使用外部 runner 在隔离临时目录取得该 commit；不复用状态不符的 checkout。
+当前 thread 能访问任务所需状态时，由当前 thread 直接执行。执行位置会影响结果时，先使用当前可用的 Shell 核验 cwd、hostname、操作系统，以及与任务相关的 checkout、服务或设备。checkout 的核验按需读取 remote、分支、HEAD 和工作区状态；证据足以唯一对应目标即可，不机械收集无关信息。
 
-Runner 省略 `project` 时从 Amp 进程的 cwd 启动；绝对路径写进 prompt，不填入 `project`。把环境核验设为 thread 的第一步：报告 cwd，并只读检查目标 checkout 的 remote、分支、HEAD 和工作区状态。核验不符时不切换、不 reset、也不复制该 checkout；任务需要固定 commit 时使用隔离临时目录并在结束后清理。
+当前执行环境与任务目标匹配时，核验完成后继续执行。当前执行环境无法访问所需状态，或运行时证据不能对应目标时，当前 thread 才作为路由者选择其他执行器：
+
+- 只依赖远端已提交状态且 Amp 云端可访问目标 project 或 repository 时，使用 Orb。可访问性未知时正式尝试一次；成功后沿用该 thread，明确不可访问时等待目标或权限变化的新证据。
+- 依赖未提交改动、本地服务、机器凭据、设备或仅存在于某台机器的文件时，调用 `list_runners`，根据 hostname、working directory、repository URL 和任务给出的机器信息选择 Runner。多个 Runner 都能满足目标且选择会影响结果时询问用户。
+- 只依赖远端固定 commit、但 Orb 无法访问目标时，可以使用外部 Runner 在隔离临时目录取得该 commit。
+
+`list_runners` 用于选择当前 thread 之外的候选 Runner。创建 Runner thread 时，省略 `project`，使其从 Runner 的 Amp 进程 cwd 启动；把目标路径和需要核验的身份信息写进 prompt。
+
+受托 thread 是该次任务的执行者。它先用当前 Shell 核验运行环境和目标状态；核验匹配时直接执行任务，核验不匹配时把现场证据返回来源 thread。来源 thread 根据证据决定是否选择其他执行器。任务需要固定 commit 时，受托 thread 使用隔离临时目录，并在结束后清理。
 
 ## AI 行为验收
 
