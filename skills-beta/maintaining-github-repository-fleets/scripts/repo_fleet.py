@@ -325,10 +325,10 @@ def make_workspace_plan(
         if remote.get("isArchived"):
             blocked.append({"name": name, "reason": "archived"})
             continue
-        if not isinstance(branch_ref, dict) or not isinstance(branch_ref.get("name"), str):
+        branch = branch_ref.get("name") if isinstance(branch_ref, dict) else None
+        if not isinstance(branch, str) or not branch:
             blocked.append({"name": name, "reason": "empty_repository"})
             continue
-        branch = branch_ref["name"]
         sha = exact_remote_sha(owner, name, branch, gh_user, runner)
         local = by_name.get(name)
         redirected = canonical_locals.get((owner, name))
@@ -476,7 +476,7 @@ def make_audit_plan(
             blocked.append({"name": name, "reason": "archived_or_empty"})
             continue
         branch = branch_ref.get("name")
-        if not isinstance(branch, str):
+        if not isinstance(branch, str) or not branch:
             blocked.append({"name": name, "reason": "empty_repository"})
             continue
         sha = exact_remote_sha(owner, name, branch, gh_user, runner)
@@ -974,12 +974,18 @@ def execute(plan: dict[str, Any], result_path: Path, runner: Runner = run_comman
     for index, action in enumerate(plan["actions"]):
         key = str(index)
         previous = items.get(key)
-        if isinstance(previous, dict) and previous.get("status") in VERIFIED:
-            if verified_action_still_holds(action, plan["owner"], plan_sha, runner):
+        if isinstance(previous, dict):
+            previous_status = previous.get("status")
+            if previous_status == "unverified":
+                break
+            if previous_status == "stale":
                 continue
-            previous.update(status="stale", after={"reason": "verified_state_changed"})
-            write_atomic(result_path, result)
-            continue
+            if previous_status in VERIFIED:
+                if verified_action_still_holds(action, plan["owner"], plan_sha, runner):
+                    continue
+                previous.update(status="stale", after={"reason": "verified_state_changed"})
+                write_atomic(result_path, result)
+                continue
         record: dict[str, Any] = {
             "kind": action.get("kind"),
             "name": action.get("name"),

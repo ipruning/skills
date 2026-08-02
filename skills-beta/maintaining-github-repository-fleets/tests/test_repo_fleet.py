@@ -93,6 +93,7 @@ def test_workspace_plan_clone_ff_archived_empty_and_no_mutations(
             {"name": "local", "isArchived": False, "defaultBranchRef": {"name": "main"}},
             {"name": "old", "isArchived": True, "defaultBranchRef": {"name": "main"}},
             {"name": "empty", "isArchived": False, "defaultBranchRef": None},
+            {"name": "empty-string", "isArchived": False, "defaultBranchRef": {"name": ""}},
         ],
     )
     monkeypatch.setattr(fleet, "exact_remote_sha", lambda *_: "f" * 40)
@@ -113,6 +114,10 @@ def test_workspace_plan_clone_ff_archived_empty_and_no_mutations(
     plan = fleet.make_workspace_plan("acme", "me", tmp_path, True, [], ["clone", "fast-forward"], runner)
     assert {action["kind"] for action in plan["actions"]} == {"clone_workspace", "fast_forward_workspace"}
     assert {item["reason"] for item in plan["blocked"]} >= {"archived", "empty_repository"}
+    assert {item["name"] for item in plan["blocked"] if item["reason"] == "empty_repository"} == {
+        "empty",
+        "empty-string",
+    }
     assert not any(set(call) & fleet.MUTATING_GIT_WORDS for call in runner.calls)
     fleet.validate_plan(plan)
 
@@ -129,6 +134,20 @@ def test_audit_plan_reports_missing_requested_repo_and_validates(
     plan = fleet.make_audit_plan("acme", "planned", tmp_path, False, ["found", "Typo"], "shallow")
     assert [action["name"] for action in plan["actions"]] == ["found"]
     assert {"name": "Typo", "reason": "not_found_case_sensitive"} in plan["blocked"]
+    fleet.validate_plan(plan)
+
+
+def test_audit_plan_treats_empty_branch_name_as_empty_repository(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        fleet,
+        "remote_inventory",
+        lambda *_: [{"name": "empty", "isArchived": False, "defaultBranchRef": {"name": ""}}],
+    )
+    plan = fleet.make_audit_plan("acme", "planned", tmp_path, True, [], "shallow")
+    assert plan["actions"] == []
+    assert plan["blocked"] == [{"name": "empty", "reason": "empty_repository"}]
     fleet.validate_plan(plan)
 
 
@@ -308,6 +327,28 @@ def test_result_checkpoint_resume(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     fleet.execute(plan, result_path)
     assert calls == 1
     assert json.loads(result_path.read_text())["items"]["0"]["status"] == "cloned_verified"
+
+
+@pytest.mark.parametrize("status", ["stale", "unverified"])
+def test_result_checkpoint_does_not_retry_nonverified_action(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, status: str
+) -> None:
+    action = {"kind": "clone_workspace", "name": "x", "target": str(tmp_path / "x")}
+    plan = minimal_plan(tmp_path, action)
+    calls = 0
+
+    def fake_apply(*_: object) -> tuple[str, dict[str, str]]:
+        nonlocal calls
+        calls += 1
+        return status, {"reason": "test"}
+
+    monkeypatch.setattr(fleet, "apply_clone", fake_apply)
+    result_path = tmp_path / "result.json"
+    fleet.execute(plan, result_path)
+    fleet.execute(plan, result_path)
+
+    assert calls == 1
+    assert json.loads(result_path.read_text())["items"]["0"]["status"] == status
 
 
 def test_stdout_is_one_json_object_for_empty_apply(tmp_path: Path) -> None:
