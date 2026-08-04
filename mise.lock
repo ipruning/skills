@@ -47,18 +47,18 @@ url = "https://github.com/huacnlee/autocorrect/releases/download/v2.16.3/autocor
 url_api = "https://api.github.com/repos/huacnlee/autocorrect/releases/assets/335756985"
 
 [[tools."github:runkids/skillshare"]]
-version = "0.20.22"
+version = "0.20.23"
 backend = "github:runkids/skillshare"
 
 [tools."github:runkids/skillshare"."platforms.linux-x64"]
-checksum = "sha256:f4f5a56f911490eca89b6e6cc1365aac389182e44a56b3b6aa6c12f279dd936e"
-url = "https://github.com/runkids/skillshare/releases/download/v0.20.22/skillshare_0.20.22_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/runkids/skillshare/releases/assets/483675047"
+checksum = "sha256:25f2df5af3936bb51974568d76980e7f082426e41ec54568e8f458675e0871d3"
+url = "https://github.com/runkids/skillshare/releases/download/v0.20.23/skillshare_0.20.23_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/runkids/skillshare/releases/assets/494345643"
 
 [tools."github:runkids/skillshare"."platforms.macos-arm64"]
-checksum = "sha256:9ea63bdba7a8c69b43b8799537e4456e954fd471dc0d7f683c634922e64d53ef"
-url = "https://github.com/runkids/skillshare/releases/download/v0.20.22/skillshare_0.20.22_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/runkids/skillshare/releases/assets/483675056"
+checksum = "sha256:19bf580c557ac22da89c1ef27f14c91ad25cdea376f39396645ef85326848d5b"
+url = "https://github.com/runkids/skillshare/releases/download/v0.20.23/skillshare_0.20.23_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/runkids/skillshare/releases/assets/494345667"
 
 [[tools.gum]]
 version = "0.17.0"

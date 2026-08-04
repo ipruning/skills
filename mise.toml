@@ -2,7 +2,7 @@ min_version = { hard = "2026.7.15" }
 
 [tools]
 "github:huacnlee/autocorrect" = "2.16.3"
-"github:runkids/skillshare" = "0.20.22"
+"github:runkids/skillshare" = "0.20.23"
 actionlint = "1.7.12"
 biome = "2.5.5"
 gum = "0.17.0"
