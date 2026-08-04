@@ -20,8 +20,6 @@ extend-exclude = [
     "skills-mattpocock/setup-matt-pocock-skills/",
     "skills-mattpocock/tdd/",
     "skills-mattpocock/teach/",
-    "skills-mattpocock/to-issues/",
-    "skills-mattpocock/to-prd/",
     "skills-mattpocock/triage/",
     "skills-mattpocock/writing-great-skills/",
     "skills-stable/longbridge/",
