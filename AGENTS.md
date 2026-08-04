@@ -34,8 +34,8 @@ skills/
 - Keep trigger guidance explicit: a skill should say when to use it and when not to use it.
 - Keep `SKILL.md` concise. Put long scripts, templates, examples, or large references in supporting files and link to them.
 - Before adding or heavily revising a first-party skill, review it against the five-layer checklist in `_jihuanshe-skills/skills-stable/skill-roast/SKILL.md`. The checklist also covers drafting a new skill from scratch: run its layers in reverse to outline the first draft.
-- Write first-party `SKILL.md` bodies in Chinese classic prose with complete sentences. Keep the frontmatter description, key terms, code, code comments, and tables in English. Supporting references may stay in English.
-- Do not edit generated, vendored, or upstream Track-managed content.
+- For first-party skills owned directly by this checkout, write `SKILL.md` bodies, frontmatter `description` values, and user-visible fields in `agents/openai.yaml` in Chinese by default, using clear, complete sentences. Keep product names, protocols, tool names, API identifiers, code symbols, and terms that lose precision in translation in their original language. Supporting references may stay in English.
+- Do not apply this language policy to generated, vendored, or upstream Track-managed content, and do not edit that content directly. Nested source checkouts follow their own `AGENTS.md`; do not normalize or rewrite their language policy from the parent checkout.
 
 ## Structural search maintenance
 
