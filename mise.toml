@@ -1,20 +1,24 @@
-min_version = { hard = "2026.7.15" }
+min_version = { hard = "2026.8.2" }
+
+[tool_alias]
+skillshare = "aqua:runkids/skillshare"
+uv = "aqua:astral-sh/uv"
 
 [tools]
 "github:huacnlee/autocorrect" = "2.16.3"
-"github:runkids/skillshare" = "0.20.23"
 actionlint = "1.7.12"
-biome = "2.5.5"
+biome = "2.5.7"
 gum = "0.17.0"
 jq = "1.8.2"
 ls-lint = "2.3.1"
 markdownlint-cli2 = "0.23.2"
-prek = "0.4.11"
+prek = "0.4.12"
 python = "3.14.6"
 shellcheck = "0.11.0"
-tombi = "1.2.4"
-usage = "4.0.0"
-uv = "0.11.32"
+skillshare = "0.20.24"
+tombi = "1.2.6"
+usage = "5.0.0"
+uv = "0.12.1"
 
 [env]
 _.python.venv = { path = ".venv" }
