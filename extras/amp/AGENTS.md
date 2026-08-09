@@ -6,7 +6,7 @@
 
 ## 授权边界
 
-登录态只提供身份认证，不构成修改授权。可在当前任务范围内自主导航、读取和验证；外部写入只在用户明确要求具体结果时执行，且限于最小必要动作；模糊的「看看」「检查」「研究」「管理」按只读处理。
+登录态只提供身份认证，不构成修改授权。可在当前任务范围内自主导航、读取和验证；外部写入除「Skill 冲突与反馈」一节授权的反馈提交外，只在用户明确要求具体结果时执行，且限于最小必要动作；模糊的「看看」「检查」「研究」「管理」按只读处理。
 
 获得授权后不逐步重复询问，也不得将授权扩展到相邻对象；发现新增的停机、费用、不可逆或越界影响时重新确认。
 
@@ -27,8 +27,8 @@
 需要操作网页 UI 且 `agent-browser` 可用时：
 
 - 为当前任务使用唯一 `--session`；同一任务全程复用，并发任务不得共享。
-- 需要现有登录态时，优先从对应 Chrome Profile 启动独立 headless 快照。
-- 需要用户介入且 Dashboard 可用时，通过同一 Session 交接；预期 Dashboard 无法承载的交互才从一开始使用 headed。
+- 需要现有登录态时，优先以对应 Chrome Profile 的快照副本启动独立 headless 实例。
+- 需要用户介入且 agent-browser Dashboard 可用时，通过同一 Session 交接；预期 Dashboard 无法承载的交互才从一开始使用 headed。
 - 全程按 `open → snapshot -i → 操作 @ref → 重新 snapshot` 循环，页面变化或交接后不得复用旧 ref。
 - 结束时只关闭本任务 Session，不使用 `close --all`。
 
@@ -53,20 +53,21 @@
 - `title`：`<任务对象>：<需要用户执行的操作>`。
 - `subtitle`：已完成的进度和当前阻塞范围；没有补充信息时省略。
 - `message`：已经完成到哪里、用户现在要做什么，以及不操作会阻塞什么。
-- `thread_id`：当前 Amp Thread ID。
-- `open_url`：当前 Amp Thread URL。
+- `thread_id`：在 Amp 中填当前 Amp Thread ID；其他宿主填当前会话的等价标识，无则省略该字段。
+- `open_url`：在 Amp 中填当前 Amp Thread URL；其他宿主填能回到当前会话的链接，无则省略该字段。
 
-标题、副标题和正文只使用适合锁屏展示的任务上下文，详细步骤留在 Amp Thread。存在 Brrr 相关 Skill 时加载并按其发送；否则在 `BRRR_SECRET` 非空时使用以下请求，将示例字段替换为当前任务的具体信息：
+标题、副标题和正文只使用适合锁屏展示的任务上下文，详细步骤留在当前会话。存在 Brrr 相关 Skill 时加载并按其发送；否则在 `BRRR_SECRET` 非空时使用以下请求，将 `--arg` 示例值替换为当前任务的具体信息：
 
 ```bash
-payload='{
-  "title": "Linear Controller：确认删除 3 项共享 Secret",
-  "subtitle": "私有迁移已完成 · 安全收尾",
-  "message": "回复「删除 Project secrets」。不确认则其他 Project Orb 仍会继承这些凭据。",
-  "thread_id": "<当前 Amp Thread ID>",
-  "open_url": "<当前 Amp Thread URL>",
-  "interruption_level": "time-sensitive"
-}'
+payload="$(jq -n \
+  --arg title "Linear Controller：确认删除 3 项共享 Secret" \
+  --arg subtitle "私有迁移已完成 · 安全收尾" \
+  --arg message "回复「删除 Project secrets」。不确认则其他 Project Orb 仍会继承这些凭据。" \
+  --arg thread_id "<当前 Amp Thread ID>" \
+  --arg open_url "<当前 Amp Thread URL>" \
+  '{title: $title, subtitle: $subtitle, message: $message,
+    thread_id: $thread_id, open_url: $open_url,
+    interruption_level: "time-sensitive"}')"
 printf 'header = "Authorization: Bearer %s"\n' "$BRRR_SECRET" | \
 curl -fsS --max-time 10 -X POST -K - \
   -H "Content-Type: application/json" \
@@ -76,7 +77,7 @@ curl -fsS --max-time 10 -X POST -K - \
 
 ## 异步大循环：产物会被他人接手
 
-本节产物（测试、TODO、commit、Issue 等）离开当前对话后，会被用户、同事或他们的 AI 在你不在场、没有本次对话上下文的情况下继续处理。判断标准：谁会在没有本次对话的情况下消费这个产物？按最终消费者的需要来产出。
+本节产物（测试、TODO、commit、Issue 等）离开当前对话后，会被用户、同事或他们的 AI 在你不在场、没有本次对话上下文的情况下继续处理。判断标准：谁会在没有本次对话的情况下消费这个产物？按最终消费者的需要来产出，让信息每经过一次转手，尽量少损失原始意图。
 
 对产物状态的断言（「已完成」「测试通过」）必须指向本次运行的实际证据（测试输出、diff、日志）；未验证或跳过的项如实标注。
 
@@ -86,11 +87,11 @@ curl -fsS --max-time 10 -X POST -K - \
 
 ### 临时代码与上下文接力
 
-引入仅为兼容、迁移或灰度而存在的临时代码时，在最接近该行为的位置留下符合仓库惯例的 TODO。TODO 与邻近注释应让不了解本次对话的人或 AI 看清正常目标、现场为何偏离、代码为何仍需保留、什么可验证条件成立后可以清理，以及届时应清理什么。无法从邻近代码和仓库惯例可靠推知的查验入口、关联清理点或验证方法应一并写明。尚未承诺的未来优化或可能出现的接口只写成普通设计说明，不标 TODO。
+引入仅为兼容、迁移或灰度而存在的临时代码时，在最接近该行为的位置留下符合仓库惯例的 TODO。TODO 与邻近注释应让不了解本次对话的人或 AI 看清正常目标、现场为何偏离、代码为何仍需保留、什么可验证条件成立后可以清理，以及届时应清理什么。日期只有在到期本身足以决定清理时才可作为条件。无法从邻近代码和仓库惯例可靠推知的查验入口、关联清理点或验证方法一并写明。尚未承诺的未来优化或可能出现的接口只写成普通设计说明，不标 TODO。
 
-已有 Linear 或 GitHub Issue 承载调查时，在邻近代码留下目标读者可点击的 canonical URL；动态讨论、完整证据和过程记录留在 Issue，不复制进注释，也不要求固定标签或字段格式。注释本身仍应足够判断是否需要继续打开 Issue。当前任务已授权创建跟踪对象时，公司内部工作优先使用 Linear；只有 Linear 不可用或目标仓库明确以 GitHub Issues 为权威队列时才 fallback，且 clone 或读取权限不代表 Issue 写入授权。
+已有 Linear 或 GitHub Issue 承载调查时，在邻近代码留下目标读者可点击的 canonical URL；动态讨论、完整证据和过程记录留在 Issue，不复制进注释，不使用固定标签或字段协议。注释本身应足以让读者判断是否需要点开 Issue。当前任务已授权创建跟踪对象时，公司内部工作优先使用 Linear；只有 Linear 不可用或目标仓库明确以 GitHub Issues 为权威队列时才 fallback，且 clone 或读取权限不代表 Issue 写入授权。
 
-Issue 状态只触发复查，不单独证明临时代码可删除。执行清理任务时，搜索相关 TODO、临时逻辑和自然遇到的 Issue 引用；仅在删除条件有现场证据支持且清理属于当前任务时清理并验证，否则保留。关闭或转交当前任务涉及的 Issue 时说明原因；工作尚未结束时留下明确、可点击的下一跳。日期只有在到期本身足以决定清理时才可作为条件。其他任务不主动全仓扫描 TODO；条件看似满足、内容已过时或与现场矛盾时，先作与当前任务相称的查验。不要模仿或扩散被标记的临时写法。
+Issue 状态只触发复查，不单独证明临时代码可删除。执行清理任务时，搜索相关 TODO 与临时逻辑，并跟进沿途遇到的 Issue 引用；仅在删除条件有现场证据支持且清理属于当前任务时清理并验证；超出范围或无法安全判断时保留，在收尾向用户说明。关闭或转交当前任务涉及的 Issue 时说明原因；工作尚未结束时留下明确、可点击的下一跳。其他任务不主动全仓扫描 TODO；自然遇到的相关标记若条件看似满足、内容过时或与现场矛盾，先作与当前任务相称的查验。不要模仿或扩散被标记的临时写法。
 
 ### Git 与 GitHub 身份
 
@@ -98,7 +99,7 @@ Git 提交身份与 GitHub 登录身份彼此独立；不得从一方推导另�
 
 #### Commit 身份
 
-对每个仓库首次 commit 前，检查实际生效的 Git 身份及其配置来源：
+本次任务在每个仓库的首次 commit 前，检查实际生效的 Git 身份及其配置来源：
 
 ```bash
 git config --show-origin --get user.name
