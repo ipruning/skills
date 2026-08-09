@@ -20,7 +20,7 @@
 
 测试 → 临时兼容代码（写代码阶段）→ Git 与 GitHub 身份（提交阶段）→ Skill 冲突与反馈（收尾阶段）。
 
-**依赖约束**：「Skill 冲突与反馈」引用「GitHub 多账号」的 token 注入流程（原文「除『Skill 冲突与反馈』一节另有规定外」是反向交叉引用），两节必须保持 Git 在前、Skill 紧随其后。调整顺序时先检查这条引用仍然成立。
+**依赖约束**：「Skill 冲突与反馈」引用「GitHub 凭据与多账号」的 token 注入流程（原文「除『Skill 冲突与反馈』一节另有规定外」是反向交叉引用），两节必须保持 Git 在前、Skill 紧随其后。调整顺序时先检查这条引用仍然成立。
 
 ### 标题服务检索，幽默放正文
 
@@ -63,7 +63,7 @@ XML 标签的价值在程序化抽取和隔离不可信内容；本文件是人�
 
 - `git config --show-origin --get user.name` / `user.email`
 - `git show -s --format='%an <%ae>%n%cn <%ce>' HEAD`（author + committer 四个格式符）
-- `gh auth token --user <login>`：gh ≥ 2.40 多账号功能；`GH_TOKEN` 环境变量对 `gh` 及 `gh auth git-credential` 均优先于 keyring
+- `gh auth token --user <login>`：gh ≥ 2.40 的多账号功能；全局指引会运行在版本不同的宿主中，因此只有当前 `gh auth token --help` 明确列出 `--user` 时才可使用。`GH_TOKEN` 环境变量对 `gh` 及 `gh auth git-credential` 均优先于 keyring
 - `git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push`：空值先清空 helper 列表再追加，标准写法
 - `fd --hidden --no-ignore`
 - `curl -K -` 从 stdin 读配置，`header = "..."` 是合法 curl 配置语法
@@ -73,7 +73,7 @@ XML 标签的价值在程序化抽取和隔离不可信内容；本文件是人�
 
 ## 待定项（尚未获得用户决定，接手时先确认）
 
-1. **Git 节下的四级标题**（`#### Commit 身份` / `#### GitHub 多账号`）：可读性开始下降，备选方案是改为加粗行内标签。用户尚未拍板。
+1. **Git 节下的四级标题**（`#### Commit 身份` / `#### GitHub 凭据与多账号`）：可读性开始下降，备选方案是改为加粗行内标签。用户尚未拍板。
 2. **「阻塞时通知用户」标题**：由「通知人类」改来以统一术语；若用户偏爱「人类」的 human-in-the-loop 意味，可改回，但需连带统一正文。
 3. **「浏览器自动化」节迁出为 Skill**：五条规则均为真 invariant，但只在操作网页 UI 时相关，是 progressive disclosure 的理想候选。待用户的 Skill 基础设施在所有宿主可用后迁出，AGENTS.md 留一行指针。
 
@@ -87,6 +87,8 @@ XML 标签的价值在程序化抽取和隔离不可信内容；本文件是人�
 - **Mock 边界统一为 amp 值**（2026-08，用户裁决）：三个宿主文件统一为 Mock 可隔离「当前测试范围之外的协作者或外部边界」；claude/codex 原「只放行不可控外部边界、其余换真实场景」放宽至该值。
 - **Skill 缺陷反馈的 Issue 创建统一为 amp 的权限门自主模式**（2026-08，用户裁决）：claude/codex 与 amp 对齐——匹配 login 对来源仓库拥有 push、maintain 或 admin 权限且仓库启用 Issues 即视为已获授权，完成脱敏与同根因去重后直接创建，无需用户逐次要求；三个宿主的授权边界节相应加入交叉引用例外。
 - **阻塞通知级别有意分叉，不同步**（2026-08，用户裁决）：amp 一律 `time-sensitive`；claude/codex 保留延误造成不可逆后果或错过当天窗口时升级 `critical` 的分支。
+- **GitHub 认证失败采用停止扩散边界并统一到三个宿主**（2026-08）：单账号使用默认凭据；多账号仅在当前 `gh` 明确支持 `auth token --user` 时按 login 注入 token。认证失败后先区分凭据、权限与非认证故障；凭据不可用时停止相关外部写入，不切换账号、上传 API 或认证机制。除非用户明确要求配置或修复认证，不运行 `gh auth login/logout/setup-git`，不修改持久 credential helper 或认证文件。该规则源于旧版 `gh` 环境中一次能力不兼容被过度恢复放大的真实失败，并同步适用于 amp / claude / codex。
+- **压缩「咨询神谕」但保留委托边界**（2026-08，用户裁决）：将触发时机和八项委托清单合并为四类必要信息，保留单一问题、现场路径与验证入口、Thread ID + `read_thread`、转述不作权威和只读咨询。神谕指出文件不自动产生新的授权；实际修改按当前任务已有授权执行，不因它点名文件而重复询问。
 
 ## 修改纪律
 

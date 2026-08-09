@@ -83,14 +83,16 @@ Skill 指令与实测冲突或使任务无法继续时，停止遵循该 skill �
 3. 仍阻塞：加载 `brrr-now` 技能发 1 条 Push。若延误会造成不可逆后果或错过当天窗口，用 `critical`；其余用 `time-sensitive`。
 4. Push 发出后不再重复通知。继续推进未被阻塞且仍在原授权范围内的部分；不通过替换目标、资源、账号或凭据来解除阻塞。若全部被阻塞，收尾汇报当前状态。
 
-## GitHub 多账号
+## GitHub 凭据与多账号
 
-多账号场景先从目标 repo、组织或我的明确指示唯一确定应使用的 login；不能唯一确定时，写操作前询问我。再用 `gh auth status --json hosts` 确认该 login 已保存。单条 `gh` 命令按该 login 注入 token，不切换 active account，也不改用其他 login 绕过权限不足：
+GitHub 写操作前用 `gh auth status` 确认账号构成。单账号环境直接使用默认凭据，不提取或注入 token。多账号时，先从目标 repo、组织或我的明确指示唯一确定 login；不能唯一确定时，写操作前询问我。需要以非 active 账号操作，且当前 `gh auth token --help` 明确列出 `--user` 时，仅为本次命令注入该账号的 token，不切换 active account：
 
 ```bash
 tok="$(gh auth token --user <login>)" && [ -n "$tok" ] || exit 1
 GH_TOKEN="$tok" gh <command>
 ```
+
+`--user` 不可用时，只有默认凭据已明确属于目标 login 才继续；否则停止 GitHub 写操作。认证失败不构成修复或绕过的授权；按原始错误区分凭据不可用、权限不足和非认证故障，不改用其他账号、API 或认证机制。除非我明确要求修复认证，不运行 `gh auth login`、`gh auth logout`、`gh auth setup-git`，不改动持久 credential helper 和 GitHub CLI 认证文件。
 
 ## 搜索 / Shell
 
