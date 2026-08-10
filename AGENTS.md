@@ -39,7 +39,7 @@ skills/
 
 ## Structural search maintenance
 
-Use the smallest tool that fits: `rg` for exact text; `ast-grep run` for a one-off source-structure investigation; a YAML rule with `valid` and `invalid` tests for a complex or recurring constraint; and `ast-grep scan` wired through `prek` only when the constraint must block merges. Do not add project configuration or a standing gate for an investigation.
+Use the smallest tool that fits: `rg` for exact text; `ast-grep run` for a one-off source-structure investigation; and a YAML rule with `valid` and `invalid` tests for a complex or recurring constraint. Put a repository-wide merge gate in CI or a canonical `mise` task, not in a Git hook. Do not add project configuration or a standing gate for an investigation.
 
 This read-only example targets a Python skill script in this repository:
 
@@ -47,18 +47,14 @@ This read-only example targets a Python skill script in this repository:
 mise exec -- ast-grep run -p 'getattr($OBJ, $ATTR)' -l python skills-beta/things/scripts
 ```
 
-## Checkout and publication policy
+## Skillshare source and publication boundaries
 
-The **primary checkout** is the checkout reported by `skillshare status --json` as `source.path`. A real sync publishes the state of that exact checkout, not the state of the directory where the command happens to run.
+`skillshare status --json` reports the configured `source.path`. Global Skillshare mutations and syncs operate on that primary checkout regardless of cwd; running them in a task worktree does not mutate or publish that worktree. Treat a real sync as an authorized external write, not as repository validation.
 
-- This is the user's personal skill source. A small, self-contained change that does not need independent review may commit directly to clean local `main`. Broad, risky, or review-dependent work—and any user-requested PR—must use an external task worktree and merge through a PR before publication.
-- Do not move or clean a primary checkout that contains another session's work. For branch work, run `git fetch origin`, inspect commits on both sides of `main...origin/main`, then create an external worktree from the intended base: `git worktree add ../skills-worktrees/<topic> -b <branch> origin/main`. Never silently include or omit local-only `main` commits.
-- Place every worktree outside all Skillshare source checkouts; an in-source worktree would be scanned as skill content. A worktree of this repo lacks gitignored nested checkouts such as `_<source>-skills/`; read those through the primary checkout, then follow the nested checkout's own `AGENTS.md` for edits.
-- `_jihuanshe-skills/` is a separate team source with a stricter PR-to-live lifecycle. Its `AGENTS.md` is the canonical policy; do not restate or infer it here.
-- A real sync is allowed only from clean local `main` after fetching upstream. Local `main` may be ahead only with eligible small direct-main commits; review-dependent work must already be merged upstream and pulled with `--ff-only`. A dirty primary checkout, missing upstream commits, or unmerged PR work blocks publication.
-- Before syncing, use `skillshare status --json` to discover the complete publication set: the parent source plus every tracked nested source. Inspect each checkout's branch, status, HEAD, and upstream divergence under its own publication policy; a dirty checkout or clean unmerged feature branch blocks the global sync. Then verify copied files with `cmp`, symlink projections by resolved destination and content, and behavior claims with a relevant smoke test.
-- A PR is not live when opened or merged. Pull its upstream merge into the primary checkout, sync, and verify before reporting it live.
-- Keep task worktrees until integration is confirmed in the primary checkout. After a squash merge, remove the stale worktree; create follow-up work from current `main`, never from the pre-merge branch.
+- Keep worktrees outside every configured Skillshare source. An in-source worktree is scanned as skill content. Gitignored nested checkouts such as `_<source>-skills/` may exist only in the primary checkout; follow their own `AGENTS.md` when editing them.
+- Source checkouts, not synchronized copies or target directories, are the maintenance sources. Never install or edit skills directly in projection targets such as `~/.claude/skills`; those writes become untracked shadow state.
+- A merged change is not live until the primary checkout contains it, an authorized real sync has completed, and the affected projection or behavior has been verified.
+- `_jihuanshe-skills/` is a separate source; its own `AGENTS.md` governs work there.
 
 ## Working on Skillshare extras
 
@@ -66,9 +62,9 @@ The **primary checkout** is the checkout reported by `skillshare status --json` 
 - Treat `extras/amp/AGENTS.md` as the source document for manual publication to Amp's **Personal Settings → Advanced → Global AGENTS.md**. Do not add an Amp extras target or write it to `~/.config/amp`; after an authorized update, verify the saved cloud setting instead of a local file.
 - Do not use Skillshare `agents_source` for `AGENTS.md` / `CLAUDE.md`; Skillshare agents are single-file sub-agent definitions, while these files are always-loaded harness instructions.
 - Keep global harness prompt files as complete, directly editable documents. Avoid shared-template generators unless the user explicitly asks for a generated model again.
-- When adding a new extra or target, update the active Skillshare config (`extras_source` and `extras:` entries) in the environment that syncs it. If that config is maintained by another repo, make that repo change as a separate logical commit.
+- When adding a new extra or target, update the active Skillshare config (`extras_source` and `extras:` entries) in the environment that syncs it. If another repository owns that config, change it there.
 - Use `mode: copy` for extras whose target is a tool root containing unrelated files, such as `~/.codex` or `~/.claude`. Use `merge` only for dedicated target directories where pruning Skillshare-managed symlinks is safe.
-- Before a real sync after config changes, run `skillshare extras list --json` and `skillshare sync extras --dry-run --force --json`; confirm the expected targets, modes, and `pruned` counts. After syncing copy-mode prompt files, `cmp` the source and live target.
+- Inspect extras with `skillshare extras list --json` and preview configuration changes with `skillshare sync extras --dry-run --force --json`. After an authorized real sync, verify copy-mode prompt files with `cmp`.
 
 ## Code Style
 
@@ -79,7 +75,7 @@ Use 4-space indentation by default and 2-space indentation in Markdown files. Us
 - **TOML** — `uvx tombi lint .`; format config uses 4-space indent.
 - **Markdown** — `markdownlint-cli2`.
 - **Spelling** — `typos`.
-- **Pre-commit** — `prek` (see `prek.toml`).
+- **Repository checks** — use the explicit `mise run lint` task; `prek.toml` also lists the supported checks.
 
 ## Excluding external skills from linting
 
@@ -92,7 +88,7 @@ Some external skills are checked into this repo under non-`_` paths and are trac
 - `prek.toml` — top-level `exclude` regex, `^dir/`
 - `.autocorrectignore` — `dir/`
 
-`mise run check-lint-excludes` verifies both directions — metadata entries missing from a config, and stale excludes whose entry is gone — and reports the exact literal to add or remove. The pre-commit hook runs it on every commit; run it manually after `skillshare install`, `uninstall`, or `update`, since updates can rename directories. Keep unrelated tool-specific excludes unchanged; `_`-prefixed directories are gitignored and need no excludes.
+`mise run check-lint-excludes` verifies both directions — metadata entries missing from a config, and stale excludes whose entry is gone — and reports the exact literal to add or remove. Run it after `skillshare install`, `uninstall`, or `update`, since updates can rename directories. Keep unrelated tool-specific excludes unchanged; `_`-prefixed directories are gitignored and need no excludes.
 
 When deleting a checked-in external skill, use `skillshare uninstall` when possible; if you `rm -rf` manually, remove the directory's entries from all six config files — the checker lists the leftovers.
 
@@ -100,6 +96,4 @@ When deleting a checked-in external skill, use `skillshare uninstall` when possi
 
 Use supported non-interactive flags such as `--force`, `--yes`, `--no-tui`, explicit selectors, and `--json`; do not start prompt-only workflows. Use `--json` when parsing output. Changes under paths listed in `.skillignore` are not exposed to targets unless the ignore or target configuration changes; inspect the file instead of assuming a collection is ignored.
 
-Changes to projected skills, extras, target configuration, or ignore rules require a real `skillshare sync --all --global` after they pass the publication gate above. Keep this real sync on the normal non-JSON path so skills, native agents, and extras complete together. Global Skillshare commands use configured `source.path`, not cwd; do not run a mutating command from a task worktree under the assumption that it changes that worktree. Validate branch content with repository checks, and treat every real Skillshare mutation or sync as an operation on the primary source.
-
-Sync targets such as `~/.claude/skills` are skillshare projections. Never point a third-party skill installer (for example `npx skills add ... -g`) at a target directory; anything written there directly is untracked shadow state that no audit or prune sees. When a vendor CLI embeds its own skills, prefer a thin first-party router skill that reads them at runtime over installing copies into a source repository.
+The complete real-sync entry point is `skillshare sync --all --global`; run it only when publication is authorized and the intended content is present in `source.path`. Keep real sync on the normal non-JSON path so skills, native agents, and extras complete together. When a vendor CLI embeds its own skills, prefer a thin first-party router skill that reads them at runtime over installing copies into this source.
