@@ -7,6 +7,7 @@ ignores:
     - "_convex-skills/"
     - "skills-beta/cascade/"
     - "skills-beta/frontend-design/"
+    - "skills-beta/show-me/"
     - "skills-mattpocock/ask-matt/"
     - "skills-mattpocock/code-review/"
     - "skills-mattpocock/codebase-design/"
