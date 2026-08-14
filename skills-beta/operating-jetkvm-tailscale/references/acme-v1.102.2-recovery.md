@@ -121,6 +121,8 @@ ssh "root@$JETKVM_LAN_IP" '
 
 脚本通过 trap 尝试恢复 stock daemon。它只把证书和私钥写到 `/tmp`，签发完成后删除；daemon 自己的持久证书缓存仍在 `/userdata/tailscale/var/certs`。
 
+v1.102.2 官方 `S22tailscale` 同样无参数启动 daemon；该版本在 JetKVM 上会把 state 和证书缓存根目录解析到 `/userdata/tailscale/var`。因此恢复 binary 也使用无参数启动。若现场 `S22tailscale` 已不是官方形态，停止本流程并先核对其定制参数。
+
 ```sh
 ssh -tt "root@$JETKVM_LAN_IP" "JETKVM_FQDN='$JETKVM_FQDN' ash -s" <<'EOF'
 set -eu
@@ -224,4 +226,5 @@ ssh "root@$JETKVM_LAN_IP" '
 ## 证据锚点
 
 - [Tailscale v1.102.2 `feature/acme/cert.go`](https://github.com/tailscale/tailscale/blob/v1.102.2/feature/acme/cert.go)
+- [Tailscale v1.102.2 JetKVM init script](https://github.com/tailscale/tailscale/blob/v1.102.2/cmd/tailscale/cli/configure-jetkvm.go#L44-L83)
 - [Tailscale HTTPS Certificates](https://tailscale.com/docs/how-to/set-up-https-certificates)

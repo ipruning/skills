@@ -224,11 +224,16 @@ ssh "root@$JETKVM_LAN_IP" '
   set -eu
   grep -n "/userdata/init.d/S??" /oem/usr/bin/RkLunch.sh
   umask 022
-  cat > /userdata/init.d/S21persistent-data.new
-  sh -n /userdata/init.d/S21persistent-data.new
-  chmod 0755 /userdata/init.d/S21persistent-data.new
-  mv /userdata/init.d/S21persistent-data.new /userdata/init.d/S21persistent-data
-  /userdata/init.d/S21persistent-data start
+  TARGET=/userdata/init.d/S21persistent-data
+  if [ -e "$TARGET" ] || [ -L "$TARGET" ]; then
+    echo "$TARGET already exists; inspect and integrate it before continuing" >&2
+    exit 1
+  fi
+  cat > "$TARGET.new"
+  sh -n "$TARGET.new"
+  chmod 0755 "$TARGET.new"
+  mv "$TARGET.new" "$TARGET"
+  "$TARGET" start
 ' < "$INIT_TMP"
 ```
 
@@ -419,7 +424,15 @@ ssh "root@$JETKVM_LAN_IP" '
 需要 rootfs 链接跨重启存在时，让 Ghostty 章节独立拥有 `S20terminfo`，不要扩展 CA 的 `S21persistent-data`：
 
 ```sh
-ssh "root@$JETKVM_LAN_IP" 'cat > /userdata/init.d/S20terminfo.new' <<'EOF'
+ssh "root@$JETKVM_LAN_IP" '
+  set -eu
+  TARGET=/userdata/init.d/S20terminfo
+  if [ -e "$TARGET" ] || [ -L "$TARGET" ]; then
+    echo "$TARGET already exists; inspect and integrate it before continuing" >&2
+    exit 1
+  fi
+  cat > "$TARGET.new"
+' <<'EOF'
 #!/bin/sh
 case "$1" in
   start)
@@ -442,10 +455,11 @@ EOF
 
 ssh "root@$JETKVM_LAN_IP" '
   set -eu
-  sh -n /userdata/init.d/S20terminfo.new
-  chmod 0755 /userdata/init.d/S20terminfo.new
-  mv /userdata/init.d/S20terminfo.new /userdata/init.d/S20terminfo
-  /userdata/init.d/S20terminfo start
+  TARGET=/userdata/init.d/S20terminfo
+  sh -n "$TARGET.new"
+  chmod 0755 "$TARGET.new"
+  mv "$TARGET.new" "$TARGET"
+  "$TARGET" start
 '
 ```
 
