@@ -26,7 +26,10 @@ dev = [
 [tool.ruff]
 exclude = [
     "skills-beta/cascade/",
+    "skills-beta/flint-chart-author/",
+    "skills-beta/flint-theme-author/",
     "skills-beta/frontend-design/",
+    "skills-beta/sherlog/",
     "skills-beta/show-me/",
     "skills-mattpocock/ask-matt/",
     "skills-mattpocock/code-review/",
@@ -72,7 +75,10 @@ docstring-code-line-length = "dynamic"
 [tool.tombi.files]
 exclude = [
     "skills-beta/cascade/**",
+    "skills-beta/flint-chart-author/**",
+    "skills-beta/flint-theme-author/**",
     "skills-beta/frontend-design/**",
+    "skills-beta/sherlog/**",
     "skills-beta/show-me/**",
     "skills-mattpocock/ask-matt/**",
     "skills-mattpocock/code-review/**",
@@ -114,7 +120,10 @@ unresolved-import = "warn"
 [tool.ty.src]
 exclude = [
     "skills-beta/cascade/",
+    "skills-beta/flint-chart-author/",
+    "skills-beta/flint-theme-author/",
     "skills-beta/frontend-design/",
+    "skills-beta/sherlog/",
     "skills-beta/show-me/",
     "skills-mattpocock/ask-matt/",
     "skills-mattpocock/code-review/",
