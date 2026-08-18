@@ -65,6 +65,19 @@
         "SKILL.md": "sha256:1608ea77fbb6fc30d13a97d12cfa8ebf31358d40f0dd97beed24829d6b3f45dd"
       }
     },
+    "skills-beta/herdr": {
+      "source": "https://github.com/herdrdev/herdr/blob/master/skills/herdr",
+      "type": "github-subdir",
+      "group": "skills-beta",
+      "installed_at": "2026-08-17T18:43:54.372734+08:00",
+      "repo_url": "https://github.com/herdrdev/herdr.git",
+      "subdir": "skills/herdr",
+      "version": "51b7064",
+      "tree_hash": "4821f1d39ccae24b9b274b03184edaaf198a3994",
+      "file_hashes": {
+        "SKILL.md": "sha256:0786182f02ebf92708e09d82d79e4614d1a9c30bfc337643cc2af1d0fb9db29f"
+      }
+    },
     "skills-beta/sherlog": {
       "source": "https://github.com/catoncat/sherlog.git/skill-packages/sherlog",
       "type": "github-subdir",

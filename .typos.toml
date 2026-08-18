@@ -5,6 +5,7 @@ extend-exclude = [
     "skills-beta/flint-chart-author/",
     "skills-beta/flint-theme-author/",
     "skills-beta/frontend-design/",
+    "skills-beta/herdr/",
     "skills-beta/sherlog/",
     "skills-beta/show-me/",
     "skills-mattpocock/ask-matt/",
