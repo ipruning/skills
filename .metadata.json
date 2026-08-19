@@ -1,6 +1,11 @@
 {
   "version": 1,
   "entries": {
+    "_jihuanshe-internal-data-skills": {
+      "source": "https://github.com/jihuanshe/internal-data-skills.git",
+      "tracked": true,
+      "branch": "main"
+    },
     "_jihuanshe-skills": {
       "source": "https://github.com/jihuanshe/skills.git",
       "tracked": true,
@@ -23,6 +28,19 @@
       "file_hashes": {
         "SKILL.md": "sha256:c23e3383c6526768f62d3014124aa9d73e51a9d8cf000469bc8302169e9d3e68",
         "references/templates.md": "sha256:8a8c289f1e4579786cdf18c033a05733297aa973212bf339251f4bb2f5bdb7e4"
+      }
+    },
+    "skills-beta/code-storage": {
+      "source": "https://github.com/pierrecomputer/sdk/tree/main/skills/code-storage",
+      "type": "github-subdir",
+      "group": "skills-beta",
+      "installed_at": "2026-08-19T08:37:50.576176+08:00",
+      "repo_url": "https://github.com/pierrecomputer/sdk.git",
+      "subdir": "skills/code-storage",
+      "version": "8d7940f",
+      "tree_hash": "3822da4c8235be4edfc73cdb5b8cfb5bebad7ef9",
+      "file_hashes": {
+        "SKILL.md": "sha256:299f0451c56aea726d694eeeea145310e84ecfc7920ebc90c984b8f5d1c5c746"
       }
     },
     "skills-beta/flint-chart-author": {
@@ -76,6 +94,21 @@
       "tree_hash": "4821f1d39ccae24b9b274b03184edaaf198a3994",
       "file_hashes": {
         "SKILL.md": "sha256:0786182f02ebf92708e09d82d79e4614d1a9c30bfc337643cc2af1d0fb9db29f"
+      }
+    },
+    "skills-beta/ip-as-logo-skill": {
+      "source": "https://github.com/s1dashu/ip-as-logo-skill",
+      "type": "github",
+      "group": "skills-beta",
+      "installed_at": "2026-08-19T19:42:37.466389+08:00",
+      "repo_url": "https://github.com/s1dashu/ip-as-logo-skill.git",
+      "version": "565d741",
+      "file_hashes": {
+        ".gitignore": "sha256:14d7f339ea62f7b7be78a91617928a207b26393474f741606bf20060a3d6d4b5",
+        "LICENSE": "sha256:b8f39925b1c36ca531c5e663aeb7ba427f94a526495785b4d1b2797fae8f2546",
+        "README.md": "sha256:cc0cc7cbc0ca94506279ec30a2281c1d2a515dafa16c674b56c3c0655510a77f",
+        "SKILL.md": "sha256:9c2ed4fdaf854415a273c068e4c76f6690f331a033ba7462e4e05219ae9c3ac6",
+        "assets/ip-as-logo-wall.webp": "sha256:80e4b0e1fecb4648f53be77a1ec1efc6f2ca4a7c01f19305eec28c812df78fd1"
       }
     },
     "skills-beta/sherlog": {
