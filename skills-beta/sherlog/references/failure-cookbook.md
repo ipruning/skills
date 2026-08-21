@@ -2,14 +2,14 @@
 
 先判断失败发生在哪一层，读取 error payload/hint，再按表处理；不要把所有问题都用无条件 full sync 解决。
 
-**`nextAction` 限制**：CLI 建议的命令是 recommendation，不保证已闭包所有上下文。执行任何建议前，检查是否保留了原命令的 `--db`、`--source` 和 selector/scope；缺失时补回原上下文，而不是照抄建议，也不要为了覆盖缺失而盲目扩大 scope。
+**`nextAction` 限制**：`index_unavailable` 有闭包 `command` 时，按宿主权限原样执行 `recommended: true`（或唯一）那条。默认 Codex `all`+`cwd` 二选一只用于无 `--root/--cwd/--selector` 的首次安装；cwd/root/selector 查询不要改走 `all(root)`。旧版或只有 `argv` 的建议仍需检查是否保留原命令的 `--db`、`--source` 和 selector/scope。缺失时补回原上下文，不要为了覆盖缺失而盲目扩大 scope。
 
 ## 错误处理表
 
 | 错误 | 立即动作 |
 | --- | --- |
 | `shlog` 不存在 / 版本过旧 | 安装或升级 CLI（见下方），再重试原命令 |
-| `index_unavailable` | bootstrap sync，保留原 `--db`/`--source`/scope；只限当前 repo 时才 `--cwd` |
+| `index_unavailable` | 执行 recommended 闭包 command（`write_index`）；旧版无 command 时才补 `--db`/`--source`/scope，且只限当前 repo 才 `--cwd` |
 | `index_schema_upgrade_required` | supported `legacy_v7` 才执行带原 `--db` 的迁移 sync；future/incompatible 版本不重复 sync，用兼容 binary 或可信 backup |
 | `session_not_found` | 确认 `sessionRef`/source；恢复 `--cwd/--selector` 后跑 `status`；`recommendedAction=sync` 才同范围 sync |
 | `anchor_not_found` | 按 nextAction 回退 `read-page`，或改用消息中真实出现的 term；不伪造 seq |
@@ -40,7 +40,7 @@ Refine：去掉冗余自然语言；用稳定 identifier/error phrase；单字 C
 
 ## (b) Index unavailable / schema upgrade
 
-`index_unavailable`：index 不存在，只读命令不会创建它。bootstrap sync 必须带上原 `--db`/`--source`/scope，否则会默认初始化 Codex 默认 index：
+`index_unavailable`：index 不存在，只读命令不会创建它。优先原样执行 recommended（或唯一）`nextAction.commands[].command`，其中已闭包 `--db`/`--source`/scope，并以 `sideEffect: "write_index"` 声明写入。默认 Codex alternatives 只覆盖无 scope 的首次查询。旧 CLI 没有闭包 command 时使用：
 
 ```bash
 shlog sync --json          # 默认 Codex all(root)

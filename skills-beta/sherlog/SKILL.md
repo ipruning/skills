@@ -14,6 +14,8 @@ description: "Search local agent-session history to recover prior decisions, com
 3. **证明范围**：只在回答依赖 latest / completeness / miss 结论时，对相同 selector 跑 `status --json`。完成：按 `recommendedAction` 决定 query、同范围 sync，或说明无法证明。
 4. **报告**：不确定处明确说明；不伪造完整性或不存在的证据。
 
+直接执行匹配任务的只读命令，不用 `status` / `sync` 预检；失败时按宿主权限原样执行 recommended（或唯一）typed `nextAction.commands[].command`。不要自行重建命令，也不要把 cwd/root/selector 查询扩成 `all(root)`。
+
 ## 不变量
 
 - `find/read/list/stats/cold list` 只读；`sync` 是唯一 content writer；`cold add/remove` 只写 retention state。只读命令不隐式 sync/migrate。

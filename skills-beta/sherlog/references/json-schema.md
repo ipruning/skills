@@ -50,8 +50,9 @@ interface ErrorEnvelope {
 
 `nextAction.commands[].argv` 是 **recommendation**，执行前要核对：
 
-- 它可能省略原命令的 `--db` / `--source` / scope（尤其是 `index_unavailable`）；把原命令上下文补回去。
-- 不要为了覆盖缺失而盲目扩大 scope。
+- `index_unavailable` 的新版本还返回闭包 `command`：`executable: "inherit"`、完整 `args` 与 `sideEffect: "write_index"`。宿主授权该 side effect 时原样执行 `recommended: true`（或唯一）那条；`argv` 作为兼容镜像保留。无 `--root/--cwd/--selector` 的跨 source find 仍可能给出默认 Codex `all`+`cwd` 二选一。
+- 旧版本或其他 nextAction 的 `argv` 可能省略原命令的 `--db` / `--source` / scope；没有闭包 `command` 时才核对并补回原上下文。
+- 不要为了覆盖缺失而盲目扩大 scope；cwd/root/selector 查询不要改走 `all(root)`。
 - `anchor_not_found` 的 nextAction 是回退 `read-page`；`index_schema_upgrade_required` 的 nextAction 是带原 `--db` 的迁移 sync。
 
 CLI parse error 不保证 JSON envelope；例如缺少 `find` query 是 plain stderr compatibility text。
