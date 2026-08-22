@@ -1,4 +1,4 @@
-min_version = { hard = "2026.8.2" }
+min_version = { hard = "2026.8.3" }
 
 [tool_alias]
 skillshare = "aqua:runkids/skillshare"
@@ -12,7 +12,7 @@ gum = "0.17.0"
 jq = "1.8.2"
 ls-lint = "2.3.1"
 markdownlint-cli2 = "0.23.2"
-prek = "0.4.12"
+prek = "0.4.13"
 python = "3.14.7"
 shellcheck = "0.11.0"
 skillshare = "0.20.24"
