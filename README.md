@@ -1,56 +1,67 @@
 # Skills
 
-A skill is a SKILL.md file that teaches a coding agent how to do one thing well. This repo holds all your skills and syncs them to every AI tool you use — Amp, Codex, Claude Code, Cursor, and others — with [skillshare](https://github.com/runkids/skillshare).
+这个仓库保存个人 Skill 和 Skillshare extras。它可以作为普通 Git 仓库使用，也可以配置为 Skillshare source。
 
-Each top-level directory is one skill. Directories prefixed with `_` are installed from external repos; skillshare manages them and git ignores them.
+## 配置 Skillshare
 
-## Setup
-
-macOS:
+在仓库根目录执行：
 
 ```bash
 brew install skillshare
-```
 
-Linux:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/runkids/skillshare/main/install.sh | sh
-```
-
-Then point skillshare at this repo and sync:
-
-```bash
 skillshare init \
-  --source ~/.config/skillshare/skills \
-  --remote https://github.com/<you>/skills \
-  --all-targets --mode merge --subdir . --no-skill
+  --source "$PWD" \
+  --remote https://github.com/<owner>/<repo> \
+  --all-targets \
+  --mode merge \
+  --subdir . \
+  --no-skill
+```
 
-skillshare install https://github.com/<org>/skills --track
+将 `<owner>/<repo>` 替换为本仓库的远程地址。使用交互式 TUI 时，去掉 `--all-targets` 和 `--no-skill`。
+
+查看配置并预览同步：
+
+```bash
+skillshare status
+skillshare sync --dry-run
+```
+
+确认无误后执行：
+
+```bash
 skillshare sync
 ```
 
-Drop `--no-skill` and `--all-targets` for the interactive TUI.
+## 日常流程
 
-## Daily use
+编辑 source 后同步到 target：
 
 ```bash
-skillshare sync                             # after writing or editing a skill
-skillshare push                             # push to git
-skillshare pull && skillshare sync          # pull on another machine
-skillshare update --all && skillshare sync  # update external skills
+skillshare sync
 ```
 
-skillshare also works per-repo (`.skillshare/` in any project root). See the skillshare skill for details.
+更新上游 Skill 前先预览：
 
-## Things that will bite you
+```bash
+skillshare update --all --dry-run
+skillshare update --all
+skillshare sync
+```
 
-`sync` is manual. Run it after every `install`, `uninstall`, or `update`.
+`sync` 是 source → target。要把 target 上的文件导回 source，使用：
 
-Remove skills with `skillshare uninstall`, not `rm -rf`. Uninstall puts them in trash with 7-day retention.
+```bash
+skillshare collect
+```
 
-Never edit `_`-prefixed directories. They are overwritten on `update`.
+## Extras
 
-Use `merge` mode, not `replace`. `replace` wipes the target directory.
+修改 extras 前，先查看当前配置和同步状态：
 
-`skillshare doctor` is the first thing to run when skills don't show up.
+```bash
+skillshare extras list --json
+skillshare sync extras --dry-run
+```
+
+source、target 和同步模式以当前 `config.yaml` 为准。不要直接编辑 target；如果 target 中已有本地改动，确认 dry-run 结果后再同步。
