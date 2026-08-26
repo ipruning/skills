@@ -26,19 +26,6 @@ Authenticate:
 longbridge auth login
 ```
 
-If the browser OAuth flow is unavailable (no browser, headless, or a client that
-can't open links), have the user generate a one-time auth code at
-https://open.longbridge.com/connect, then redeem it:
-
-```bash
-longbridge auth login --auth-code <code>
-```
-
-For MCP clients, redeem the code against the dedicated authorization endpoint
-`https://mcp.longbridge.com/agent` via the `authenticate` tool (auth-only
-channel — the MCP service address remains `https://mcp.longbridge.com`) — see
-[references/mcp.md](references/mcp.md).
-
 ## CLI Update
 
 ```bash
@@ -51,18 +38,12 @@ curl -sSL https://open.longbridge.com/longbridge/longbridge-terminal/install | s
 
 ## MCP (for AI tools — no code)
 
-```text
-# ChatGPT web, desktop, and mobile
-https://chatgpt.com/apps/longbridge/asdk_app_6a2baf2fad748191812393c3e00308ef
-or Apps → search "longbridge" → authorize → use @longbridge in the message box
-```
-
 ```bash
 # Claude Code
 claude mcp add longbridge https://mcp.longbridge.com
 ```
 
-ChatGPT completes authorization while adding Longbridge from Apps. Other clients trigger an OAuth browser flow on the first tool call. See [references/mcp.md](references/mcp.md) for Cursor, Claude Code, Zed, and other MCP clients.
+First tool call triggers an OAuth browser flow. See [references/mcp.md](references/mcp.md) for Cursor, ChatGPT, Zed.
 
 ## Revoking Authorization
 
