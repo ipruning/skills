@@ -57,14 +57,13 @@ longbridge auth logout   # Clear saved session token
 longbridge check    # Verify connectivity and token (no auth required)
 ```
 
-**China Mainland:** The CLI picks its access point from the country reported by `geotest.lbkrs.com`, caching the verdict at `~/.longbridge/openapi/region-cache` for 6 hours. China Mainland uses the `.cn` endpoints; everywhere else uses the global ones. `longbridge check` never reads that cache: it re-detects, measures both endpoints, and repins to whichever is decisively faster — so running it repairs a verdict that no longer matches reality, such as after a move or behind a split-tunnel proxy.
+**China Mainland:** The CLI auto-detects CN by probing `geotest.lbkrs.com` on startup (non-blocking). Result cached at `~/.longbridge/openapi/region-cache`. CN users automatically use `.cn` endpoints.
 
 ## Environment Variables
 
 | Variable         | Value     | Description                                                                                                                 |
 | ---------------- | --------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `LONGBRIDGE_ENV` | `staging` | Switch all endpoints to the staging environment (`openapi.longbridge.xyz`). Useful for testing against non-production data. |
-| `LONGBRIDGE_REGION` | `cn` / `global` | Pin the API access point instead of detecting it. Use when detection lands on the wrong one — e.g. behind a proxy that exits in another country. |
 
 ```bash
 # Run any command against the staging environment
@@ -88,7 +87,7 @@ All commands support `--format json`. Example with `jq`:
 
 ```bash
 longbridge positions --format json | jq '.[] | {symbol, quantity, cost_price}'
-longbridge orders --format json | jq '.[] | select(.status == "New")'
+longbridge order --format json | jq '.[] | select(.status == "New")'
 ```
 
 ## AI Agent Integration
@@ -115,31 +114,33 @@ longbridge filing list TSLA.US
 longbridge filing detail TSLA.US 610186794100660481 --file-index 0
 ```
 
+## Longbridge AI Agents
+
+`longbridge agent` talks to Longbridge's own AI agents (research, stock analysis, screeners, custom workflow agents). This is distinct from the data commands above: the agent answers in prose, not JSON records.
+
+```bash
+longbridge agent workspaces                       # workspaces holding your agents
+longbridge agent list                             # chat-capable agents (--all includes workflow agents)
+longbridge agent chat chatbot "分析一下 TSLA"      # first round
+longbridge agent chat chatbot <CHAT_UID> <MSG_ID> "继续"   # follow-up
+longbridge agent continue chatbot <CHAT_UID> <MSG_ID> --answer "…"  # resume an interrupted run
+longbridge agent --skill                          # skill document written for AI harnesses
+```
+
+Key points:
+
+- **`chatbot` (LongbridgeAI) is public** — usable by any account, and it does not appear in `agent list` because no endpoint enumerates public agents.
+- **Runs take 1–2 minutes.** Transport is SSE; `--stream` prints tokens as they arrive.
+- **Follow-ups need both IDs** from the previous response: `chat_uid` and `message_id`.
+- **`status: "interrupted"`** means the agent asked clarifying questions — answer them with `agent continue`, not `agent chat`.
+- **`--skill`** prints a static document (no auth, no network) describing the whole flow; point a harness at it rather than duplicating the details here.
+
 ## Extended Hours (Pre/Post Market)
 
 `quote`, `intraday`, `kline`, `kline history` all support extended-hours data. Use `longbridge <command> --help` for exact flags — key points:
 
 - **`quote`**: always returns `pre_market_quote` / `post_market_quote` / `overnight_quote` when available (US only). Table format appends an "Extended Hours" section; JSON includes them as nested objects.
 - **`intraday` / `kline` / `kline history`**: default to intraday session only; pass `--session all` to include pre/post-market data. `kline`/`kline history` add a **Session** column when `--session all` is used.
-
-## Short Selling
-
-Submitting a sell order for a symbol with no existing position opens a short position. No special flags are required — `order sell` handles both regular sells and short sells.
-
-```bash
-longbridge order sell META.US 1 --price 620.00   # short sell (no position held)
-longbridge order sell TSLA.US 10 --price 300.00  # regular sell (closes long position)
-```
-
-**Market support:**
-
-**US stocks** can be shorted directly with no additional setup.
-
-**HK stocks** require activation: open the Longbridge mobile app, place your first HK short sell order — the app will trigger a Securities Borrowing and Lending (SBL) agreement signing flow. Complete the signing and wait for approval. Note: HK short selling is subject to a fee levied by the Hong Kong Inland Revenue Department; details are described in the in-app agreement. The API returns error `602301` before the HK SBL agreement is signed.
-
-**A-share (SH/SZ)** short selling is not supported — the CLI does not support Northbound (Stock Connect) trading.
-
-To close a short position, submit a buy order for the same symbol and quantity.
 
 ## Rate Limits
 
