@@ -10,6 +10,7 @@ extend-exclude = [
     "skills-beta/ip-as-logo-skill/",
     "skills-beta/sherlog/",
     "skills-beta/show-me/",
+    "skills-beta/typesafe-ai/",
     "skills-mattpocock/ask-matt/",
     "skills-mattpocock/code-review/",
     "skills-mattpocock/codebase-design/",

@@ -60,3 +60,9 @@ shlog sync --cwd <repo> --json   # 仅限当前 repo 的问题
 - strict failure：`errorDetails[]` 是 per-file/source evidence。strict 不发布部分 complete coverage；修 filesystem/permission/malformed source 后同范围 retry。
 - `--best-effort`：允许成功 file 先进 projection，但带 errors 且 coverage 不 complete；回答时说明可能漏掉的 scope。
 - `sync --prune` / `cold remove`：破坏性，只在用户明确授权后执行。cold root unreadable/walk error 或 non-Codex source 时 prune fail-closed，不绕过；不手工删 DB/lock/backup。
+
+## (e) Codex 解析版本升级
+
+0.5.4 起可读取新版 `response_item/message`，并自动重放旧解释留下的空/非空游标。升级 CLI 后，对原查询的 source/root/selector/DB 执行一次 sync 再读回；不要删除 index 或手工编辑 cursor。已迁移的库不要再交给旧 CLI 写入。
+
+分页续段使用独立 `sessionRef`，以 find 返回值为准。默认 sync 不扫描归档目录；目标历史已归档为 plain JSONL 时，对该 root 显式 sync，查询时也保留该 `--root`。cold registration 只保护现有投影，压缩 Codex cold 文件不会因此重新索引。
