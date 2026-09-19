@@ -13,7 +13,7 @@
 | `index_schema_upgrade_required` | supported `legacy_v7` 才执行带原 `--db` 的迁移 sync；future/incompatible 版本不重复 sync，用兼容 binary 或可信 backup |
 | `session_not_found` | 确认 `sessionRef`/source；恢复 `--cwd/--selector` 后跑 `status`；`recommendedAction=sync` 才同范围 sync |
 | `anchor_not_found` | 按 nextAction 回退 `read-page`，或改用消息中真实出现的 term；不伪造 seq |
-| zero results | 同 selector `status`；`query` 则 refine，`sync` 则同范围 sync 后重试 |
+| zero results | 先按输出里的 `hint:` / `try:`（JSON 为 `zeroResults`）换词；需要证明 miss 时同 selector `status`，`query` 则 refine，`sync` 则同范围 sync 后重试 |
 | strict sync failure | 看 `errorDetails[]` 修 source 后同范围重试；不用 `--best-effort` 冒充 complete |
 | `invalid_selector` / `invalid_cold_root` | 修正参数/路径后重试；不降级成无 scope 的全局 destructive sync/prune |
 

@@ -39,6 +39,8 @@ CLI 可补默认 root/source。
 
 ## Exit / output
 
+- 文本输出（默认）是 agent 的主输出：`find`/`list` 每条 candidate 一个短块——`[rank] 日期 · source · cwd · seq N | session-level · N hits`、标题（去掉 `[$skill](…)`/`[@plugin](…)`/`<command-*>` 包装）、`summary:`（标题之后的摘要）、`match:`（命中片段，与标题重复时省略）、`read:`（可原样执行；索引不是默认路径时自带 `--db`）。开头 `coverage:` 一行是各 source 的 stored proof（covered/uncovered），不是 freshness。零结果时打印 `hint:`、`try:` 与 `next:`。
+- `--json` 是同一结果的完整 contract（含 `evidenceRead`、完整 coverage、`zeroResults`），体积约为文本的 4–5 倍，只在需要程序化解析时使用。
 - success：0；failure：non-zero。
 - typed business errors + `--json`：stdout 输出 `{"error":{...}}` envelope。
 - strict sync `--json` 失败：sync 报告写 stderr；`--best-effort` 的 sync 报告写 stdout。

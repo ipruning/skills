@@ -1,6 +1,6 @@
 # Public JSON Contracts
 
-字段使用 camelCase，具体 payload 可直接从 `--json` 输出查看。这里只给影响检索决策的三个 contract：coverage、`evidenceRead`、`nextAction`/error。
+字段使用 camelCase，具体 payload 可直接从 `--json` 输出查看。日常检索用文本输出即可（`read:` 行等价于 `evidenceRead.command`）；只在需要程序化解析字段时加 `--json`。这里只给影响检索决策的三个 contract：coverage、`evidenceRead`、`nextAction`/error。
 
 ## `coverage` / `requestedCoverage`
 
