@@ -17,19 +17,19 @@ url_api = "https://api.github.com/repos/rhysd/actionlint/releases/assets/3849248
 provenance = "github-attestations"
 
 [[tools.biome]]
-version = "2.5.7"
+version = "2.5.14"
 backend = "aqua:biomejs/biome"
 
 [tools.biome."platforms.linux-x64"]
-checksum = "sha256:7b5045d6d34f055df8ffe1bf3077164e6f6a24c45a41497d628a5e86d0e12fe7"
-url = "https://github.com/biomejs/biome/releases/download/%40biomejs/biome%402.5.7/biome-linux-x64"
-url_api = "https://api.github.com/repos/biomejs/biome/releases/assets/501376676"
+checksum = "sha256:290c1c85deeaf01310d9187306060b53961574856a7e34f59d9662562e6f19fe"
+url = "https://github.com/biomejs/biome/releases/download/%40biomejs/biome%402.5.14/biome-linux-x64"
+url_api = "https://api.github.com/repos/biomejs/biome/releases/assets/567471264"
 provenance = "github-attestations"
 
 [tools.biome."platforms.macos-arm64"]
-checksum = "sha256:f71fe80909d2f70f1e051320f5ba9dfd553bc5ef3bacef5cdee1b00ee96a285c"
-url = "https://github.com/biomejs/biome/releases/download/%40biomejs/biome%402.5.7/biome-darwin-arm64"
-url_api = "https://api.github.com/repos/biomejs/biome/releases/assets/501376674"
+checksum = "sha256:3d1194d0a7b720315fb6f8cbafeb5b18ca7100c3e635e8ce82ef46b315de9c0e"
+url = "https://github.com/biomejs/biome/releases/download/%40biomejs/biome%402.5.14/biome-darwin-arm64"
+url_api = "https://api.github.com/repos/biomejs/biome/releases/assets/567471268"
 provenance = "github-attestations"
 
 [[tools."github:huacnlee/autocorrect"]]
@@ -47,18 +47,20 @@ url = "https://github.com/huacnlee/autocorrect/releases/download/v2.16.3/autocor
 url_api = "https://api.github.com/repos/huacnlee/autocorrect/releases/assets/335756985"
 
 [[tools.gum]]
-version = "0.17.0"
+version = "2.0.1"
 backend = "aqua:charmbracelet/gum"
 
 [tools.gum."platforms.linux-x64"]
-checksum = "sha256:69ee169bd6387331928864e94d47ed01ef649fbfe875baed1bbf27b5377a6fdb"
-url = "https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0_Linux_x86_64.tar.gz"
-url_api = "https://api.github.com/repos/charmbracelet/gum/releases/assets/290080949"
+checksum = "sha256:4dfe4547f960813864c803b3617aa64427fa32ca566707fde949e08975297c48"
+url = "https://github.com/charmbracelet/gum/releases/download/v2.0.1/gum_2.0.1_Linux_x86_64.tar.gz"
+url_api = "https://api.github.com/repos/charmbracelet/gum/releases/assets/556563001"
+provenance = "cosign"
 
 [tools.gum."platforms.macos-arm64"]
-checksum = "sha256:e2a4b8596efa05821d8c58d0c1afbcd7ad1699ba69c689cc3ff23a4a99c8b237"
-url = "https://github.com/charmbracelet/gum/releases/download/v0.17.0/gum_0.17.0_Darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/charmbracelet/gum/releases/assets/290080948"
+checksum = "sha256:994662daab6fcfe9dcfc57d87ca42bcae2948d86fa864f9010a3848fa9bb7d6e"
+url = "https://github.com/charmbracelet/gum/releases/download/v2.0.1/gum_2.0.1_Darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/charmbracelet/gum/releases/assets/556563007"
+provenance = "cosign"
 
 [[tools.jq]]
 version = "1.8.2"
@@ -95,19 +97,19 @@ version = "0.23.2"
 backend = "npm:markdownlint-cli2"
 
 [[tools.prek]]
-version = "0.4.13"
+version = "0.5.3"
 backend = "aqua:j178/prek"
 
 [tools.prek."platforms.linux-x64"]
-checksum = "sha256:db31d0c5be937602002ab21e70ebf07c6566cc4428c9095f04fa546e12e7ccb0"
-url = "https://github.com/j178/prek/releases/download/v0.4.13/prek-x86_64-unknown-linux-gnu.tar.gz"
-url_api = "https://api.github.com/repos/j178/prek/releases/assets/508529827"
+checksum = "sha256:c1475ddc56df0003c780557d9b52273d9eb19c9ef8d91143f3ce03511182a36e"
+url = "https://github.com/j178/prek/releases/download/v0.5.3/prek-x86_64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/j178/prek/releases/assets/560889224"
 provenance = "github-attestations"
 
 [tools.prek."platforms.macos-arm64"]
-checksum = "sha256:776da7aa143b3cb11125f9c6f44ab5af157c176c992b7bfbafc1b155a44ac769"
-url = "https://github.com/j178/prek/releases/download/v0.4.13/prek-aarch64-apple-darwin.tar.gz"
-url_api = "https://api.github.com/repos/j178/prek/releases/assets/508529745"
+checksum = "sha256:6006cc4e69cfc86d55f4e407ca60ba960a521befa54fece94038639b1f4de381"
+url = "https://github.com/j178/prek/releases/download/v0.5.3/prek-aarch64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/j178/prek/releases/assets/560889174"
 provenance = "github-attestations"
 
 [[tools.python]]
@@ -139,61 +141,62 @@ url = "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellche
 url_api = "https://api.github.com/repos/koalaman/shellcheck/releases/assets/279056932"
 
 [[tools.skillshare]]
-version = "0.20.24"
+version = "0.21.0"
 backend = "aqua:runkids/skillshare"
 
 [tools.skillshare."platforms.linux-x64"]
-checksum = "sha256:bed077a4556a4e05e7513409fc65d44c0cfbcb28f427f3adf79944c84b4d3ddc"
-url = "https://github.com/runkids/skillshare/releases/download/v0.20.24/skillshare_0.20.24_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/runkids/skillshare/releases/assets/500093153"
+checksum = "sha256:ee26062a1e525b195f4a82bb16de5a1952337a1113e6cf3b21f39ec6d11f2fd0"
+url = "https://github.com/runkids/skillshare/releases/download/v0.21.0/skillshare_0.21.0_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/runkids/skillshare/releases/assets/573297652"
 
 [tools.skillshare."platforms.macos-arm64"]
-checksum = "sha256:dfd8d6eeb83b9cae22fc0f479b2fb7e4c356fae5fe2a4404bbba8ef5b4578eb1"
-url = "https://github.com/runkids/skillshare/releases/download/v0.20.24/skillshare_0.20.24_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/runkids/skillshare/releases/assets/500093163"
+checksum = "sha256:77dea87d117fd52680457edfb9d0f98e682184e0650c10bdee2335831492de1f"
+url = "https://github.com/runkids/skillshare/releases/download/v0.21.0/skillshare_0.21.0_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/runkids/skillshare/releases/assets/573297695"
 
 [[tools.tombi]]
-version = "1.2.6"
+version = "1.5.5"
 backend = "aqua:tombi-toml/tombi"
 
 [tools.tombi."platforms.linux-x64"]
-checksum = "sha256:43f8e209818f425d45fca06797eec44b1cf643e8a58c74f29dbdaaaf827052e0"
-url = "https://github.com/tombi-toml/tombi/releases/download/v1.2.6/tombi-cli-1.2.6-x86_64-unknown-linux-musl.tar.gz"
-url_api = "https://api.github.com/repos/tombi-toml/tombi/releases/assets/499469529"
+checksum = "sha256:6c50d2589989e8182e9f6e774b4b25c9f5729b67a2a7e7dcaadddbedbe1da5ec"
+url = "https://github.com/tombi-toml/tombi/releases/download/v1.5.5/tombi-cli-1.5.5-x86_64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/tombi-toml/tombi/releases/assets/559313407"
 provenance = "github-attestations"
 
 [tools.tombi."platforms.macos-arm64"]
-checksum = "sha256:d746072a5edb7d14b413a80f14892e4d299babf3b9b370faecc29571cbdc2c7c"
-url = "https://github.com/tombi-toml/tombi/releases/download/v1.2.6/tombi-cli-1.2.6-aarch64-apple-darwin.tar.gz"
-url_api = "https://api.github.com/repos/tombi-toml/tombi/releases/assets/499469512"
+checksum = "sha256:460b3269414d2ca26e05863908764f118bea3b4a52068081af6a3dae03c1320e"
+url = "https://github.com/tombi-toml/tombi/releases/download/v1.5.5/tombi-cli-1.5.5-aarch64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/tombi-toml/tombi/releases/assets/559313381"
 provenance = "github-attestations"
 
 [[tools.usage]]
-version = "5.0.0"
+version = "6.10.0"
 backend = "aqua:jdx/usage"
 
 [tools.usage."platforms.linux-x64"]
-checksum = "sha256:8b2dcd512c64aaeb59401764f2cdcbb3d7b8d8b371c803c44646624777a36f20"
-url = "https://github.com/jdx/usage/releases/download/v5.0.0/usage-x86_64-unknown-linux-gnu.tar.gz"
-url_api = "https://api.github.com/repos/jdx/usage/releases/assets/501424445"
+checksum = "sha256:d0b853eed5db9ede04891fa6e31caed8bc802c3794e59043217b460a02965b24"
+url = "https://github.com/jdx/usage/releases/download/v6.10.0/usage-x86_64-unknown-linux-gnu.tar.gz"
+signer = "sigstore-oidc:https://github.com/jdx/usage/.github/workflows/publish-cli.yml"
 
 [tools.usage."platforms.macos-arm64"]
-checksum = "sha256:35f1703ed922486387d499265c9d6c0dbc84b8347e565fb31d54ad23fdff712d"
-url = "https://github.com/jdx/usage/releases/download/v5.0.0/usage-universal-apple-darwin.tar.gz"
-url_api = "https://api.github.com/repos/jdx/usage/releases/assets/501428939"
+checksum = "sha256:f2c89cf9446b50c0129943e76a4a25188cbf42c116c66c7d3f913f5cc7d5123c"
+url = "https://github.com/jdx/usage/releases/download/v6.10.0/usage-universal-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/jdx/usage/releases/assets/574832170"
+signer = "sigstore-oidc:https://github.com/jdx/usage/.github/workflows/publish-cli.yml"
 
 [[tools.uv]]
-version = "0.12.2"
+version = "0.12.17"
 backend = "aqua:astral-sh/uv"
 
 [tools.uv."platforms.linux-x64"]
-checksum = "sha256:d66e96b5f1ca3b99806eee283a8125d33a0bd669e6e6d9bc4ab7ffda63c41bf4"
-url = "https://github.com/astral-sh/uv/releases/download/0.12.2/uv-x86_64-unknown-linux-gnu.tar.gz"
-url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/502996586"
+checksum = "sha256:fa82fd8dde8e8eefdecada6aa0889666556cfceb690d06e0c3bca49eb3070a63"
+url = "https://github.com/astral-sh/uv/releases/download/0.12.17/uv-x86_64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/573253080"
 provenance = "github-attestations"
 
 [tools.uv."platforms.macos-arm64"]
-checksum = "sha256:fa909fea3bc06f460db79017030a221fdbc43ec4478f089cb554d8335c090817"
-url = "https://github.com/astral-sh/uv/releases/download/0.12.2/uv-aarch64-apple-darwin.tar.gz"
-url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/502996487"
+checksum = "sha256:85f00cbdc6dd3e97eba4c31b4d014375a9fdfe8f570023b84e5102fc3456896b"
+url = "https://github.com/astral-sh/uv/releases/download/0.12.17/uv-aarch64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/573252913"
 provenance = "github-attestations"

@@ -71,7 +71,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/biomejs/pre-commit"
-rev = "v2.5.7"
+rev = "v2.5.14"
 hooks = [
     {
         id = "biome-ci",
@@ -122,7 +122,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/crate-ci/typos"
-rev = "v1.48.0"
+rev = "v1.50.2"
 hooks = [{ id = "typos", name = "typos", stages = ["pre-push"], priority = 20 }]
 
 [[repos]]

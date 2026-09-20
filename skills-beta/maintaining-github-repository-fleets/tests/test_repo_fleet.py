@@ -3,8 +3,9 @@ from __future__ import annotations
 import importlib.util
 import json
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from typer.testing import CliRunner
@@ -17,7 +18,11 @@ SPEC.loader.exec_module(fleet)
 
 
 class FakeRunner:
-    def __init__(self, responses: dict[tuple[str, ...], str] | None = None, delegate: Any | None = None) -> None:
+    def __init__(
+        self,
+        responses: dict[tuple[str, ...], str] | None = None,
+        delegate: Callable[..., subprocess.CompletedProcess[str]] | None = None,
+    ) -> None:
         self.responses = responses or {}
         self.delegate = delegate
         self.calls: list[tuple[str, ...]] = []
@@ -595,7 +600,7 @@ def test_valid_hash_cannot_authorize_refspec_or_policy_mismatch(tmp_path: Path) 
         [],
         [],
     )
-    with pytest.raises(fleet.typer.BadParameter, match="branch|policy"):
+    with pytest.raises(fleet.typer.BadParameter, match=r"branch|policy"):
         fleet.validate_plan(plan)
 
 
@@ -628,7 +633,7 @@ def test_materialize_uses_owned_lease_and_detaches_exact_head(tmp_path: Path, mo
             subprocess.run(["git", "clone", str(source), str(destination)], check=True, capture_output=True)
             git(destination, "remote", "set-url", "origin", "https://github.com/acme/repo.git")
             return subprocess.CompletedProcess(argv, 0, "", "")
-        return fleet.run_command(argv, cwd, env=env, check=check)
+        return cast(subprocess.CompletedProcess[str], fleet.run_command(argv, cwd, env=env, check=check))
 
     status, evidence = fleet.apply_materialize(action, "acme", "planned", "a" * 64, runner)
     assert status == "materialized_verified"
@@ -669,7 +674,7 @@ def test_workspace_clone_stages_verifies_and_cleans_failed_stage(
             )
             git(destination, "remote", "set-url", "origin", "https://github.com/acme/repo.git")
             return subprocess.CompletedProcess(argv, 0, "", "")
-        return fleet.run_command(argv, cwd, env=env, check=check)
+        return cast(subprocess.CompletedProcess[str], fleet.run_command(argv, cwd, env=env, check=check))
 
     action = {
         "kind": "clone_workspace",
