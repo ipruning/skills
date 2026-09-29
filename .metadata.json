@@ -20,90 +20,95 @@
       "source": "https://github.com/miguelrios/unc-skills.git/cascade/skills/cascade",
       "type": "github-subdir",
       "group": "skills-beta",
-      "installed_at": "2026-08-23T20:04:44.207765+08:00",
+      "installed_at": "2026-09-29T03:53:32.441427455+08:00",
       "repo_url": "https://github.com/miguelrios/unc-skills.git",
       "subdir": "cascade/skills/cascade",
-      "version": "adfc52d",
-      "tree_hash": "11fd3ec0f551cb6bd9530fca403a3b40240f5e8f",
+      "version": "b312171",
+      "tree_hash": "7a86fe41841cd3aad1af3c40c17283bf77d0b9e0",
+      "commit": "b31217194903fba8bd06c655733b077910e833a8",
       "file_hashes": {
-        "SKILL.md": "sha256:235ea29093e699fb9f5188d5c6b63dcffc7d3ce37563d9f3820bccaaefd48350",
-        "references/templates.md": "sha256:0ac290481c25d3b49764a18915c9a392a85be0a9c84c0557f01dac78454209f4",
-        "scripts/validate_cascade.py": "sha256:315e33ee52179be901130eb50d47c776806cc8f00c76886428ea6a74228216c5"
+        "SKILL.md": "sha256:277fcbf73c90e470d60c4e84ca95001e48ad8cd536e7ba11a19000f2548791de"
       }
     },
     "skills-beta/code-storage": {
       "source": "https://github.com/pierrecomputer/sdk.git/skills/code-storage",
       "type": "github-subdir",
       "group": "skills-beta",
-      "installed_at": "2026-08-23T20:04:22.63355+08:00",
+      "installed_at": "2026-09-29T03:53:44.514327973+08:00",
       "repo_url": "https://github.com/pierrecomputer/sdk.git",
       "subdir": "skills/code-storage",
-      "version": "8d7940f",
-      "tree_hash": "3822da4c8235be4edfc73cdb5b8cfb5bebad7ef9",
+      "version": "35610ab",
+      "tree_hash": "3d2d69b49fa67f04a59282342d6f659d55890c7e",
+      "commit": "35610abbb49bfd65c9bcf684785c3017a5769020",
       "file_hashes": {
-        "SKILL.md": "sha256:299f0451c56aea726d694eeeea145310e84ecfc7920ebc90c984b8f5d1c5c746"
+        "SKILL.md": "sha256:905cf03c44ead51ec67632a45e1b59a2702ff128e5baaa18655888859bfd90c6"
       }
     },
     "skills-beta/flint-chart-author": {
       "source": "https://github.com/microsoft/flint-chart.git/agent-skills/flint-chart-author",
       "type": "github-subdir",
       "group": "skills-beta",
-      "installed_at": "2026-08-23T20:04:27.066781+08:00",
+      "installed_at": "2026-09-29T03:53:48.189772896+08:00",
       "repo_url": "https://github.com/microsoft/flint-chart.git",
       "subdir": "agent-skills/flint-chart-author",
-      "version": "34ef451",
-      "tree_hash": "970f9d33b5e6caabbb63e6590dfa81f0446ea639",
+      "version": "683d5de",
+      "tree_hash": "96bb957355624d5517b755c04f92e7f378b2fde2",
+      "commit": "683d5de1ffd0c1a76001ca5aa044f297276d7734",
       "file_hashes": {
-        "SKILL.md": "sha256:e2156165b9543e67e2437a72197d8165712f78bb0cf3994963c8ad0f6f5c089d"
+        "SKILL.md": "sha256:2886e9057da56c251f9a1bfc7f5f5cbd199cf1ea0428d02ae2e6cc46d2370c0a"
       }
     },
     "skills-beta/flint-theme-author": {
       "source": "https://github.com/microsoft/flint-chart.git/agent-skills/flint-theme-author",
       "type": "github-subdir",
       "group": "skills-beta",
-      "installed_at": "2026-08-23T20:04:27.386752+08:00",
+      "installed_at": "2026-09-29T03:53:48.313362887+08:00",
       "repo_url": "https://github.com/microsoft/flint-chart.git",
       "subdir": "agent-skills/flint-theme-author",
-      "version": "34ef451",
-      "tree_hash": "9dec9ac07fc97d7234e3d9cba2681d5fce727604",
+      "version": "683d5de",
+      "tree_hash": "c9afe00cb9e9ff61f8876c92cdde8ec1925756fe",
+      "commit": "683d5de1ffd0c1a76001ca5aa044f297276d7734",
       "file_hashes": {
-        "SKILL.md": "sha256:e1d84f72850f94994885f72d8fa7e46660241b37f5ce9bd7c85b5f15a4360c63"
+        "SKILL.md": "sha256:066bc3d4fbf60dcc5766cb1600e638446437fb7a6eb7ca10688b8a4f78d284e7"
       }
     },
     "skills-beta/frontend-design": {
       "source": "https://github.com/anthropics/skills.git/skills/frontend-design",
       "type": "github-subdir",
       "group": "skills-beta",
-      "installed_at": "2026-08-23T20:04:47.988634+08:00",
+      "installed_at": "2026-09-29T03:53:34.304336106+08:00",
       "repo_url": "https://github.com/anthropics/skills.git",
       "subdir": "skills/frontend-design",
-      "version": "3b3fad9",
-      "tree_hash": "0d5b74a14bdf3ebcd64f352d06376a2ef05ed296",
+      "version": "3337550",
+      "tree_hash": "d79e2a5bb4df4a386c2adcdd9ab8709bba28c3f6",
+      "commit": "33375500bcea98d610eb30ce10ac4e59b89c390d",
       "file_hashes": {
         "LICENSE.txt": "sha256:0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
-        "SKILL.md": "sha256:1608ea77fbb6fc30d13a97d12cfa8ebf31358d40f0dd97beed24829d6b3f45dd"
+        "SKILL.md": "sha256:d91970639e9f5c37682ac7ab60094d35f1c7c1f38d731bd56396563aee10c1d3"
       }
     },
     "skills-beta/herdr": {
       "source": "https://github.com/herdrdev/herdr.git/skills/herdr",
       "type": "github-subdir",
       "group": "skills-beta",
-      "installed_at": "2026-08-23T20:04:52.401614+08:00",
+      "installed_at": "2026-09-29T03:53:50.858170305+08:00",
       "repo_url": "https://github.com/herdrdev/herdr.git",
       "subdir": "skills/herdr",
-      "version": "d6dae88",
-      "tree_hash": "f8bb649bb92ddc99e6af463ab9a635da98c7b129",
+      "version": "d5680d8",
+      "tree_hash": "6985a5e8418d43171c45c2a9e04b02de7308e1d8",
+      "commit": "d5680d84fd1df3b592424eae5c50d54642f0727d",
       "file_hashes": {
-        "SKILL.md": "sha256:237ad2ab2d8123e2bb37956d3a41eed141f2d22a7c36e415b7876c0397679099"
+        "SKILL.md": "sha256:03855a7a1f9d0aa1ba6444fed2e4971adf796e91e73001d8f2472f5f9e5f659f"
       }
     },
     "skills-beta/ip-as-logo-skill": {
       "source": "https://github.com/s1dashu/ip-as-logo-skill.git",
       "type": "github",
       "group": "skills-beta",
-      "installed_at": "2026-08-23T20:04:30.496989+08:00",
+      "installed_at": "2026-09-29T03:53:35.889360116+08:00",
       "repo_url": "https://github.com/s1dashu/ip-as-logo-skill.git",
       "version": "acb834c",
+      "commit": "acb834c717bcd0a487c49732d08397ba280d690b",
       "file_hashes": {
         ".gitignore": "sha256:fd9e4a80457e0613c2b3fec550672447929bd4972e906faa6132c24a5fcd8b6e",
         "LICENSE": "sha256:b8f39925b1c36ca531c5e663aeb7ba427f94a526495785b4d1b2797fae8f2546",
@@ -116,42 +121,46 @@
       "source": "https://github.com/catoncat/sherlog.git/skill-packages/sherlog",
       "type": "github-subdir",
       "group": "skills-beta",
-      "installed_at": "2026-08-23T20:04:33.150938+08:00",
+      "installed_at": "2026-09-29T03:53:37.436615766+08:00",
       "repo_url": "https://github.com/catoncat/sherlog.git",
       "subdir": "skill-packages/sherlog",
-      "version": "ac2659c",
-      "tree_hash": "2c840056603f7d7af4d0e3fd98580b1a3077f6e5",
+      "version": "a68d3dc",
+      "tree_hash": "4a170f1ade3ebc3e2a0f51ff039ac01586427beb",
+      "commit": "a68d3dca5ca8a46bee5548c59e39ad8470628920",
       "file_hashes": {
-        "SKILL.md": "sha256:21ef53469e453301d908ffa75948a9ce2607f36c94f99b948332dfd91c17c8b7",
+        "SKILL.md": "sha256:24a21a5b474253a2bb549c6f7058a9a7a101a579e57eb0b3fbef1b0241d95682",
         "references/advanced-queries.md": "sha256:3ab969ae59a3d72e36c5be5916aa41e8683b808b46fffbb2ba5dee2d5293b82a",
-        "references/cli-surface.md": "sha256:a2aa04dd8193d9bc835745638bd34fad3984f91b8206dec07b4f943c47dac818",
-        "references/failure-cookbook.md": "sha256:2b7f8ee44110028613a317fb24840684aca6111014ad1b956934ae2f0ec6dbff",
-        "references/json-schema.md": "sha256:38d5b1614bfd287c121248e6e1eeabfded75395f9c72655ba85a11ea66314971",
-        "references/progressive-workflow.md": "sha256:2d9d0171f921514b88f8d6a3a93be6d69fc967ad272cc90b96c5858937d20541"
+        "references/cli-surface.md": "sha256:07c46c1c1d7dff566bebd5ff32cf4d1081afbf4e8be3db90832c4edde3108285",
+        "references/failure-cookbook.md": "sha256:a0485ed3c14f33fd5ab665c11bd3837f8d1ef2e7b6dddbca25a4044b63695be3",
+        "references/json-schema.md": "sha256:f18c3bf4401273c5a34df18bdfb38b4aeda655300ed3492f9864085fc2ec9370",
+        "references/progressive-workflow.md": "sha256:70fc99153e771b6e89ac58b315a60560d1b30f40c18863332964cff634113a43"
       }
     },
     "skills-beta/show-me": {
       "source": "https://github.com/humanlayer/skills.git/plugins/show-me/skills/show-me",
       "type": "github-subdir",
       "group": "skills-beta",
-      "installed_at": "2026-08-23T20:04:12.00022+08:00",
+      "installed_at": "2026-09-29T03:53:51.98577316+08:00",
       "repo_url": "https://github.com/humanlayer/skills.git",
       "subdir": "plugins/show-me/skills/show-me",
-      "version": "3c26291",
-      "tree_hash": "0bdb821a21e793a4f6f82a7078c052154447e5cc",
+      "version": "ca7c808",
+      "tree_hash": "362200ac2fb3c17b765049444e88de73767e6d08",
+      "commit": "ca7c8088db69e315a8b2deea43820270457f8f3c",
       "file_hashes": {
-        "SKILL.md": "sha256:bea6da70a58096730b9aeb0bae293ddf4726103a98efc9ce13c481619942a810"
+        "SKILL.md": "sha256:434a2346cc95e313b0d367d477dda2e23ba642dd2181757415a09500664af100",
+        "agents/openai.yaml": "sha256:a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
       }
     },
     "skills-mattpocock/ask-matt": {
       "source": "https://github.com/mattpocock/skills.git/skills/engineering/ask-matt",
       "type": "github-subdir",
       "group": "skills-mattpocock",
-      "installed_at": "2026-08-23T20:04:39.062612+08:00",
+      "installed_at": "2026-09-29T03:53:53.264370309+08:00",
       "repo_url": "https://github.com/mattpocock/skills.git",
       "subdir": "skills/engineering/ask-matt",
-      "version": "5b15a47",
+      "version": "c55ee46",
       "tree_hash": "85f3ba59f22c16de988e36b781ae46d0d9098f94",
+      "commit": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
       "file_hashes": {
         "PHASE-BOUNDARIES.md": "sha256:a8aa20158609ef39e2b308b6ba0660c91066838d07a867202e63a7744a88a3ed",
         "SKILL.md": "sha256:b25d86fb36b1d294eeead5d7db529f86135f9671f2afcd607579a63bb2213769",
@@ -162,11 +171,12 @@
       "source": "https://github.com/mattpocock/skills.git/skills/engineering/code-review",
       "type": "github-subdir",
       "group": "skills-mattpocock",
-      "installed_at": "2026-08-23T20:04:39.386642+08:00",
+      "installed_at": "2026-09-29T03:53:54.487514865+08:00",
       "repo_url": "https://github.com/mattpocock/skills.git",
       "subdir": "skills/engineering/code-review",
-      "version": "5b15a47",
+      "version": "c55ee46",
       "tree_hash": "d8e341cee7980127dddda05159bedf25dc853615",
+      "commit": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
       "file_hashes": {
         "SKILL.md": "sha256:47f4e52c21694def9c7c11cbfbf891ca35eac7a93e395797515be3c8a409ae50",
         "agents/openai.yaml": "sha256:8229ca854e11dc8e6aef2131ee03f31fb1561cf905fab9ccc325180cf3331352"
@@ -176,11 +186,12 @@
       "source": "https://github.com/mattpocock/skills.git/skills/engineering/codebase-design",
       "type": "github-subdir",
       "group": "skills-mattpocock",
-      "installed_at": "2026-08-23T20:04:35.508925+08:00",
+      "installed_at": "2026-09-29T03:53:53.380768498+08:00",
       "repo_url": "https://github.com/mattpocock/skills.git",
       "subdir": "skills/engineering/codebase-design",
-      "version": "5b15a47",
+      "version": "c55ee46",
       "tree_hash": "344e3efc88ee60663b2e989555c2efdb548fbd42",
+      "commit": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
       "file_hashes": {
         "DEEPENING.md": "sha256:f3dd099ce99289bd213914d8ee3e2429b78309c3957ca4583f7659551b1d53c1",
         "DESIGN-IT-TWICE.md": "sha256:8e740bf98446dbd4dfdc132ac4346d9a7eedaf93de6a495889171cf7f99f16bd",
@@ -192,11 +203,12 @@
       "source": "https://github.com/mattpocock/skills.git/skills/engineering/diagnosing-bugs",
       "type": "github-subdir",
       "group": "skills-mattpocock",
-      "installed_at": "2026-08-23T20:04:36.802509+08:00",
+      "installed_at": "2026-09-29T03:53:54.602125236+08:00",
       "repo_url": "https://github.com/mattpocock/skills.git",
       "subdir": "skills/engineering/diagnosing-bugs",
-      "version": "5b15a47",
+      "version": "c55ee46",
       "tree_hash": "99bd56983e42bc752c52da67f1112e4121781cd1",
+      "commit": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
       "file_hashes": {
         "SKILL.md": "sha256:77f3cf31bc99b2f49af943222526531fcc9fc41d047626d3640e875e85af3e84",
         "agents/openai.yaml": "sha256:3e430dbe4334a87597488c060cb3dc3786bb00c9182877d6f5ec41f62490e90b",
@@ -207,11 +219,12 @@
       "source": "https://github.com/mattpocock/skills.git/skills/engineering/domain-modeling",
       "type": "github-subdir",
       "group": "skills-mattpocock",
-      "installed_at": "2026-08-23T20:04:37.126074+08:00",
+      "installed_at": "2026-09-29T03:53:53.493370871+08:00",
       "repo_url": "https://github.com/mattpocock/skills.git",
       "subdir": "skills/engineering/domain-modeling",
-      "version": "5b15a47",
+      "version": "c55ee46",
       "tree_hash": "388c9822641805ca2dcd5038e68a1d5282437ee5",
+      "commit": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
       "file_hashes": {
         "ADR-FORMAT.md": "sha256:944c92aa790e8fbdc9199640b170979abb8a34ba8d0fe18c2a01a63bce140ca0",
         "CONTEXT-FORMAT.md": "sha256:17ab16ce783e4d2801ee52fd9acdf550cbf44de65ae76797a93943bbedf22a13",
@@ -223,11 +236,12 @@
       "source": "https://github.com/mattpocock/skills.git/skills/productivity/grill-me",
       "type": "github-subdir",
       "group": "skills-mattpocock",
-      "installed_at": "2026-08-23T20:04:40.678076+08:00",
+      "installed_at": "2026-09-29T03:53:53.949204143+08:00",
       "repo_url": "https://github.com/mattpocock/skills.git",
       "subdir": "skills/productivity/grill-me",
-      "version": "5b15a47",
+      "version": "c55ee46",
       "tree_hash": "3df14e2d3a89459bf300614be9247e3ce74798f8",
+      "commit": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
       "file_hashes": {
         "SKILL.md": "sha256:caaf8b8de1684f96e26b28f3c29189db5c89cce4b73e1c93d86164f66ef88637",
         "agents/openai.yaml": "sha256:c061e39c3e0f9d865fb1b97556d485704af2a8a58f4b8221a8917a5c2074a32b"
@@ -237,11 +251,12 @@
       "source": "https://github.com/mattpocock/skills.git/skills/engineering/grill-with-docs",
       "type": "github-subdir",
       "group": "skills-mattpocock",
-      "installed_at": "2026-08-23T20:04:35.830041+08:00",
+      "installed_at": "2026-09-29T03:53:54.054089266+08:00",
       "repo_url": "https://github.com/mattpocock/skills.git",
       "subdir": "skills/engineering/grill-with-docs",
-      "version": "5b15a47",
+      "version": "c55ee46",
       "tree_hash": "eedaf2562c83155115e9c649fa3ecaac2e10e81d",
+      "commit": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
       "file_hashes": {
         "SKILL.md": "sha256:7de372c13488f1ee96cc11cd8907b56b6809cc93eef776eeddd37de6b6cbe3fe",
         "agents/openai.yaml": "sha256:94cd0ab161fb468a836349f5ed482ba58ce8e709a05c57ce533d739dbd35cca9"
@@ -251,11 +266,12 @@
       "source": "https://github.com/mattpocock/skills.git/skills/productivity/grilling",
       "type": "github-subdir",
       "group": "skills-mattpocock",
-      "installed_at": "2026-08-23T20:04:37.447169+08:00",
+      "installed_at": "2026-09-29T03:53:54.712593132+08:00",
       "repo_url": "https://github.com/mattpocock/skills.git",
       "subdir": "skills/productivity/grilling",
-      "version": "5b15a47",
+      "version": "c55ee46",
       "tree_hash": "f0732035b8b1b60ae39454e4191caef32fa91903",
+      "commit": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
       "file_hashes": {
         "SKILL.md": "sha256:10ff989e7498b23b5acb49d5048f11dcd906757d2f79c5cdf8a00001381296f2",
         "agents/openai.yaml": "sha256:1411d7df7d99b7e621a1ff8283c8133cc2464be63d064e52d8ce169c6800ee9b"
@@ -265,11 +281,12 @@
       "source": "https://github.com/mattpocock/skills.git/skills/productivity/handoff",
       "type": "github-subdir",
       "group": "skills-mattpocock",
-      "installed_at": "2026-08-23T20:04:40.981153+08:00",
+      "installed_at": "2026-09-29T03:53:54.158795348+08:00",
       "repo_url": "https://github.com/mattpocock/skills.git",
       "subdir": "skills/productivity/handoff",
-      "version": "5b15a47",
+      "version": "c55ee46",
       "tree_hash": "2242e8f05424b8c2ae94194a90d97b88d16108ec",
+      "commit": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
       "file_hashes": {
         "SKILL.md": "sha256:7c62de979fdc7ac32fb5ddb2146156c917f80ee070d30fadc9d40343c4b6ed25",
         "agents/openai.yaml": "sha256:5c479fd562c691851690e8b18c8501045bef0943c10743d636b2fae26add1d28"
@@ -279,11 +296,12 @@
       "source": "https://github.com/mattpocock/skills.git/skills/engineering/implement",
       "type": "github-subdir",
       "group": "skills-mattpocock",
-      "installed_at": "2026-08-23T20:04:39.71437+08:00",
+      "installed_at": "2026-09-29T03:53:53.598841138+08:00",
       "repo_url": "https://github.com/mattpocock/skills.git",
       "subdir": "skills/engineering/implement",
-      "version": "5b15a47",
+      "version": "c55ee46",
       "tree_hash": "f07d230f645fc9ac390cf13a450bbff12ad791a3",
+      "commit": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
       "file_hashes": {
         "SKILL.md": "sha256:6d3fd9e83b8f36e5213854779db49b256a457a7ebb4a503e53fa7dcff696adc3",
         "agents/openai.yaml": "sha256:8970a8596ade0c28ab427f41a4ea242d6bdf6186c59ebf55e1238dbecaab79dc"
@@ -293,11 +311,12 @@
       "source": "https://github.com/mattpocock/skills.git/skills/engineering/improve-codebase-architecture",
       "type": "github-subdir",
       "group": "skills-mattpocock",
-      "installed_at": "2026-08-23T20:04:36.144872+08:00",
+      "installed_at": "2026-09-29T03:53:54.828284589+08:00",
       "repo_url": "https://github.com/mattpocock/skills.git",
       "subdir": "skills/engineering/improve-codebase-architecture",
-      "version": "5b15a47",
+      "version": "c55ee46",
       "tree_hash": "3d35cd438f4067b03c8b3792e038960e4ac11526",
+      "commit": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
       "file_hashes": {
         "HTML-REPORT.md": "sha256:581e8bb5a521e46bbda8ca7e19b15948bed882187108092ebb90c62513b77528",
         "SKILL.md": "sha256:d1ac25511a936ff4250a48dbcefda363837d6bb9321b3cba73df99fa37270a75",
@@ -308,11 +327,12 @@
       "source": "https://github.com/mattpocock/skills.git/skills/engineering/prototype",
       "type": "github-subdir",
       "group": "skills-mattpocock",
-      "installed_at": "2026-08-23T20:04:37.781132+08:00",
+      "installed_at": "2026-09-29T03:53:54.27622207+08:00",
       "repo_url": "https://github.com/mattpocock/skills.git",
       "subdir": "skills/engineering/prototype",
-      "version": "5b15a47",
+      "version": "c55ee46",
       "tree_hash": "e41d92e171f074a2b6887d8f6faca4a15c83d1ca",
+      "commit": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
       "file_hashes": {
         "LOGIC.md": "sha256:f61c7d249e786a79ef289018901c348271e1798dd0b0bc5607b5c6f4d4a01ab9",
         "SKILL.md": "sha256:714de632d116bb73f65cdb5a882db15b9369a6713b9a47c0fad827848f0bfbe3",
@@ -324,11 +344,12 @@
       "source": "https://github.com/mattpocock/skills.git/skills/engineering/research",
       "type": "github-subdir",
       "group": "skills-mattpocock",
-      "installed_at": "2026-08-23T20:04:40.039234+08:00",
+      "installed_at": "2026-09-29T03:53:55.053251298+08:00",
       "repo_url": "https://github.com/mattpocock/skills.git",
       "subdir": "skills/engineering/research",
-      "version": "5b15a47",
+      "version": "c55ee46",
       "tree_hash": "0a6796c5667e95ed2301ba7381c123b4acb2ae1a",
+      "commit": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
       "file_hashes": {
         "SKILL.md": "sha256:985569f15739c713d6784887c3d186d4ef9ac85bec5ad9c068d25bf0739928e4",
         "agents/openai.yaml": "sha256:9b4c470d63221c1f68f22df70b83e2f12401b317babe0d1b7b5f24a974474d0d"
@@ -338,11 +359,12 @@
       "source": "https://github.com/mattpocock/skills.git/skills/engineering/resolving-merge-conflicts",
       "type": "github-subdir",
       "group": "skills-mattpocock",
-      "installed_at": "2026-08-23T20:04:38.107598+08:00",
+      "installed_at": "2026-09-29T03:53:54.380354751+08:00",
       "repo_url": "https://github.com/mattpocock/skills.git",
       "subdir": "skills/engineering/resolving-merge-conflicts",
-      "version": "5b15a47",
+      "version": "c55ee46",
       "tree_hash": "77f0d7de3143abbf03e55a63522d30bff31ae908",
+      "commit": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
       "file_hashes": {
         "SKILL.md": "sha256:9d8114f8ef0b31f535a265fc05c364bd8cf2e2895a830040e06c22acb11f54b0",
         "agents/openai.yaml": "sha256:a1f4f96838f2ed6282eb28abbbf99029cb8fadce552baf53da90a025b8bffddf"
@@ -352,11 +374,12 @@
       "source": "https://github.com/mattpocock/skills.git/skills/engineering/setup-matt-pocock-skills",
       "type": "github-subdir",
       "group": "skills-mattpocock",
-      "installed_at": "2026-08-23T20:04:38.423229+08:00",
+      "installed_at": "2026-09-29T03:53:53.128923447+08:00",
       "repo_url": "https://github.com/mattpocock/skills.git",
       "subdir": "skills/engineering/setup-matt-pocock-skills",
-      "version": "5b15a47",
+      "version": "c55ee46",
       "tree_hash": "ec07f82df54064d01aa1648670e81da41e2cbdc2",
+      "commit": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
       "file_hashes": {
         "SKILL.md": "sha256:2bcd89e97777cdb705914424e39c97d5db524c8eb4eafac8120778a07774f0ec",
         "agents/openai.yaml": "sha256:9527de0110541c45712319025155aeab8dc7d77c6ed6e5e83271bab1851ab939",
@@ -371,11 +394,12 @@
       "source": "https://github.com/mattpocock/skills.git/skills/engineering/tdd",
       "type": "github-subdir",
       "group": "skills-mattpocock",
-      "installed_at": "2026-08-23T20:04:38.74496+08:00",
+      "installed_at": "2026-09-29T03:53:54.944508557+08:00",
       "repo_url": "https://github.com/mattpocock/skills.git",
       "subdir": "skills/engineering/tdd",
-      "version": "5b15a47",
+      "version": "c55ee46",
       "tree_hash": "79288be15c67b849f22b6572056601090fd20913",
+      "commit": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
       "file_hashes": {
         "SKILL.md": "sha256:cb01f66bebfaa25fa1f88e6b7e769cd9fd9f35b1120b8563749820738814c927",
         "agents/openai.yaml": "sha256:ea6f01cf1b8c06a4b0f5b649d74b1b8ce8685e72af1b38d70d877693e092af0b",
@@ -387,11 +411,12 @@
       "source": "https://github.com/mattpocock/skills.git/skills/productivity/teach",
       "type": "github-subdir",
       "group": "skills-mattpocock",
-      "installed_at": "2026-08-23T20:04:40.364797+08:00",
+      "installed_at": "2026-09-29T03:53:53.71732047+08:00",
       "repo_url": "https://github.com/mattpocock/skills.git",
       "subdir": "skills/productivity/teach",
-      "version": "5b15a47",
+      "version": "c55ee46",
       "tree_hash": "2ab11f2f51f3c29771edb5d4258d807a49462491",
+      "commit": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
       "file_hashes": {
         "GLOSSARY-FORMAT.md": "sha256:9b99859ec28437668130d8f2ce5a342938970f8a1ed4fd38c3eab4f4b5fff210",
         "LEARNING-RECORD-FORMAT.md": "sha256:701fa34b6748aa89e6c960ffb815257f481a7d77fb2900f9028f7edf3fdd6052",
@@ -405,11 +430,12 @@
       "source": "https://github.com/mattpocock/skills.git/skills/engineering/triage",
       "type": "github-subdir",
       "group": "skills-mattpocock",
-      "installed_at": "2026-08-23T20:04:36.473742+08:00",
+      "installed_at": "2026-09-29T03:53:53.839529359+08:00",
       "repo_url": "https://github.com/mattpocock/skills.git",
       "subdir": "skills/engineering/triage",
-      "version": "5b15a47",
+      "version": "c55ee46",
       "tree_hash": "95fa21bf236993cd9af25bd3670476c17fdb95a4",
+      "commit": "c55ee46073ed923f86ce59a5eb3b6d895095d1b7",
       "file_hashes": {
         "AGENT-BRIEF.md": "sha256:7f5f87fed3033df1b06e083c480f3e847b1fbb0647746b8a4c6a50f9f26ef44f",
         "OUT-OF-SCOPE.md": "sha256:1fbf9b432130c6380aa65813b55553cfda150309b27c595e183f8e335b8a190d",
@@ -418,14 +444,15 @@
       }
     },
     "skills-stable/longbridge": {
-      "source": "github.com/longbridge/skills/skills/longbridge",
+      "source": "https://github.com/longbridge/skills.git/skills/longbridge",
       "type": "github-subdir",
       "group": "skills-stable",
-      "installed_at": "2026-08-26T09:56:31.228060131Z",
+      "installed_at": "2026-09-29T03:53:57.669337097+08:00",
       "repo_url": "https://github.com/longbridge/skills.git",
       "subdir": "skills/longbridge",
       "version": "03c5fde",
       "tree_hash": "82f3e74d63e682ef51b6a876474176066c90092a",
+      "commit": "03c5fde151fb5e16d1ddd5088a06d299d9971eb8",
       "file_hashes": {
         "SKILL.md": "sha256:ca3228c100092885087c517f9a1e97fe3c107fe48132b533055cbfae5c578287",
         "references/cli/overview.md": "sha256:e079740bdcf93b8854ff6b94e3d30a9c57f815aed651d089dc2bef005030bbb6",
@@ -450,14 +477,15 @@
       }
     },
     "skills-stable/longbridge-content": {
-      "source": "github.com/longbridge/skills/skills/longbridge-content",
+      "source": "https://github.com/longbridge/skills.git/skills/longbridge-content",
       "type": "github-subdir",
       "group": "skills-stable",
-      "installed_at": "2026-08-26T09:56:31.261069972Z",
+      "installed_at": "2026-09-29T03:53:57.813737848+08:00",
       "repo_url": "https://github.com/longbridge/skills.git",
       "subdir": "skills/longbridge-content",
       "version": "03c5fde",
       "tree_hash": "69b877c5e15d4cfb66ebef10c8dd231e79d46507",
+      "commit": "03c5fde151fb5e16d1ddd5088a06d299d9971eb8",
       "file_hashes": {
         "SKILL.md": "sha256:c79c1be9a7f0472d5913477d6de0b08a9e0df7cd4f8cbc62d19864b85d76878e",
         "references/filing.md": "sha256:5c03a3ff1786832351893ef662d5d5f474d77ecbe59299dc0f7d50541079f4a7",
@@ -468,14 +496,15 @@
       }
     },
     "skills-stable/longbridge-derivatives": {
-      "source": "github.com/longbridge/skills/skills/longbridge-derivatives",
+      "source": "https://github.com/longbridge/skills.git/skills/longbridge-derivatives",
       "type": "github-subdir",
       "group": "skills-stable",
-      "installed_at": "2026-08-26T09:56:31.296210477Z",
+      "installed_at": "2026-09-29T03:53:57.957181415+08:00",
       "repo_url": "https://github.com/longbridge/skills.git",
       "subdir": "skills/longbridge-derivatives",
       "version": "03c5fde",
       "tree_hash": "61f15d6b51f81ede21ab8749620d97becfc32a6d",
+      "commit": "03c5fde151fb5e16d1ddd5088a06d299d9971eb8",
       "file_hashes": {
         "SKILL.md": "sha256:f4e0a24be715f0ddbc8bd46a6253f5ab8e32793a374e0009faece185af6d0613",
         "references/option.md": "sha256:de8cebe0601fac5c0e6612a2cf4624e383da2f766ea87403ea4e9c5447a6a604",
@@ -487,14 +516,15 @@
       }
     },
     "skills-stable/longbridge-earnings": {
-      "source": "github.com/longbridge/skills/skills/longbridge-earnings",
+      "source": "https://github.com/longbridge/skills.git/skills/longbridge-earnings",
       "type": "github-subdir",
       "group": "skills-stable",
-      "installed_at": "2026-08-26T09:56:31.359201722Z",
+      "installed_at": "2026-09-29T03:53:58.117041805+08:00",
       "repo_url": "https://github.com/longbridge/skills.git",
       "subdir": "skills/longbridge-earnings",
       "version": "03c5fde",
       "tree_hash": "3ad49b254116a372aba930b72cadcd83491fba30",
+      "commit": "03c5fde151fb5e16d1ddd5088a06d299d9971eb8",
       "file_hashes": {
         "SKILL.md": "sha256:c07f8a43364014dab445d1e3d2b455974a268c5ac1376ca6e9c0960a780428cf",
         "commands/earnings.md": "sha256:311a7f6a9346dea2aa970709eeef3d7516c7238cccfb8c8d539b74f3a29eb4f0",
@@ -505,14 +535,15 @@
       }
     },
     "skills-stable/longbridge-fundamentals": {
-      "source": "github.com/longbridge/skills/skills/longbridge-fundamentals",
+      "source": "https://github.com/longbridge/skills.git/skills/longbridge-fundamentals",
       "type": "github-subdir",
       "group": "skills-stable",
-      "installed_at": "2026-08-26T09:56:31.464911521Z",
+      "installed_at": "2026-09-29T03:53:56.285833427+08:00",
       "repo_url": "https://github.com/longbridge/skills.git",
       "subdir": "skills/longbridge-fundamentals",
       "version": "03c5fde",
       "tree_hash": "fde3b8a92c53efc7423f37216aee22b08cff58fc",
+      "commit": "03c5fde151fb5e16d1ddd5088a06d299d9971eb8",
       "file_hashes": {
         "SKILL.md": "sha256:f119e3745fd386a443eaaa0cc1eaf32a00d89522986efcc34ddb3646c2bb73fa",
         "references/behavioral-finance.md": "sha256:ebf709e9618bb9d945e4932e4b92929c5098dd52cc7f816cffd0145799c754ea",
@@ -539,14 +570,15 @@
       }
     },
     "skills-stable/longbridge-intel": {
-      "source": "github.com/longbridge/skills/skills/longbridge-intel",
+      "source": "https://github.com/longbridge/skills.git/skills/longbridge-intel",
       "type": "github-subdir",
       "group": "skills-stable",
-      "installed_at": "2026-08-26T09:56:31.575428837Z",
+      "installed_at": "2026-09-29T03:53:56.439807329+08:00",
       "repo_url": "https://github.com/longbridge/skills.git",
       "subdir": "skills/longbridge-intel",
       "version": "03c5fde",
       "tree_hash": "e6ac1be44c4dfef1f1f0f915c8ff8e4ddbae5943",
+      "commit": "03c5fde151fb5e16d1ddd5088a06d299d9971eb8",
       "file_hashes": {
         "SKILL.md": "sha256:595317ed28ad428b97f9aab113fd9bce2dd7a2b2311ebfe729538dde22a44a7e",
         "references/anomaly.md": "sha256:56261543080675a7fc877a549d96dc7c6803b5afc119275666ec0ed1e8bf1b65",
@@ -569,14 +601,15 @@
       }
     },
     "skills-stable/longbridge-market-data": {
-      "source": "github.com/longbridge/skills/skills/longbridge-market-data",
+      "source": "https://github.com/longbridge/skills.git/skills/longbridge-market-data",
       "type": "github-subdir",
       "group": "skills-stable",
-      "installed_at": "2026-08-26T09:56:31.645633354Z",
+      "installed_at": "2026-09-29T03:53:56.899716075+08:00",
       "repo_url": "https://github.com/longbridge/skills.git",
       "subdir": "skills/longbridge-market-data",
       "version": "03c5fde",
       "tree_hash": "733706d1bfdbe20959daeee2d216466b0f5d1ae0",
+      "commit": "03c5fde151fb5e16d1ddd5088a06d299d9971eb8",
       "file_hashes": {
         "SKILL.md": "sha256:d1918bd20851d1d350a6058669d3708034860ce0d88e97dba8657457f97dffde",
         "references/adr-premium.md": "sha256:07161af4f2a0805a15c156e6337dd298c5434d95d12483b9cce3d31787fa1b26",
@@ -600,14 +633,15 @@
       }
     },
     "skills-stable/longbridge-portfolio": {
-      "source": "github.com/longbridge/skills/skills/longbridge-portfolio",
+      "source": "https://github.com/longbridge/skills.git/skills/longbridge-portfolio",
       "type": "github-subdir",
       "group": "skills-stable",
-      "installed_at": "2026-08-26T09:56:31.722900158Z",
+      "installed_at": "2026-09-29T03:53:56.586161712+08:00",
       "repo_url": "https://github.com/longbridge/skills.git",
       "subdir": "skills/longbridge-portfolio",
       "version": "03c5fde",
       "tree_hash": "390331511ad10bb8d8cc0f61ae1bcffbdbd7ef2d",
+      "commit": "03c5fde151fb5e16d1ddd5088a06d299d9971eb8",
       "file_hashes": {
         "SKILL.md": "sha256:7d508d189a407fb5dd17770a5261178c19623bcfa3f1146cbfa00b952a0b2450",
         "references/asset-allocation.md": "sha256:34867c7d0ee205464e4289fdff66e8d7e9ac2511346cc798976880c97847cdce",
@@ -632,14 +666,15 @@
       }
     },
     "skills-stable/longbridge-quant": {
-      "source": "github.com/longbridge/skills/skills/longbridge-quant",
+      "source": "https://github.com/longbridge/skills.git/skills/longbridge-quant",
       "type": "github-subdir",
       "group": "skills-stable",
-      "installed_at": "2026-08-26T09:56:31.807857611Z",
+      "installed_at": "2026-09-29T03:53:56.740424739+08:00",
       "repo_url": "https://github.com/longbridge/skills.git",
       "subdir": "skills/longbridge-quant",
       "version": "03c5fde",
       "tree_hash": "3a7d6ebdd773edadefeac063ee57035ac0f6b21f",
+      "commit": "03c5fde151fb5e16d1ddd5088a06d299d9971eb8",
       "file_hashes": {
         "SKILL.md": "sha256:563d1655f1923203cd0ac9c69cb300fef1206232109f73b63273f9841b2604b0",
         "references/correlation.md": "sha256:7a064c6bfc01efd799fdcdb7feae8f9dab03a86fc0cd907d5eb24fef5b21bc3d",
@@ -658,14 +693,15 @@
       }
     },
     "skills-stable/longbridge-research": {
-      "source": "github.com/longbridge/skills/skills/longbridge-research",
+      "source": "https://github.com/longbridge/skills.git/skills/longbridge-research",
       "type": "github-subdir",
       "group": "skills-stable",
-      "installed_at": "2026-08-26T09:56:31.930752096Z",
+      "installed_at": "2026-09-29T03:53:57.075720282+08:00",
       "repo_url": "https://github.com/longbridge/skills.git",
       "subdir": "skills/longbridge-research",
       "version": "03c5fde",
       "tree_hash": "a055b8f2cc75178980f19e635152ed372a09dc41",
+      "commit": "03c5fde151fb5e16d1ddd5088a06d299d9971eb8",
       "file_hashes": {
         "SKILL.md": "sha256:b806365d1988f72dfdde947dbdc00f203f441e61c21f02ba1f9c561ca31be217",
         "references/company-profile.md": "sha256:cb39a8095431fdf4b3e69e059b9dd1a6c00d82fd4aaf64709ea8a339d50f842c",
@@ -696,14 +732,15 @@
       }
     },
     "skills-stable/longbridge-technical": {
-      "source": "github.com/longbridge/skills/skills/longbridge-technical",
+      "source": "https://github.com/longbridge/skills.git/skills/longbridge-technical",
       "type": "github-subdir",
       "group": "skills-stable",
-      "installed_at": "2026-08-26T09:56:32.031921088Z",
+      "installed_at": "2026-09-29T03:53:57.23201761+08:00",
       "repo_url": "https://github.com/longbridge/skills.git",
       "subdir": "skills/longbridge-technical",
       "version": "03c5fde",
       "tree_hash": "937f22e6040ace031dd6c49718198ec183dfcf3c",
+      "commit": "03c5fde151fb5e16d1ddd5088a06d299d9971eb8",
       "file_hashes": {
         "SKILL.md": "sha256:fa6167e690b4a72110fee47a118dbd02f2e392c9c395ed8f6410060ce0ccfe4a",
         "references/candlestick.md": "sha256:6f355b0019ed7e503aeb5b4db5386dbb7c88ef653a4009a7447247895918ea63",
@@ -718,14 +755,15 @@
       }
     },
     "skills-stable/longbridge-value-investing": {
-      "source": "github.com/longbridge/skills/skills/longbridge-value-investing",
+      "source": "https://github.com/longbridge/skills.git/skills/longbridge-value-investing",
       "type": "github-subdir",
       "group": "skills-stable",
-      "installed_at": "2026-08-26T09:56:32.106997233Z",
+      "installed_at": "2026-09-29T03:53:57.381844027+08:00",
       "repo_url": "https://github.com/longbridge/skills.git",
       "subdir": "skills/longbridge-value-investing",
       "version": "03c5fde",
       "tree_hash": "c7e46e6ee920aa9916e2b3b87332fc2a0223c6fe",
+      "commit": "03c5fde151fb5e16d1ddd5088a06d299d9971eb8",
       "file_hashes": {
         "SKILL.md": "sha256:817071c38a0ef105970788c12f464916c80491c2dae85b3d2e70daa7b12b6a08",
         "references/buffett-moat-analyzer.md": "sha256:8887a74fed4c59e82a8cc4a7da222f8540808e41675cd69aa3e71f1092c60306",
@@ -735,14 +773,15 @@
       }
     },
     "skills-stable/longbridge-watchlist": {
-      "source": "github.com/longbridge/skills/skills/longbridge-watchlist",
+      "source": "https://github.com/longbridge/skills.git/skills/longbridge-watchlist",
       "type": "github-subdir",
       "group": "skills-stable",
-      "installed_at": "2026-08-26T09:56:32.138301266Z",
+      "installed_at": "2026-09-29T03:53:57.506342976+08:00",
       "repo_url": "https://github.com/longbridge/skills.git",
       "subdir": "skills/longbridge-watchlist",
       "version": "03c5fde",
       "tree_hash": "d641aa1fb0c0c6321a1ee2358d4a95dbd2246818",
+      "commit": "03c5fde151fb5e16d1ddd5088a06d299d9971eb8",
       "file_hashes": {
         "SKILL.md": "sha256:9c5f388e8673736aa4eea24fcffc5f90182268e39cf1ffba83aa0f46a318b7a9",
         "references/alert.md": "sha256:07df0a03108c1ecf042f8821c2b5e9a5298ab5e781abfffa53b2322d4d3b2825",
@@ -753,24 +792,28 @@
     "skillshare": {
       "source": "https://github.com/runkids/skillshare.git/skills/skillshare",
       "type": "github-subdir",
-      "installed_at": "2026-08-23T20:04:20.117003+08:00",
+      "installed_at": "2026-09-29T03:53:42.983021333+08:00",
       "repo_url": "https://github.com/runkids/skillshare.git",
       "subdir": "skills/skillshare",
-      "version": "06429ce",
-      "tree_hash": "4a841ea0a8cf1d04f8b9c82fd00a67fcd466658c",
+      "version": "8e61590",
+      "tree_hash": "6a8f3157674f5cc9bfaa03d7e7be3a1d67aa77ae",
+      "commit": "8e61590ed326baf2a56b1c3887f8f10403d1726b",
       "file_hashes": {
-        "SKILL.md": "sha256:230e4a65da9106217fd6306084fb82810faa4d66a4093c1fe85f0d9cc80142c9",
-        "references/TROUBLESHOOTING.md": "sha256:14855dbd2f20ad7042941959f257c79f768d103e89e55d74d8c3b3d38f9ff5ee",
-        "references/audit.md": "sha256:85a31c32f17f39ce2baa5189a8004c6adec506e5fcf7d20378caa103b015fd5d",
-        "references/backup.md": "sha256:0d85d481fcb0f7ca88c31d1ca56d393a9ae18b8ac4f6c050edd62840cbd45257",
-        "references/extras.md": "sha256:c133ccb6a2da342fbf05919c27855cb1de124042f8654396e50ee82a2b7e40e1",
-        "references/init.md": "sha256:41d99a2a49f576e1a2354312856ccf730f8d19d4c8d35c592585d40bc2d14d82",
-        "references/install.md": "sha256:e59b9b1169fb72f063249f56b5fc7dee46bd3f9b9d2fe6d7d73b3319e14ff165",
-        "references/log.md": "sha256:406e85525f53f4deaa0f48bf8b3b53db3e032b99f5a0e926c84542d51b3a3625",
-        "references/status.md": "sha256:bbc4d801d9583ce79b848f861b07382157c8fb407e89e31358b0bf6acd34334f",
-        "references/sync.md": "sha256:00877a4a9c1ca0c02a8601aad694cadce61c3facbe57603d36c0ef937028f658",
-        "references/targets.md": "sha256:130b0b07b17a88d4bc09af0262a6b161421946f5442295dc5bc828f95226763e",
-        "references/trash.md": "sha256:fb94aa6b71d469fa8f6b5e728fcab531b6eb010a2092389b02eaaadf3ebc98cf",
+        "SKILL.md": "sha256:3ed51ff511171ebd4ddcad0fd62b82a314a3f096736061ce094d9a5ed7665e2a",
+        "references/TROUBLESHOOTING.md": "sha256:6103f13f7a364ca2ce8d71e7b9771ba64ab225942d49c6a60323f2f61ca862ae",
+        "references/audit.md": "sha256:890b84f79fb73cf704fe3cf9c2b0b87cdd3aa7ca1720cf6f08e19d5720a3506e",
+        "references/backup.md": "sha256:670f56cc07d76ba5b3556bf303fdcfe5c019bc4131a6606fc22266cdf8b4604a",
+        "references/extras.md": "sha256:fa24a995cc4670fec38bfdf5a7b1856d343132c94bd2c5ca21e2d9149e04d338",
+        "references/init.md": "sha256:ac99a757d7e9a077e4ff8d0fe3009a5b93167f0843e8a000fc89a03e24fa2d82",
+        "references/install.md": "sha256:23ab1133fc8d58b85d6883aadd3ecc710ed146dfac6f4e97d6fab2151dce9ab5",
+        "references/log.md": "sha256:f726e59328ac1cb367cd7d5eaa257149d7f56ef5c650d9e0f9c7a091c0f9c442",
+        "references/mcp.md": "sha256:49b494808a6257641fa9eb83c35b8f115f1aa37299f08ef448a841f6a5a57189",
+        "references/native-agents.md": "sha256:352d78cb64722717b5660655978afcef3d18638669ab96e0f2325f28d563576e",
+        "references/plugins.md": "sha256:ee9eab630991e32a254e00d6fa91d58fbe8e4f8a43b8814d25ff761c9cd3fb29",
+        "references/status.md": "sha256:37b652ccf40cfdfd66cbe9795a57eb2ffc21dea2e9cf02cc95b819c97a61b858",
+        "references/sync.md": "sha256:eec3de549268710fe54f3ae436c5bb8cdd9d80a8abb2f6f34df0d3c20016dc0b",
+        "references/targets.md": "sha256:af644ce92b407d175ac8a14dcaad9db187aa3ce8a439d85f4aa2f93f1a024b2b",
+        "references/trash.md": "sha256:9ffc23f6440e20bd1405b17f6124efdb1ad457b998fd2adf8352192916a5c5db",
         "scripts/run.sh": "sha256:e434ebdb7d3ae0b37c00ddc36687bc975da9e766b8cb863f9aed9a624ebbdfa9"
       }
     }

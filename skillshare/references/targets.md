@@ -1,6 +1,7 @@
 # Target Management
 
-Manage AI CLI tool targets (Claude, Cursor, Windsurf, Firebender, etc.). Skillshare supports 49+ built-in targets.
+Manage AI CLI tool targets (Claude, Cursor, Windsurf, Firebender, etc.). Use `skillshare target list --json` to inspect configured targets; avoid assuming skill
+and MCP client support are identical.
 
 ## Global Targets
 
@@ -8,7 +9,27 @@ Manage AI CLI tool targets (Claude, Cursor, Windsurf, Firebender, etc.). Skillsh
 skillshare target list                        # List all targets
 skillshare target claude                      # Show target info
 skillshare target add myapp ~/.myapp/skills   # Add custom target
+skillshare target add claude-work --agent claude --config-dir ~/.claude-work   # Another account of an Agent
 skillshare target remove myapp                # Remove target (safe)
+```
+
+Another account (`agent` + `config_dir` in config.yaml): `--agent` accepts `claude`
+(`CLAUDE_CONFIG_DIR`), `codex` (`CODEX_HOME`) and `pi` (`PI_CODING_AGENT_DIR`). The skills
+path follows the directory (`<config_dir>/skills` for Codex and Pi, even though Codex also
+reads the shared `~/.agents/skills`); only Claude has an agents directory. Any number of
+accounts can be added, and the target name is also valid in `mcp.targets` and a server's
+`targets`.
+
+Instruction file of a custom target (`instructions` in config.yaml; `target add` has no
+flag for it, the dashboard sets it in the Custom target dialog or the target's file tab):
+
+```yaml
+targets:
+  myapp:
+    path: ~/.myapp/skills
+    instructions:
+      path: ~/.myapp/AGENTS.md   # global: absolute or ~/; project: relative to the root
+      import: true               # the tool follows @path lines
 ```
 
 ## Project Targets (`-p`)
@@ -32,6 +53,23 @@ targets:
     path: ./tools/ide/skills
     mode: merge
 ```
+
+## Project Folders From the Global Config (`projects`)
+
+Use when projects should get **different** skills. Global targets already give every project the same set; project mode (`-p`) keeps the setup in the repo for teammates. For personal projects, list the folders in the global `config.yaml` instead of giving each a `.skillshare/`. One `skillshare sync` writes them all.
+
+```yaml
+projects:
+  ~/work/shop-web:
+    targets: [claude, cursor, codex]   # tools used there; paths are derived
+    skills: { mode: copy, include: ["frontend-*"] }   # present = on, empty = all
+    agents: {}
+```
+
+- Shows up in `sync`/`status`/`diff` as `<name>@<target>` (e.g. `shop-web@claude`). Tools sharing a folder (`.agents/skills`) are one target.
+- A missing folder is skipped with a warning, never recreated.
+- `skillshare target` and `collect` ignore these; edit `config.yaml` or the dashboard's Projects page.
+- MCP for the same folders lives under `mcp.projects` (see [mcp.md](mcp.md)).
 
 ## Target Filters
 
@@ -110,4 +148,6 @@ Global and project modes use the **same short names** (e.g., `claude`, `cursor`,
 
 **Always use** `target remove` to unlink targets.
 
-**NEVER** `rm -rf` on symlinked targets — this deletes the source!
+Inspect whether a path is a symlink before filesystem operations. Removing a symlink
+itself and traversing its target are different operations; `target remove` handles the
+managed relationship without requiring manual recursive deletion.
