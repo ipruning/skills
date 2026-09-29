@@ -16,6 +16,9 @@ or `assembleChartjs` to get a backend spec.
 
 - **DO** emit `chart_spec` (chart type, channel→field mapping, properties)
   and `semantic_types` (field → semantic type).
+- **DO** add `interaction_spec` when the user asks for behaviour (highlight,
+  legend toggle, pan and zoom, brush). List presets by name; see
+  "Interactions".
 - **Reference columns by name.** How `data` itself gets bound depends on
   the situation — a URL, a host-side variable, or embedded rows (see "How
   data gets bound"). Embedding is fine for small tables; just don't
@@ -242,6 +245,51 @@ chart input. ThemeSpec currently affects Vega-Lite only.
 Full reference:
 https://microsoft.github.io/flint-chart/#/documentation/theme-spec
 
+## Interactions (`interaction_spec`)
+
+Add `interaction_spec` beside `chart_spec` only when the user asks for
+behaviour: highlight on click, a legend that hides series, pan and zoom, a
+brush, an annotation on click. A static image never needs it.
+
+```json
+{
+  "chart_spec": { "chartType": "Bar Chart", "encodings": { "x": "country", "y": "gdp", "color": "region" } },
+  "interaction_spec": {
+    "interactions": [
+      { "type": "click-highlight" },
+      { "type": "legend-toggle" },
+      { "type": "navigate", "options": { "axes": "y", "pan": false, "reset": ["double-click", "escape"] } }
+    ]
+  }
+}
+```
+
+Rules:
+
+- **Presets only.** Every entry is `{ "type": <preset>, "options": { ... } }`.
+  Take the preset names for the chosen chart type from `list_chart_types`
+  (`chartTypes[].interactions`); a KPI card supports no brush, a pie chart no
+  `navigate`. Never invent a type.
+- **Options nest under `options`.** An option beside `type` is rejected.
+  `id` is optional and sits on the entry, never inside `options`.
+- **`reset`** is a list of `"click-none"`, `"double-click"`, `"escape"` on any
+  preset that keeps state. Leave it out to accept the preset's default.
+- **The data decides too.** `legend-toggle` needs a colour field with a
+  discrete legend; `navigate` needs a continuous axis; `drag-reorder` needs a
+  discrete axis. An entry the chart cannot honour is dropped with a warning
+  and the chart still renders. Run `validate_chart` to read those warnings
+  before you show the chart.
+- **Vega-Lite only.** Other backends ignore the spec.
+
+Common presets: `click-highlight` (focus a mark), `click-group-focus`
+(focus its group, `groupBy`), `legend-toggle`, `navigate` (`axes`, `pan`),
+`brush-x` / `brush-y` / `select` (drag to focus an interval or area),
+`click-annotate`, `inspect` and `inspect-index` (read values on hover),
+`drag-reorder` (reorder categories).
+
+Full guide:
+https://microsoft.github.io/flint-chart/#/documentation/interaction-spec
+
 ## Step 1 — pick `chartType`
 
 Use one of the registered names **exactly**. Vega-Lite is the default and
@@ -421,7 +469,20 @@ understates what you know:
 }
 ```
 
-- `unit` — the unit or currency code: `"USD"`, `"°C"`, `"kg"`.
+- `unit` — an optional assertion that authorizes Flint to display a unit. Add
+  it only when the data or surrounding context establishes the measurement
+  and seeing it materially changes how a reader interprets the number. A type
+  such as `Duration`, a field name such as `life_expectancy`, or values that
+  merely look plausible are not enough evidence by themselves.
+  - Prefer canonical codes: `"USD"`, `"°C"`, `"kg"`, `"km/h"`, `"min"`.
+  - Conventional compact units are normalized and may appear beside values
+    (`USD` → `$`, `hours` → `hr`).
+  - Lexical units such as `"years"` are stated once beside the field name as
+    `field (years)`, not repeated after every value.
+  - Do not put explanatory phrases in `unit`. Put qualifications such as
+    `"per working-age resident"` or `"constant 2024 prices"` in the subtitle.
+  - Omit `unit` when its meaning, scale, or denominator is uncertain. Flint
+    does not infer a visible unit from the semantic type or field name.
 - `intrinsicDomain` — the field's own bounds, for bounded scales only: `[1, 5]`
   for a five-star rating, `[0, 100]` for a percentage score. Not for
   open-ended measures.

@@ -9,8 +9,50 @@ and MCP client support are identical.
 skillshare target list                        # List all targets
 skillshare target claude                      # Show target info
 skillshare target add myapp ~/.myapp/skills   # Add custom target
+skillshare target add claude-work --agent claude --config-dir ~/.claude-work   # Another account of an Agent
 skillshare target remove myapp                # Remove target (safe)
 ```
+
+Another account (`agent` + `config_dir` in config.yaml): `--agent` accepts `claude`
+(`CLAUDE_CONFIG_DIR`), `codex` (`CODEX_HOME`) and `pi` (`PI_CODING_AGENT_DIR`). The skills
+path follows the directory (`<config_dir>/skills` for Codex and Pi, even though Codex also
+reads the shared `~/.agents/skills`); only Claude has an agents directory. Any number of
+accounts can be added, and the target name is also valid in `mcp.targets` and a server's
+`targets`.
+
+Instruction file of a custom target (`instructions` in config.yaml; `target add` has no
+flag for it, the dashboard sets it in the Custom target dialog or the target's file tab):
+
+```yaml
+targets:
+  myapp:
+    path: ~/.myapp/skills
+    instructions:
+      path: ~/.myapp/AGENTS.md   # global: absolute or ~/; project: relative to the root
+      import: true               # the tool follows @path lines
+```
+
+## Skills Off
+
+For a tool that already reads another target's folder (Pi also reads `~/.agents/skills`
+of `universal`), stop syncing skills to it so it does not find each skill twice. Agents, MCP
+servers and instructions stay managed.
+
+```bash
+skillshare target pi --skills=false --dry-run   # Preview what is removed
+skillshare target pi --skills=false             # Save skills.enabled: false, remove links into the source
+skillshare target pi --skills=true              # Back on; next `skillshare sync` syncs again
+skillshare target add gemini ~/.gemini/skills --no-skills   # Add with skills off
+```
+
+Merge mode removes the links; symlink mode removes the folder link; copy mode keeps the
+copies and lists them apart (the tool still loads them; delete them to avoid duplicates);
+a folder an enabled target also writes to is left alone. `sync`/`diff`/`status`/`doctor`
+skip the target's skills. `--skills` cannot be combined with include/exclude flags in one
+command. Works with `-p`.
+
+When `sync` warns that two targets "sync skills to <folder> with different filters, so each
+sync undoes the other", run the `skillshare target <name> --skills=false` it prints.
 
 ## Project Targets (`-p`)
 
@@ -33,6 +75,23 @@ targets:
     path: ./tools/ide/skills
     mode: merge
 ```
+
+## Project Folders From the Global Config (`projects`)
+
+Use when projects should get **different** skills. Global targets already give every project the same set; project mode (`-p`) keeps the setup in the repo for teammates. For personal projects, list the folders in the global `config.yaml` instead of giving each a `.skillshare/`. One `skillshare sync` writes them all.
+
+```yaml
+projects:
+  ~/work/shop-web:
+    targets: [claude, cursor, codex]   # tools used there; paths are derived
+    skills: { mode: copy, include: ["frontend-*"] }   # present = on, empty = all
+    agents: {}
+```
+
+- Shows up in `sync`/`status`/`diff` as `<name>@<target>` (e.g. `shop-web@claude`). Tools sharing a folder (`.agents/skills`) are one target.
+- A missing folder is skipped with a warning, never recreated.
+- `skillshare target` and `collect` ignore these; edit `config.yaml` or the dashboard's Projects page.
+- MCP for the same folders lives under `mcp.projects` (see [mcp.md](mcp.md)).
 
 ## Target Filters
 
