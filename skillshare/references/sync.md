@@ -72,6 +72,10 @@ extras:
 
 Source: `~/.config/skillshare/extras/<name>/` (global) or `.skillshare/extras/<name>/` (project). Modes: `merge` (default, per-file symlinks), `copy`, `symlink`.
 
+`--json` returns a non-zero exit status when extras sync has errors. For single-file extras, `--dry-run` also reports edits that would be backed up before replacement.
+
+Identical local files are preserved and reported as `local preserved`; `sync extras` does not suggest `--force` for them. They remain local files, not managed links.
+
 For full extras management (`init`, `list`, `remove`, `collect`), see [extras.md](extras.md).
 
 ## collect
@@ -122,6 +126,8 @@ Git pull from remote and sync to all targets. **Global mode only.**
 skillshare pull                # Pull + sync
 skillshare pull --dry-run      # Preview
 ```
+
+If both machines committed, `pull` merges them and resolves `.metadata.json` conflicts automatically. A conflict in any other file stops the pull, undoes the merge, and names the files; the user resolves it with git in the source directory.
 
 **Project mode:** Use `git pull` directly, then `skillshare sync`.
 
