@@ -1,6 +1,6 @@
 # Status & Inspection Commands
 
-Commands with auto-detection run in project mode when `.skillshare/config.yaml` exists in cwd. Use `-g` to force global.
+Commands with auto-detection run in project mode when a project config (`.skillshare/config.yaml` or `skillshare/config.yaml`) is found. Use `-g` to force global.
 
 ## status
 
@@ -9,12 +9,14 @@ Overview of source, targets, and sync state.
 ```bash
 skillshare status          # Auto-detects mode
 skillshare status -g       # Force global
-skillshare status --json   # JSON output (global mode only)
+skillshare status --json   # JSON output (global and project)
 ```
 
 Project mode output includes: source path, targets with sync mode, remote skills list.
 
 **Sync drift detection:** Warns when targets have fewer linked skills than source (merge mode). Example: `⚠ claude: 3 skill(s) not synced (12/15 linked)`. Run `skillshare sync` to fix.
+
+In Windows copy fallback, agent counts in `status` and `doctor` distinguish identical unowned files as `local preserved` (for example, `0/1 linked, 1 local preserved`). Up-to-date managed copies still count as linked.
 
 ## diff
 
@@ -78,6 +80,12 @@ Diagnose configuration and environment issues. Also checks for sync drift.
 skillshare doctor
 ```
 
+## analyze
+
+Use `skillshare analyze --json` to inspect description/body size and estimated context
+cost per target. Estimates describe loaded skill text, not measured billing or cache savings.
+Use `--no-tui` for plain terminal output.
+
 ## upgrade
 
 Upgrade CLI binary and/or built-in skillshare skill.
@@ -90,6 +98,8 @@ skillshare upgrade --force      # Skip confirmation
 skillshare upgrade --dry-run    # Preview
 ```
 
-**Note:** `upgrade --skill` is opt-in — it won't auto-install the built-in skill if it's not already present. Use `init --skill` or `upgrade --skill` to install it explicitly.
+**Missing built-in skill:** `upgrade --skill` prompts before installing it;
+`upgrade --skill --force` installs without that prompt. Use this only when installation
+is requested. `init --skill` also opts in explicitly.
 
 **After upgrading skill:** `skillshare sync`

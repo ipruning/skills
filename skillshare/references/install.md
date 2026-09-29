@@ -1,6 +1,7 @@
 # Install, Update, Uninstall & New
 
-All commands support project mode with `-p` flag. Auto-detected for `install -p` (when config lists remote skills).
+Use `-p` for project resources or `-g` for global resources. For native agent workflows,
+see [native-agents.md](native-agents.md). These examples use skills unless specified otherwise.
 
 ## install
 
@@ -22,6 +23,7 @@ git.company.com/team/skills   # Self-hosted
 # Full URLs
 github.com/user/repo          # Discovers skills in repo
 github.com/user/repo/path     # Direct subdirectory
+github.com/user/repo/tree/v1.2.0/path  # Pinned to a tag, commit or branch (GitLab -/tree/<ref>/, Bitbucket src/<ref>/)
 https://github.com/...        # HTTPS URL
 git@github.com:...            # SSH URL
 git@host:owner/repo//subdir   # SSH with subpath (// separator)
@@ -63,7 +65,10 @@ skillshare install user/repo --skip-audit             # Skip security scan
 |------|-------------|
 | `-p, --project` | Install to project source |
 | `--name <n>` | Override skill name |
-| `--force, -f` | Overwrite existing |
+| `--kind <skill\|agent>` | Restrict resource discovery |
+| `--agent, -a <names>` | Select agents by name (comma-separated) |
+| `--branch, -b <name>` | Select a Git branch, tag or commit SHA (overrides a ref in a web URL) |
+| `--force, -f` | Overwrite existing and explicitly override audit blocking |
 | `--update, -u` | Update if exists |
 | `--track, -t` | Track for updates (preserves .git) |
 | `--skill, -s <names>` | Select specific skills from multi-skill repo (comma-separated) |
@@ -73,7 +78,7 @@ skillshare install user/repo --skip-audit             # Skip security scan
 | `--exclude <name>` | Skip specific skills during multi-skill install (repeatable) |
 | `--skip-audit` | Skip security audit for this install |
 | `--audit-threshold <t>` / `--threshold <t>` / `-T <t>` | Override block threshold for this run (`critical\|high\|medium\|low\|info`; shorthand: `c\|h\|m\|l\|i`, plus `crit`, `med`) |
-| `--json` | JSON output (implies `--force` + `--all`, non-interactive) |
+| `--json` | Noninteractive JSON; permits overwrite and selects all when no skill/agent filter is given; retains audit blocking |
 | `--dry-run, -n` | Preview |
 
 **Fuzzy subdirectory resolution:** When a monorepo has nested skill directories, you can specify just the skill name — e.g., `user/repo/vue-best-practices` finds `skills/vue-best-practices/` automatically. Fails with an error if multiple matches exist.
@@ -83,6 +88,8 @@ Tracked custom names must not contain path separators (`/`, `\`) or `..`.
 
 **No-arg install:** `skillshare install` (global) or `skillshare install -p` (project) installs all remote skills listed in `config.yaml`. Useful for new machines, new team members, or reproducing a skill setup from a shared config.
 
+**Lockfile (project mode):** `.skillshare/skills.lock.json` pins every remote skill to the commit it was installed from. It is written automatically and meant to be committed. `install -p` installs the pinned commits, and moves an already-installed skill that is at another commit. `update -p` moves a skill forward and rewrites its pin; `uninstall -p` removes it. Never edit the file by hand.
+
 **`.skillignore`:** Repo authors can add a `.skillignore` file at the repo root to hide skills from discovery. Supports exact match (`my-skill`), trailing wildcard (`prefix-*`), and group match (`feature-radar` excludes all skills under that directory). Applied before any selection prompt.
 
 **`--exclude`:** Skip specific skills during multi-skill install. Filters before the interactive prompt so excluded skills never appear. Example: `skillshare install user/repo --exclude debug --exclude experimental`.
@@ -91,7 +98,7 @@ Tracked custom names must not contain path separators (`/`, `\`) or `..`.
 
 **Security audit:** Install auto-scans skills after download. Blocking follows the active threshold (default `CRITICAL`), while aggregate risk is reported separately for context. Use `--force` to override blocking, `--skip-audit` to skip scanning, or `--audit-threshold` / `--threshold` / `-T` to override threshold per command.
 
-**Private repos (HTTPS):** `install` and `update` auto-detect `GITHUB_TOKEN`, `GITLAB_TOKEN`, `BITBUCKET_TOKEN`, or `SKILLSHARE_GIT_TOKEN` for HTTPS clone/pull. No manual git config needed. SSH works as usual.
+**Private repos (HTTPS):** `install` and `update` auto-detect `GITHUB_TOKEN`, `GITLAB_TOKEN`, `BITBUCKET_TOKEN`, `AZURE_DEVOPS_TOKEN`, `GITEA_TOKEN`, `CNB_TOKEN`, or `SKILLSHARE_GIT_TOKEN` for HTTPS clone/pull. No manual git config needed. SSH works as usual.
 
 **After install:** `skillshare sync`
 
@@ -148,7 +155,10 @@ skillshare update _repo --force -p  # Discard local changes
 
 **Safety:** Tracked repos with uncommitted changes are skipped. Use `--force` to override.
 
-**Security:** Post-update audit gate rolls back tracked repos on HIGH/CRITICAL findings. Risk label and score displayed after updates. Use `--skip-audit` to bypass.
+**Security:** Updates roll back when findings reach the configured block threshold.
+`--audit-threshold` / `--threshold` / `-T` overrides the threshold for the run.
+Explicit `--force` can discard local changes and override audit blocking;
+`--skip-audit` skips scanning. Review findings before selecting either override.
 
 **After update:** `skillshare sync`
 
@@ -192,11 +202,15 @@ Create a new skill template.
 
 ```bash
 # Global
-skillshare new <name>               # Create SKILL.md template
+skillshare new <name> -P none       # Minimal template without pattern selection
+skillshare new <name> -P reviewer   # Reviewer scaffold
 
 # Project
 skillshare new <name> -p            # Create in .skillshare/skills/
 skillshare new <name> --dry-run -p  # Preview
 ```
+
+Without `-P`, a terminal may offer pattern selection. Available patterns: `tool-wrapper`,
+`generator`, `reviewer`, `inversion`, `pipeline`, `none`.
 
 **After create:** Edit SKILL.md → `skillshare sync`
