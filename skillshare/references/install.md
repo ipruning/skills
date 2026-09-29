@@ -23,6 +23,7 @@ git.company.com/team/skills   # Self-hosted
 # Full URLs
 github.com/user/repo          # Discovers skills in repo
 github.com/user/repo/path     # Direct subdirectory
+github.com/user/repo/tree/v1.2.0/path  # Pinned to a tag, commit or branch (GitLab -/tree/<ref>/, Bitbucket src/<ref>/)
 https://github.com/...        # HTTPS URL
 git@github.com:...            # SSH URL
 git@host:owner/repo//subdir   # SSH with subpath (// separator)
@@ -66,7 +67,7 @@ skillshare install user/repo --skip-audit             # Skip security scan
 | `--name <n>` | Override skill name |
 | `--kind <skill\|agent>` | Restrict resource discovery |
 | `--agent, -a <names>` | Select agents by name (comma-separated) |
-| `--branch, -b <name>` | Select a Git branch |
+| `--branch, -b <name>` | Select a Git branch, tag or commit SHA (overrides a ref in a web URL) |
 | `--force, -f` | Overwrite existing and explicitly override audit blocking |
 | `--update, -u` | Update if exists |
 | `--track, -t` | Track for updates (preserves .git) |
@@ -87,6 +88,8 @@ Tracked custom names must not contain path separators (`/`, `\`) or `..`.
 
 **No-arg install:** `skillshare install` (global) or `skillshare install -p` (project) installs all remote skills listed in `config.yaml`. Useful for new machines, new team members, or reproducing a skill setup from a shared config.
 
+**Lockfile (project mode):** `.skillshare/skills.lock.json` pins every remote skill to the commit it was installed from. It is written automatically and meant to be committed. `install -p` installs the pinned commits, and moves an already-installed skill that is at another commit. `update -p` moves a skill forward and rewrites its pin; `uninstall -p` removes it. Never edit the file by hand.
+
 **`.skillignore`:** Repo authors can add a `.skillignore` file at the repo root to hide skills from discovery. Supports exact match (`my-skill`), trailing wildcard (`prefix-*`), and group match (`feature-radar` excludes all skills under that directory). Applied before any selection prompt.
 
 **`--exclude`:** Skip specific skills during multi-skill install. Filters before the interactive prompt so excluded skills never appear. Example: `skillshare install user/repo --exclude debug --exclude experimental`.
@@ -95,7 +98,7 @@ Tracked custom names must not contain path separators (`/`, `\`) or `..`.
 
 **Security audit:** Install auto-scans skills after download. Blocking follows the active threshold (default `CRITICAL`), while aggregate risk is reported separately for context. Use `--force` to override blocking, `--skip-audit` to skip scanning, or `--audit-threshold` / `--threshold` / `-T` to override threshold per command.
 
-**Private repos (HTTPS):** `install` and `update` auto-detect `GITHUB_TOKEN`, `GITLAB_TOKEN`, `BITBUCKET_TOKEN`, or `SKILLSHARE_GIT_TOKEN` for HTTPS clone/pull. No manual git config needed. SSH works as usual.
+**Private repos (HTTPS):** `install` and `update` auto-detect `GITHUB_TOKEN`, `GITLAB_TOKEN`, `BITBUCKET_TOKEN`, `AZURE_DEVOPS_TOKEN`, `GITEA_TOKEN`, `CNB_TOKEN`, or `SKILLSHARE_GIT_TOKEN` for HTTPS clone/pull. No manual git config needed. SSH works as usual.
 
 **After install:** `skillshare sync`
 
