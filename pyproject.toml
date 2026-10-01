@@ -5,13 +5,13 @@ description = "Skills for Amp & Codex"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
-    "logfire>=5.1.0",
-    "modal>=1.5.5",
-    "openai>=3.16.2",
+    "logfire>=5.1.1",
+    "modal>=1.6.0",
+    "openai>=3.22.1",
     "pillow>=12.3.0",
     "tiktoken>=0.14.0",
-    "torch>=2.14.0",
-    "turbopuffer>=2.10.1",
+    "torch>=2.14.1",
+    "turbopuffer>=2.10.2",
     "typer>=0.27.2",
 ]
 
@@ -19,9 +19,9 @@ dependencies = [
 dev = [
     "basedpyright>=1.40.1",
     "pytest>=9.1.1",
-    "ruff>=0.16.8",
+    "ruff>=0.16.9",
     "things-py==1.0.1",
-    "ty>=0.0.82",
+    "ty>=0.0.84",
 ]
 
 [tool.ruff]
@@ -137,6 +137,7 @@ exclude = [
 [tool.tombi.format.rules]
 indent-style = "space"
 indent-width = 4
+line-width = 120
 
 [tool.ty.environment]
 python-version = "3.14"

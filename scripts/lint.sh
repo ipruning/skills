@@ -183,9 +183,9 @@ task_summary_print() {
 
 task_summary_start "Lint"
 
-task_summary_run "uv sync" uv sync --frozen
+task_summary_run "uv sync --locked" uv sync --locked
 
-task_summary_run "prek run --all-files (pre-commit)" env SKIP=no-commit-to-branch prek run --all-files --hook-stage pre-commit
-task_summary_run "prek run --all-files (pre-push)" prek run --all-files --hook-stage pre-push
+task_summary_run "prek run --all-files (pre-commit)" prek run --all-files --stage pre-commit
+task_summary_run "prek run --all-files (pre-push)" prek run --all-files --stage pre-push
 
 task_summary_print

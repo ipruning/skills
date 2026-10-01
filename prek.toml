@@ -17,18 +17,8 @@ fail_fast = false
 repo = "https://github.com/pre-commit/pre-commit-hooks"
 rev = "v6.0.0"
 hooks = [
-    {
-        id = "check-yaml",
-        name = "check YAML files",
-        stages = ["pre-commit", "pre-push"],
-        priority = 20
-    },
-    {
-        id = "check-ast",
-        name = "check ast",
-        stages = ["pre-commit", "pre-push"],
-        priority = 20
-    },
+    { id = "check-yaml", name = "check YAML files", stages = ["pre-commit", "pre-push"], priority = 20 },
+    { id = "check-ast", name = "check ast", stages = ["pre-commit", "pre-push"], priority = 20 },
     {
         id = "check-merge-conflict",
         name = "check merge conflict",
@@ -48,12 +38,7 @@ hooks = [
         args = ["--maxkb=4096"],
         priority = 20
     },
-    {
-        id = "check-symlinks",
-        name = "check symlinks",
-        stages = ["pre-commit", "pre-push"],
-        priority = 20
-    },
+    { id = "check-symlinks", name = "check symlinks", stages = ["pre-commit", "pre-push"], priority = 20 },
     {
         id = "destroyed-symlinks",
         name = "destroyed symlinks",
@@ -65,31 +50,6 @@ hooks = [
         id = "detect-private-key",
         name = "detect private key",
         stages = ["pre-commit", "pre-push"],
-        priority = 20
-    }
-]
-
-[[repos]]
-repo = "https://github.com/biomejs/pre-commit"
-rev = "v2.5.14"
-hooks = [
-    {
-        id = "biome-ci",
-        name = "biome check",
-        stages = ["pre-push"],
-        priority = 20
-    }
-]
-
-[[repos]]
-repo = "https://github.com/DavidAnson/markdownlint-cli2"
-rev = "v0.23.2"
-hooks = [
-    {
-        id = "markdownlint-cli2",
-        name = "markdownlint-cli2",
-        pass_filenames = false,
-        stages = ["pre-push"],
         priority = 20
     }
 ]
@@ -122,7 +82,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/crate-ci/typos"
-rev = "v1.50.2"
+rev = "v1.50.3"
 hooks = [{ id = "typos", name = "typos", stages = ["pre-push"], priority = 20 }]
 
 [[repos]]
@@ -132,11 +92,7 @@ hooks = [
     {
         id = "nbstripout",
         name = "check notebook metadata",
-        args = [
-            "--verify",
-            "--keep-output",
-            "--extra-keys=metadata.kernelspec metadata.language_info.version"
-        ],
+        args = ["--verify", "--keep-output", "--extra-keys=metadata.kernelspec metadata.language_info.version"],
         stages = ["pre-commit"],
         priority = 20
     }
@@ -145,6 +101,27 @@ hooks = [
 [[repos]]
 repo = "local"
 hooks = [
+    {
+        id = "biome-ci",
+        name = "biome check",
+        entry = "mise exec -- biome ci --files-ignore-unknown=true --no-errors-on-unmatched",
+        language = "system",
+        types = ["text"],
+        files = '\.(jsx?|tsx?|c(js|ts)|m(js|ts)|d\.(ts|cts|mts)|jsonc?|css|svelte|vue|astro|graphql|gql)$',
+        require_serial = true,
+        stages = ["pre-push"],
+        priority = 20
+    },
+    {
+        id = "markdownlint-cli2",
+        name = "markdownlint-cli2",
+        entry = "mise exec -- markdownlint-cli2",
+        language = "system",
+        types = ["markdown"],
+        pass_filenames = false,
+        stages = ["pre-push"],
+        priority = 20
+    },
     {
         id = "ruff-check",
         name = "ruff check",

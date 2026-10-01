@@ -1,5 +1,5 @@
 {
-    "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
+    "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
     "css": {
         "parser": {
             "cssModules": true,
@@ -10,6 +10,7 @@
         "includes": [
             "**",
             "!.metadata.json",
+            "!!.mise/locks",
             "!!skills-beta/cascade",
             "!!skills-beta/code-storage",
             "!!skills-beta/flint-chart-author",
