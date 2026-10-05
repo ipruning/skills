@@ -1,6 +1,7 @@
 [files]
 extend-exclude = [
     ".metadata.json",
+    ".mise/locks/",  # Generated dependency graphs contain package names, not prose.
     "skills-beta/cascade/",
     "skills-beta/code-storage/",
     "skills-beta/flint-chart-author/",

@@ -115,8 +115,8 @@ packages:
     resolution: {integrity: sha512-c8B/VNLmxRcmqqenRA9t+9IyOjf9+V6lTxPaUJLqOCONdQkWZ0ETYgX0qbtJqPsgCNusT9MZ5Jeidw8Eb9tn2g==}
     engines: {node: '>=20'}
 
-  ignore@7.0.11:
-    resolution: {integrity: sha512-YChdK5txDjwGUvgR7oCJcLGkwi3LDh8Zx8tS7ndYciLEg/oOCL26VUBSUEtgS7EjiybcBqFxh5j0rAdDX7/bbg==}
+  ignore@7.0.12:
+    resolution: {integrity: sha512-/8UvqAPU9DGTI9k4mxtf49U37Isfwr8Uts96+SBHIkFxPJnHS0Ew4f00sM4Scd8V8EjM0jUNtVDdv1kPdt35lg==}
     engines: {node: '>= 4'}
 
   is-alphabetical@2.0.1:
@@ -406,13 +406,13 @@ snapshots:
     dependencies:
       '@sindresorhus/merge-streams': 4.0.0
       fast-glob: 3.3.3
-      ignore: 7.0.11
+      ignore: 7.0.12
       is-path-inside: 4.0.0
       micromatch: 4.0.8
       slash: 5.1.0
       unicorn-magic: 0.4.1
 
-  ignore@7.0.11: {}
+  ignore@7.0.12: {}
 
   is-alphabetical@2.0.1: {}
 
@@ -499,7 +499,7 @@ snapshots:
   micromark-core-commonmark@2.0.3:
     dependencies:
       decode-named-character-reference: 1.3.0
-      develop: 1.1.0
+      devlop: 1.1.0
       micromark-factory-destination: 2.0.1
       micromark-factory-label: 2.0.1
       micromark-factory-space: 2.1.0
@@ -517,7 +517,7 @@ snapshots:
 
   micromark-extension-directive@4.0.0:
     dependencies:
-      develop: 1.1.0
+      devlop: 1.1.0
       micromark-factory-space: 2.1.0
       micromark-factory-whitespace: 2.0.1
       micromark-util-character: 2.1.1
@@ -534,7 +534,7 @@ snapshots:
 
   micromark-extension-gfm-footnote@2.1.0:
     dependencies:
-      develop: 1.1.0
+      devlop: 1.1.0
       micromark-core-commonmark: 2.0.3
       micromark-factory-space: 2.1.0
       micromark-util-character: 2.1.1
@@ -545,7 +545,7 @@ snapshots:
 
   micromark-extension-gfm-table@2.1.1:
     dependencies:
-      develop: 1.1.0
+      devlop: 1.1.0
       micromark-factory-space: 2.1.0
       micromark-util-character: 2.1.1
       micromark-util-symbol: 2.0.1
@@ -554,7 +554,7 @@ snapshots:
   micromark-extension-math@3.1.0:
     dependencies:
       '@types/katex': 0.16.8
-      develop: 1.1.0
+      devlop: 1.1.0
       katex: 0.16.47
       micromark-factory-space: 2.1.0
       micromark-util-character: 2.1.1
@@ -569,7 +569,7 @@ snapshots:
 
   micromark-factory-label@2.0.1:
     dependencies:
-      develop: 1.1.0
+      devlop: 1.1.0
       micromark-util-character: 2.1.1
       micromark-util-symbol: 2.0.1
       micromark-util-types: 2.0.2
@@ -637,7 +637,7 @@ snapshots:
 
   micromark-util-subtokenize@2.1.0:
     dependencies:
-      develop: 1.1.0
+      devlop: 1.1.0
       micromark-util-chunked: 2.0.1
       micromark-util-symbol: 2.0.1
       micromark-util-types: 2.0.2
@@ -651,7 +651,7 @@ snapshots:
       '@types/debug': 4.1.13
       debug: 4.4.3
       decode-named-character-reference: 1.3.0
-      develop: 1.1.0
+      devlop: 1.1.0
       micromark-core-commonmark: 2.0.3
       micromark-factory-space: 2.1.0
       micromark-util-character: 2.1.1
