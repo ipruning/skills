@@ -1,18 +1,19 @@
 # AI Agent 协作指南
 
-本仓库可能是普通 Git checkout，也可能是当前 Skillshare 配置的 source。涉及 Skillshare 操作时先读当前 `config.yaml`，确认 `sources.skills`/`sources.extras` 是否指向本 checkout，以及对应的 `target`/`mode`；不要凭目录名或默认配置判断。
+这是个人的全局 Skillshare 源目录，`~/.config/skillshare/config.yaml` 的 `sources.skills` 指向这里，`sources.extras` 指向 `extras/`。先读 config 确认，不要凭目录名判断。
 
-## Skill 状态模型
+- `_` 开头的目录是 `skillshare install --track` 克隆进来的别的仓库，各自有 `AGENTS.md`，到那个仓库里改。
+- `.metadata.json` 登记的包由上游管理，用 `skillshare update` 更新，不在本地改。
+- 其余内容由本仓库维护。
 
-- `.metadata.json` 中的条目由 Skillshare 或上游管理；`skillshare install --track` 会把上游仓库克隆到 source 下的 `_...` 目录，这些目录也不要直接改写或重命名；其余 source 内容由本仓库维护。
-- `skillshare install`、`update` 和 `uninstall` 只改变 source；`sync` 单向将 source 分发到 target，target 修改不会自动回写，反向导入使用 `skillshare collect`。需要更新 target 时，再运行 `skillshare sync`。
-- 不要直接编辑 target，也不要把 worktree 放在 configured source 内。
+Skill 怎么装、更新、同步，以及 Skillshare 的坑，看 `_jihuanshe-skills/agents/managing-skill-lifecycle/SKILL.md`。
 
-## Extra 同步
+## extras
 
-- Extra 同样按 source → target 同步；编辑 `extras/` 后先检查当前 `config.yaml`，运行 `skillshare extras list --json` 和 `skillshare sync extras --dry-run`，确认 source diff 可检查且可回退后再同步。`copy` 模式下，内容不同的普通 target 文件默认跳过并保留，`--force` 才覆盖；符号链接可能被同步替换。
-- `extras/amp/AGENTS.md` 仅作为 Amp「Personal Settings → Advanced → Global AGENTS.md」的 source；不要写入 `~/.config/amp`，也不要将 `AGENTS.md`/`CLAUDE.md` 配置为 Skillshare `agents_source`。
+`extras/` 里的文件也是从这里同步到各自的目标。改完先跑 `skillshare extras list --json` 和 `skillshare sync extras --dry-run` 看会写哪里。`copy` 模式下，目标里内容不同的普通文件会被跳过保留，加 `--force` 才覆盖；目标是符号链接时可能被替换掉。
 
-## 验证
+`extras/amp/AGENTS.md` 是 Amp「Personal Settings → Advanced → Global AGENTS.md」的源文件。不要写进 `~/.config/amp`，也不要把任何 `AGENTS.md`／`CLAUDE.md` 配成 Skillshare 的 `agents_source`。
 
-- 运行 `mise run lint`；修改外部 Skill 时再运行 `mise run check-lint-excludes`；最后运行 `git diff --check`，并报告未验证部分。
+## 检查
+
+跑 `mise run lint`；改了第三方 Skill 再跑 `mise run check-lint-excludes`；最后 `git diff --check`。

@@ -22,7 +22,7 @@ skillshare sync --json         # JSON output
 skillshare sync -g             # Force global mode
 ```
 
-Sync runs every target. A target whose sync fails, or whose own settings are invalid (for example a skills path that is a file), is reported as failed and skipped; the rest still sync and the command exits non-zero. Config-wide problems (source, global `mode`/`target_naming`, `git_root`, extras) still stop sync before any target runs.
+Sync runs every target. A target whose sync fails, or whose own settings are invalid (for example a skills path that is a file), is reported as failed and skipped; the rest still sync and the command exits non-zero. Config-wide problems (source, global `mode`/`target_naming`, `git_root`, extras) still stop sync before any target runs. Under `target_naming: standard`, a skill name must equal its directory name and use at most 64 lowercase letters (any script), digits and single hyphens, with no leading or trailing `-` and no underscores; other skills are warned and skipped.
 
 ### Sync modes (quick reference)
 
@@ -115,8 +115,17 @@ Git commit and push source to remote. **Global mode only.**
 ```bash
 skillshare push                # Default message
 skillshare push -m "message"   # Custom message
+skillshare push --pull         # Merge remote changes, push, then sync targets
 skillshare push --dry-run      # Preview
 ```
+
+At `git_root: root`, unpushed commits that add or modify `config.yaml` (including
+its directory tree) block push, `--pull`, and `--dry-run`. Unpushed means on no
+ref of the push remote (upstream remote, or `origin` before the first push);
+push always sends only the current branch there. Remove the file from the listed
+commits with the `git rebase -i <commit>` shown in the error and amend them
+before retrying; skillshare never rewrites history automatically. A later
+removal does not erase earlier contents. Removal-only commits remain pushable.
 
 **Project mode:** Use `git push` directly on the project repo.
 
