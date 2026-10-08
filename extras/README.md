@@ -36,6 +36,7 @@
 
 ## 变更记录
 
+* 2026-10：**gh 多账号改为按仓库归属自动选号并单条命令注入 token（用户裁决）。** 旧写法「无法确定时询问」「须确认能按 login 取得凭据」让 AI 反复为可查证的账号问题请求授权。现在先按仓库归属、再按 `permissions` 选号，只在都不行或无法区分时才问；`gh` 用 `GH_TOKEN="$(gh auth token --user <login>)"`，push 用同一 token 配临时 `credential.helper=!gh auth git-credential`（gh 2.102.0 实测认 `GH_TOKEN`，`push --dry-run` 通过）。仍不打印 token、不 `auth switch`、不改持久配置；Amp 的 Orb 例外保留。
 * 2026-10：**三个宿主同步 Codex 新增的「提问与交互」，并吸收 `preserving-intent` 的两条规则。** 加临时兼容前先确认有真实兼容对象；删除条件满足时直接删并验证。jihuanshe/skills 删除 `preserving-intent` 后，这部分只在个人宿主文件里常驻，同事侧由引用它的 Skill 就地写明。Claude 的交付目录和阻塞通知改用与 Codex 相同的宿主中立写法；Amp 保留 `.amp/in/artifacts/` 与 Thread ID。
 * 2026-08：**保留「授权边界」「执行过程」「文件与路径发现」现状，压缩到此为止。** 优化目标是信号纯度而非行数最小化；三层循环的自洽是功能性资产（全文只有「产物的消费者是谁」一个判断逻辑）。后续增删的触发器是观察到的事实——模型违反某条边界则加改，某条规则长期无关且可疑则删——不做无证据的进一步浓缩。
 * 2026-08：**删除 GNU Parallel 段、压缩 fd/find 选型细节。** 属 how-to 而非 invariant，场景极窄且「实测支持时」难以操作化。保留最小搜索根纪律、「目录名不证明项目归属」与 `--hidden --no-ignore`（影响盘点完整性的正确性陷阱）。若未来实测发现模型乱用 `find` 或滥开并行，凭失败证据恢复相应细则。

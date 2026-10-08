@@ -64,7 +64,11 @@ commit 前，用 `git config --show-origin` 核对 `user.name`、`user.email` �
 
 push 前，核对本次新增 commits 的 committer 符合实际生效的身份，本次创建 commits 的 author 符合预期。保留原作者的 cherry-pick、rebase 不改 author。
 
-写入前，用 `gh auth status` 核对认证状态和账号。单账号沿用默认凭据，不提取或注入 token；多账号按仓库、组织或用户的明确要求选择，无法确定时询问，只暂停相关外部写入。使用非 active 账号时，须确认能按 login 取得对应凭据，且仅用于单条命令，不切换全局账号或修改持久配置。push 的账号由 Git transport 和凭据链决定，不能仅凭 `gh` active account 推断。默认凭据归属未明、指定账号凭据不可用或权限不足时，不擅自改用其他账号。认证失败时，按原始错误区分凭据、权限及其他故障，本地工作继续。除非用户要求修复认证，不执行 `gh auth login`、`logout`、`setup-git`，不切换认证机制或修改持久凭据配置。现有凭据链无法满足明确的账号要求时，只暂停对应外部写入并说明阻塞。
+写入前，用 `gh auth status` 看已登录的账号。单账号直接用。多账号按仓库归属选：仓库或其组织明确对应某个 login 时用它；对应不明时，逐个账号用 `gh api repos/<owner>/<repo> --jq .permissions` 查，只有一个有写权限就用它。都不行，或多个都行且无法区分时才询问，只暂停这项写入。
+
+选定账号不是 active 时，直接在单条命令里临时注入，无须另行确认：`GH_TOKEN="$(gh auth token --user <login>)" gh …`；push 用 `GH_TOKEN="$(gh auth token --user <login>)" git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push …`。不打印 token，不 `gh auth switch`，不改持久配置。不带注入的 push 走现有 Git 凭据链，账号不能凭 `gh` active account 推断。
+
+认证或权限失败时，按原始错误区分凭据、权限及其他故障，本地工作继续；不擅自改用其他账号。除非用户要求修复认证，不执行 `gh auth login`、`logout`、`setup-git`。
 
 ## Skill 冲突与反馈
 
