@@ -205,7 +205,7 @@ certbot renew --dry-run --run-deploy-hooks --no-random-sleep-on-renew
 
 `--no-random-sleep-on-renew` 只用在这次手动验证；timer 保留 Certbot 默认的随机延迟，免得很多主机同时续期。
 
-TCP/443 归 REALITY，普通的 TCP/443 TLS 探测看不到 HY2 的证书。要长期监控，用 `$end-to-end-monitoring` 配 [monitoring.md](monitoring.md) 里的协议断言；没配就报未配置。
+TCP/443 归 REALITY，普通的 TCP/443 TLS 探测看不到 HY2 的证书。要长期监控，用 `$monitoring` 配 [monitoring.md](monitoring.md) 里的协议断言；没配就报未配置。
 
 ### 一次性 REALITY 夹具
 

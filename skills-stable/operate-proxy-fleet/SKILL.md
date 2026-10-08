@@ -49,5 +49,5 @@ Snell 和 REALITY／HY2 的配置都涉及 secret：Snell 的 PSK 从哪来、�
 ## 和别的 Skill 的分工
 
 - Snell policy 在 Surge 里的问题（profile、版本、PSK、路由、UDP relay、出口 IP、由 Snell 支撑的 Ponte NAT 类型）留在本包，用审计脚本的 `smoke-surge` 验收（见 [snell/audit.md](references/snell/audit.md#本机-surge-这一侧)）。Ponte 当前背后的 policy 是 Snell 就从本包开始，不用先证明是 Snell 的锅。证据表明和 Snell 无关、属于通用的 Surge 增强模式、DNS、系统代理或非 Snell 的 Ponte 路径时，才转 `$surge`。
-- 主机防火墙和全局 sysctl 的写入与回滚、SSH 改造、swap、整机审计用 `$operate-linux-servers`；需要哪些端口和协议、参数取什么值，仍由本包给出。
-- 长期监控的频率、告警和处置用 `$end-to-end-monitoring`，本包给协议层的探测信号。
+- 主机防火墙和全局 sysctl 的写入与回滚、SSH 改造、swap、整机审计用 `$linux-server`；需要哪些端口和协议、参数取什么值，仍由本包给出。
+- 长期监控的频率、告警和处置用 `$monitoring`，本包给协议层的探测信号。

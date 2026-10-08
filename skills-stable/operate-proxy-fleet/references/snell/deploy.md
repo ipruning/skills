@@ -108,7 +108,7 @@ if command -v nft >/dev/null 2>&1; then nft list ruleset; fi
 
 按这个顺序：
 
-1. **记基线、留回滚。** 记下装着的二进制的哈希和架构、unit 及 drop-in、配置元数据、listener、防火墙由谁管、服务用户、目标客户端 profile。升级前能拿到可用客户端的基线就拿；服务坏着就记下失败的路径和预期结果。二进制、unit、配置的回滚副本放在目标路径之外。方案要改主机防火墙时，用 `$operate-linux-servers` 建并保留它的回滚状态。
+1. **记基线、留回滚。** 记下装着的二进制的哈希和架构、unit 及 drop-in、配置元数据、listener、防火墙由谁管、服务用户、目标客户端 profile。升级前能拿到可用客户端的基线就拿；服务坏着就记下失败的路径和预期结果。二进制、unit、配置的回滚副本放在目标路径之外。方案要改主机防火墙时，用 `$linux-server` 建并保留它的回滚状态。
 
    当前 SSH 能连只证明此刻能连。记下它走的是 Surge、别的代理还是直连外部路径，并证明重启这个 Snell 服务不会断掉唯一的控制和回滚路径。重启前在同一条依赖上开的 SSH ControlMaster 不算独立的恢复路径。
 
@@ -120,7 +120,7 @@ if command -v nft >/dev/null 2>&1; then nft list ruleset; fi
 
 4. **暂存 unit 或 drop-in，跑 `systemd-analyze verify`。** 报错、必需指令被忽略、会影响行为或说不清的警告，都挡住上线，哪怕退出码是 0；查实无害的警告记下依据（装着的版本的文档和实际生效的配置）。回滚文件和当前 SSH 恢复路径都证实之前，不覆盖线上的 unit 和二进制。
 
-5. **一次性切换。** 先经 `$operate-linux-servers` 改防火墙，然后在同一个维护窗口里换二进制、配置和 unit，`daemon-reload`，只重启一次。起不来、listener 没出现、用户不对、反复重启或客户端验证失败，就按相反顺序恢复服务文件，执行保留的防火墙回滚，重新 reload systemd，并和变更前的基线（包括原来的故障）对比恢复后的文件和服务状态。
+5. **一次性切换。** 先经 `$linux-server` 改防火墙，然后在同一个维护窗口里换二进制、配置和 unit，`daemon-reload`，只重启一次。起不来、listener 没出现、用户不对、反复重启或客户端验证失败，就按相反顺序恢复服务文件，执行保留的防火墙回滚，重新 reload systemd，并和变更前的基线（包括原来的故障）对比恢复后的文件和服务状态。
 
 6. **验收。** 看 `ActiveState`、`NRestarts`、确切的 TCP/UDP listener、防火墙规则，再从主机外面发一次端到端客户端请求。重启后在有限的截止时间内轮询 `MainPID` 和 `ss -H -lntup`，直到每个预期的 socket 都属于当前进程；`ActiveState=active` 可能早于 listener 出现。超时就算修复失败，触发回滚。只有外部请求通过才算修好。
 
@@ -131,7 +131,7 @@ if command -v nft >/dev/null 2>&1; then nft list ruleset; fi
 1. 记下服务用户、组、配置目录、防火墙规则、unit、配置和二进制在事务开始前是否存在。每次写最终路径之前，重新确认全新安装的前提还成立。
 2. 核验官方暂存包，挂好回滚守卫，然后把核验过的、root 拥有的同目录副本放到最终二进制路径，**不启动**，用原子的不覆盖操作：同一文件系统内 hard link 再删掉暂存名可以；普通 `mv` 或 rename 可能覆盖盘点之后才出现的路径，不行。最终二进制在位后再校验暂存的 unit；`systemd-analyze verify` 失败就删掉这次事务放的二进制。
 3. 校验通过后，用排他的 `mkdir` 建不存在的配置目录，不用 `mkdir -p`，也不用会改权限的 `install -d`。配置和 unit 都在目标文件系统上暂存成 root 拥有的同目录文件，用同样的原子不覆盖规则放进去。盘点之后有任何最终目录或文件冒出来，就停下重新判断主机状态，不覆盖。
-4. 经 `$operate-linux-servers` 改主机防火墙，reload systemd，全部放好之后才启动。每项服务资源的回滚标记，只在这次事务成功创建它之后才设。
+4. 经 `$linux-server` 改主机防火墙，reload systemd，全部放好之后才启动。每项服务资源的回滚标记，只在这次事务成功创建它之后才设。
 5. 之后任何一步失败：按相反顺序回滚 unit、配置、二进制，执行保留的防火墙回滚，只删掉能证明是这次事务创建的目录、服务用户或组。盘点之后才出现的、事务开始前就有的资源，一律不删不覆盖。
 
 ## Snell 服务本身
@@ -227,11 +227,11 @@ dns-ip-preference = ipv4-only
 
 ## SSH
 
-保持已经核实的 SSH 归属方式和只用密钥登录。用户没要求，不在单主 Snell VPS 上强加非 root 管理员、`AllowUsers` 或猜出来的 `MaxAuthTries`。单独的 SSH 改造或整机访问审计归 `$operate-linux-servers`。
+保持已经核实的 SSH 归属方式和只用密钥登录。用户没要求，不在单主 Snell VPS 上强加非 root 管理员、`AllowUsers` 或猜出来的 `MaxAuthTries`。单独的 SSH 改造或整机访问审计归 `$linux-server`。
 
 ## 防火墙
 
-这里只定 Snell 需要哪些端口，主机防火墙的事务归 `$operate-linux-servers`。纯 Snell VPS 至少放行 SSH 和 Snell 的 TCP 端口：
+这里只定 Snell 需要哪些端口，主机防火墙的事务归 `$linux-server`。纯 Snell VPS 至少放行 SSH 和 Snell 的 TCP 端口：
 
 ```text
 22/tcp
@@ -240,6 +240,6 @@ dns-ip-preference = ipv4-only
 
 装着的服务端和客户端配置确实用 UDP/QUIC 时才加 `<snell-port>/udp`。改防火墙前后都要验 UDP listener 和一条应用层的客户端路径。不检查就关 UDP，可能断掉在用 UDP/QUIC 的 v5 部署。
 
-要写或回滚主机防火墙时才加载 `$operate-linux-servers`：把核实过的 SSH 和 Snell 端口／协议需求交给它，留着它打印的回滚状态，直到这边的外部客户端路径通过。
+要写或回滚主机防火墙时才加载 `$linux-server`：把核实过的 SSH 和 Snell 端口／协议需求交给它，留着它打印的回滚状态，直到这边的外部客户端路径通过。
 
 sysctl、journald、swap 见 [tuning.md](tuning.md)。

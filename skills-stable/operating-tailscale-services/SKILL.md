@@ -10,7 +10,7 @@ Tailscale Service 是不绑定某台机器的 tailnet 内部服务：一个稳�
 
 官方文档：[Tailscale Services](https://tailscale.com/docs/features/tailscale-services.md)、[Service 配置文件](https://tailscale.com/docs/reference/tailscale-services-configuration-file.md)、[Tailscale API 的 services 部分](https://tailscale.com/api#tag/services)。命令用法看本机 `tailscale serve <子命令> --help`。客户端低于 1.94 先升级。
 
-本 Skill 从「host 能访问 backend」开始管。host 上的 `tailscaled`、systemd、防火墙，以及 libvirt guest 做 backend 时的宿主网络，归 `$operate-linux-servers`；macOS 上 Tailscale 和 Surge 共存归 `$surge`。JetKVM 这类精简固件设备上，Tailscale 的安装、CA 和开机自启按设备自己的方式来，不套普通 Linux 的 systemd 做法。
+本 Skill 从「host 能访问 backend」开始管。host 上的 `tailscaled`、systemd、防火墙，以及 libvirt guest 做 backend 时的宿主网络，归 `$linux-server`；macOS 上 Tailscale 和 Surge 共存归 `$surge`。JetKVM 这类精简固件设备上，Tailscale 的安装、CA 和开机自启按设备自己的方式来，不套普通 Linux 的 systemd 做法。
 
 ## 链路
 

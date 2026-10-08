@@ -392,7 +392,7 @@ nstat -asz | grep -E 'Udp(InErrors|RcvbufErrors|SndbufErrors)'
 - sing-box socket 的收发缓冲已经接近 `16 MiB`，传输期间 UDP 错误计数也不涨，就别动 sysctl。
 - 在可比的负载前后记下 PID、peer、`rb`、`tb` 和 socket 的 `d`。全局计数包含别的 socket，历史上的非零值不代表当前 HY2 有问题。socket 重建会把 `d` 清零，刚重启后是 0 什么也证明不了。两端都看负载带来的增量。
 - QUIC 会主动给新 socket 申请大缓冲（约 8 MiB，`skmem` 里显示约 16 MiB）。不开混淆、进程有 `CAP_NET_ADMIN` 时（包自带的 `sing-box@.service` 就有），它能越过 `rmem_max`、`wmem_max`，调这两个上限没用。开了 Salamander 或 Gecko 混淆，或者进程没有 `CAP_NET_ADMIN`（比如手动跑的 mixed 进程）时，申请会被这两个上限限住；确认被限住后，测试调大它们，再看**新建的** socket，已有的 socket 不会变。缓冲上限不等于当前占用的内存。
-- 只把能重复的改进持久化：单独一个 `/etc/sysctl.d/` 文件，带回滚。主机全局的 sysctl 写入交给 `$operate-linux-servers`。
+- 只把能重复的改进持久化：单独一个 `/etc/sysctl.d/` 文件，带回滚。主机全局的 sysctl 写入交给 `$linux-server`。
 - 不要把客户端的调整推到本来健康的服务端 inbound 上，也不要把一次测出来的缓冲大小推成机队默认值。设置只留在实际验证过的那个端点和网络路径上。
 
 内核的 TCP BBR 影响的是外层 VLESS 的 TCP 发送端，不调 HY2 用户态 QUIC 的拥塞控制。不要仪式性地把每个客户端从 Cubic 换掉；保留主机级的拥塞控制改动之前，确认当前的发送算法、qdisc，并做上传和下载的对比。

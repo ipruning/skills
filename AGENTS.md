@@ -6,7 +6,7 @@
 - `.metadata.json` 登记的包由上游管理，用 `skillshare update` 更新，不在本地改。
 - 其余内容由本仓库维护。
 
-Skill 怎么装、更新、同步，以及 Skillshare 的坑，看 `_jihuanshe-skills/agents/managing-skill-lifecycle/SKILL.md`。
+Skill 怎么装、更新、同步，以及 Skillshare 的坑，看 `_jihuanshe-skills/agents/skill-lifecycle/SKILL.md`。
 
 ## extras
 

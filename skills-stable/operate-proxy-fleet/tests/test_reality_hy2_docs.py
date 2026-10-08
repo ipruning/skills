@@ -228,7 +228,7 @@ def test_references_keep_cli_and_surges_runtime_ownership_separate():
 def test_protocol_monitoring_delegates_long_running_monitoring_contract():
     monitoring = read("monitoring.md")
 
-    assert "把类别和证据交给 `$end-to-end-monitoring`" in monitoring
+    assert "把类别和证据交给 `$monitoring`" in monitoring
     assert "那边管探测频率、新鲜度" in monitoring
     assert "告警送达" in monitoring
 

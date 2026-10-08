@@ -2,7 +2,7 @@
 
 判据：从**国内**的探测主机直连节点的服务端口，TCP 连得上就是通，连不上就是被墙。机器本身可能还活着，换 IP 见 [bandwagonhost.md](bandwagonhost.md)。`ping` 只作辅助，ICMP 可能被单独封。
 
-下面是片段，不是成品脚本，按实际主机组装。判定、按首次失败时间去重、告警、systemd timer 和 secret 都按 `$end-to-end-monitoring` 组装。
+下面是片段，不是成品脚本，按实际主机组装。判定、按首次失败时间去重、告警、systemd timer 和 secret 都按 `$monitoring` 组装。
 
 ## 必须直连，别走代理
 

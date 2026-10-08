@@ -2,7 +2,7 @@
 
 诊断阶段不套用这里的做法。审计的 `recommended_manual_actions` 里有对应项，或者从 `facts` 里看出确实需要调，才用。只要审计或方案时，这些是给人看的操作示例；要落地时，先记好回滚、确认目标和归属，照着证据对应的那一条做，做完重跑相关审计和 Surge policy 测试。
 
-主机全局的 sysctl、防火墙写入和回滚走 `$operate-linux-servers` 的事务；这里给代理节点该有的目标值和验收方法。
+主机全局的 sysctl、防火墙写入和回滚走 `$linux-server` 的事务；这里给代理节点该有的目标值和验收方法。
 
 ## sysctl
 
@@ -40,7 +40,7 @@ systemd-analyze cat-config systemd/journald.conf
 journalctl --disk-usage
 ```
 
-swap 不是提速手段，只是防 OOM 的垫子。已有 swap 且闲着就别动。加或改 swap 是整机变更，用户要求或实测到内存压力时交给 `$operate-linux-servers`。
+swap 不是提速手段，只是防 OOM 的垫子。已有 swap 且闲着就别动。加或改 swap 是整机变更，用户要求或实测到内存压力时交给 `$linux-server`。
 
 ## Surge Ponte 的 NAT 类型是 Type C
 
@@ -57,7 +57,7 @@ swap 不是提速手段，只是防 OOM 的垫子。已有 swap 且闲着就别�
 sysctl net.ipv4.ip_local_port_range
 ```
 
-再查清是哪一层在管入站 UDP：UFW、nftables／iptables，还是云厂商的防火墙或安全组，在那一层放行这个端口段。用 UFW 管、范围是 `20000 65000` 的 VPS，加载 `$operate-linux-servers`，通过它的 UFW 事务执行 `ufw allow 20000:65000/udp comment 'surge-ponte-nat-traversal'`。下面的 Surge 检查通过之前，留着它打印的回滚状态。
+再查清是哪一层在管入站 UDP：UFW、nftables／iptables，还是云厂商的防火墙或安全组，在那一层放行这个端口段。用 UFW 管、范围是 `20000 65000` 的 VPS，加载 `$linux-server`，通过它的 UFW 事务执行 `ufw allow 20000:65000/udp comment 'surge-ponte-nat-traversal'`。下面的 Surge 检查通过之前，留着它打印的回滚状态。
 
 在 Surge 上验证：
 
