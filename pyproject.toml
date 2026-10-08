@@ -82,6 +82,8 @@ unfixable = ["F401"]
 "__init__.py" = ["E402"]
 # Things uses the host's local calendar date, not a timezone-normalized instant.
 "skills-beta/things/scripts/things_query.py" = ["DTZ011"]
+# Multi-line remote shell snippets and journal fixtures read better as one line per list item.
+"skills-stable/operate-proxy-fleet/**" = ["FLY002"]
 
 [tool.ruff.format]
 skip-magic-trailing-comma = false

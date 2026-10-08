@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sub2API 管理"
+  short_description: "查 Sub2API 的模型路由、Token 用量、额度和计费，做后台操作"
+  default_prompt: "使用 $sub2api-admin 通过管理员 API 查 Sub2API 的模型路由、Token 用量、上游额度与计费，或执行后台操作。"

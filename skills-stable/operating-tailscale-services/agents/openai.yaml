@@ -1,0 +1,4 @@
+interface:
+  display_name: "运维 Tailscale Services"
+  short_description: "创建、接入、迁移、删除和排查 Tailscale Service，从定义、审批验到 TailVIP、HTTPS 和 backend"
+  default_prompt: "使用 $operating-tailscale-services 创建、迁移、删除或排查 Tailscale Service，不动同一 host 上的其他 Serve 配置，逐层验收到真实 backend。"

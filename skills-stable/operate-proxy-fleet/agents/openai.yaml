@@ -1,0 +1,7 @@
+interface:
+  display_name: "运维自建代理机队"
+  short_description: "审计和维护 Snell、REALITY+HY2 代理节点和机队"
+  default_prompt: >-
+    使用 $operate-proxy-fleet 先分清是 Snell、REALITY+HY2 还是机队层面的事，
+    按实际证据审计、部署或修复服务端和客户端，处理节点 IP、流量和国内可达性，
+    服务端、客户端和每种协议分开报告结果。
