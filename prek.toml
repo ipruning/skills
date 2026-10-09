@@ -4,7 +4,9 @@
 
 default_install_hook_types = ["pre-commit", "pre-push"]
 default_stages = ["pre-commit", "pre-push"]
-exclude = "^skills-beta/cascade/|^skills-beta/code-storage/|^skills-beta/flint-chart-author/|^skills-beta/flint-theme-author/|^skills-beta/frontend-design/|^skills-beta/herdr/|^skills-beta/ip-as-logo-skill/|^skills-beta/sherlog/|^skills-beta/show-me/|^skills-beta/typesafe-ai/|^skills-mattpocock/ask-matt/|^skills-mattpocock/code-review/|^skills-mattpocock/codebase-design/|^skills-mattpocock/diagnosing-bugs/|^skills-mattpocock/domain-modeling/|^skills-mattpocock/grill-me/|^skills-mattpocock/grill-with-docs/|^skills-mattpocock/grilling/|^skills-mattpocock/handoff/|^skills-mattpocock/implement/|^skills-mattpocock/improve-codebase-architecture/|^skills-mattpocock/prototype/|^skills-mattpocock/research/|^skills-mattpocock/setup-matt-pocock-skills/|^skills-mattpocock/tdd/|^skills-mattpocock/teach/|^skills-mattpocock/triage/|^skills-stable/longbridge/|^skills-stable/longbridge-content/|^skills-stable/longbridge-derivatives/|^skills-stable/longbridge-earnings/|^skills-stable/longbridge-fundamentals/|^skills-stable/longbridge-intel/|^skills-stable/longbridge-market-data/|^skills-stable/longbridge-portfolio/|^skills-stable/longbridge-quant/|^skills-stable/longbridge-research/|^skills-stable/longbridge-technical/|^skills-stable/longbridge-value-investing/|^skills-stable/longbridge-watchlist/|^skillshare/"
+# BEGIN GENERATED LINT EXCLUDES: prek
+exclude = "^skills\\-beta/cascade/|^skills\\-beta/code\\-storage/|^skills\\-beta/flint\\-chart\\-author/|^skills\\-beta/flint\\-theme\\-author/|^skills\\-beta/frontend\\-design/|^skills\\-beta/herdr/|^skills\\-beta/ip\\-as\\-logo\\-skill/|^skills\\-beta/sherlog/|^skills\\-beta/show\\-me/|^skills\\-beta/typesafe\\-ai/|^skills\\-mattpocock/ask\\-matt/|^skills\\-mattpocock/code\\-review/|^skills\\-mattpocock/codebase\\-design/|^skills\\-mattpocock/diagnosing\\-bugs/|^skills\\-mattpocock/domain\\-modeling/|^skills\\-mattpocock/grill\\-me/|^skills\\-mattpocock/grill\\-with\\-docs/|^skills\\-mattpocock/grilling/|^skills\\-mattpocock/handoff/|^skills\\-mattpocock/implement/|^skills\\-mattpocock/improve\\-codebase\\-architecture/|^skills\\-mattpocock/prototype/|^skills\\-mattpocock/research/|^skills\\-mattpocock/setup\\-matt\\-pocock\\-skills/|^skills\\-mattpocock/tdd/|^skills\\-mattpocock/teach/|^skills\\-mattpocock/triage/|^skills\\-stable/longbridge/|^skills\\-stable/longbridge\\-content/|^skills\\-stable/longbridge\\-derivatives/|^skills\\-stable/longbridge\\-earnings/|^skills\\-stable/longbridge\\-fundamentals/|^skills\\-stable/longbridge\\-intel/|^skills\\-stable/longbridge\\-market\\-data/|^skills\\-stable/longbridge\\-portfolio/|^skills\\-stable/longbridge\\-quant/|^skills\\-stable/longbridge\\-research/|^skills\\-stable/longbridge\\-technical/|^skills\\-stable/longbridge\\-value\\-investing/|^skills\\-stable/longbridge\\-watchlist/|^skillshare/"
+# END GENERATED LINT EXCLUDES: prek
 fail_fast = false
 
 # =============================================================================
@@ -152,7 +154,7 @@ hooks = [
     {
         id = "check-lint-excludes",
         name = "lint excludes match .metadata.json",
-        entry = "mise exec -- ./scripts/check-lint-excludes.sh",
+        entry = "mise run check-lint-excludes",
         language = "system",
         pass_filenames = false,
         always_run = true,

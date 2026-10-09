@@ -25,7 +25,7 @@ description: >-
 
 部署和删除会改 GitHub 上的注册、systemd unit 和本地目录。几条硬规则：
 
-- **token 只走文件。** 用 `--token-file`，不用 `--token`，也不用 `sudo env GITHUB_RUNNER_TOKEN=...`：sudo 会把完整命令行写进 journal 或 auth log。
+- **token 只走文件。** 正常部署和删除只接受 `--token-file`；确认远端已注销后的 `--resume-after-unregister` 不接收 token。
 - **drain 检查不能删。** GitHub 的 `config.sh` 运行期间 token 在它的 argv 里，同 UID 的进程还能读它的环境和内存。脚本因此要求 `--drained`，并在交出 token 前确认服务用户下没有任何进程。
 - **只做全新部署。** 目标目录已存在就停，从不传 `--replace`。远端有同名 runner 时先在 GitHub 上处理。
 - **批量操作不是原子的。** 失败后按 [deploy-and-remove.md 的恢复流程](references/deploy-and-remove.md#失败后从哪接着做)接着做，不要把缺目录或缺 `.runner` 当成功或失败的证据。

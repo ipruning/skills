@@ -8,7 +8,6 @@ uv = "aqua:astral-sh/uv"
 "github:huacnlee/autocorrect" = "2.16.3"
 actionlint = "1.7.12"
 biome = "2.5.15"
-gum = "2.0.2"
 jq = "1.8.2"
 ls-lint = "2.3.1"
 markdownlint-cli2 = "0.23.3"
@@ -33,8 +32,12 @@ lockfile_platforms = ["macos-arm64", "linux-x64"]
 compile = false
 
 [tasks.check-lint-excludes]
-description = "Verify lint config excludes match the non-_ .metadata.json entries"
-run = "scripts/check-lint-excludes.sh"
+description = "Verify generated lint exclusions match Skillshare metadata"
+run = "python scripts/lint-excludes.py"
+
+[tasks.update-lint-excludes]
+description = "Regenerate lint exclusions from Skillshare metadata"
+run = "python scripts/lint-excludes.py --write"
 
 [tasks.format]
 description = "Run formatters"

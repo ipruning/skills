@@ -16,4 +16,6 @@ Skill 怎么装、更新、同步，以及 Skillshare 的坑，看 `_jihuanshe-s
 
 ## 检查
 
-跑 `mise run lint`；改了第三方 Skill 再跑 `mise run check-lint-excludes`；最后 `git diff --check`。
+跑 `mise run lint`、`mise run test`，最后 `git diff --check`。
+
+第三方包变化后运行 `mise run update-lint-excludes`。各工具配置中的生成块来自 `.metadata.json`，不要手改；`mise run check-lint-excludes` 检查生成结果是否过期。

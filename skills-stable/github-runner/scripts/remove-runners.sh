@@ -4,6 +4,7 @@ set -euo pipefail
 usage() {
     cat <<'EOF'
 Usage: sudo bash remove-runners.sh --token-file FILE [options]
+       sudo bash remove-runners.sh --resume-after-unregister [options]
 
 Remove GitHub.com organization-level runners only after GitHub reports them idle.
 
@@ -13,10 +14,8 @@ Required:
   -n, --count N          Numbered instances to remove, 1-50
       --drained          Confirm every target runner is idle and no job can be assigned
 
-Token input (choose one):
+Token input:
       --token-file FILE  Read the remove token from FILE
-  -t, --token TOKEN      Compatibility only; exposes TOKEN in process argv
-                         prefer --token-file
 
 Optional:
       --start N          First numbered instance; defaults to 1
@@ -49,25 +48,17 @@ validate_plain_value() {
         || die "$value_name must not contain control characters"
 }
 
-read_runner_identity() {
-    local runner_file=$1
-    python3 - "$runner_file" <<'PY'
-import json
-import sys
-
-with open(sys.argv[1], encoding="utf-8-sig") as file:
-    data = json.load(file)
-print(data.get("agentName", ""))
-print(data.get("gitHubUrl", ""))
-PY
-}
+SCRIPTS_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+IDENTITY_READER="$SCRIPTS_DIR/read-runner-identity.py"
+[[ -f "$IDENTITY_READER" && -r "$IDENTITY_READER" ]] \
+    || die "missing runner identity helper; copy the entire scripts directory: $IDENTITY_READER"
 
 ORG=''
 PREFIX=''
 COUNT=''
 START=1
 RUNNER_USER='actions'
-TOKEN=${GITHUB_RUNNER_TOKEN-}
+TOKEN=''
 TOKEN_FILE=''
 DRAINED=0
 ASSUME_YES=0
@@ -81,12 +72,6 @@ while [[ $# -gt 0 ]]; do
         --start) require_value "$1" "${2-}"; START=$2; shift 2 ;;
         -u|--user) require_value "$1" "${2-}"; RUNNER_USER=$2; shift 2 ;;
         --token-file) require_value "$1" "${2-}"; TOKEN_FILE=$2; shift 2 ;;
-        -t|--token)
-            require_value "$1" "${2-}"
-            TOKEN=$2
-            warn '--token exposes the token in process argv; prefer --token-file'
-            shift 2
-            ;;
         --drained) DRAINED=1; shift ;;
         --resume-after-unregister) RESUME_AFTER_UNREGISTER=1; shift ;;
         -y|--yes) ASSUME_YES=1; shift ;;
@@ -117,10 +102,9 @@ END=$((START + COUNT - 1))
 [[ $DRAINED -eq 1 ]] || die 'refusing removal without --drained'
 
 if [[ $RESUME_AFTER_UNREGISTER -eq 1 ]]; then
-    [[ -z "$TOKEN" && -z "$TOKEN_FILE" ]] \
+    [[ -z "$TOKEN_FILE" ]] \
         || die 'resume-after-unregister performs local cleanup only; do not provide a token'
 elif [[ -n "$TOKEN_FILE" ]]; then
-    [[ -z "$TOKEN" ]] || die 'use only one token source'
     [[ -r "$TOKEN_FILE" ]] || die "cannot read token file: $TOKEN_FILE"
     IFS= read -r TOKEN <"$TOKEN_FILE" || [[ -n "$TOKEN" ]]
 fi
@@ -169,7 +153,7 @@ for runner_number in $(seq "$START" "$END"); do
     [[ -d "$runner_dir" ]] || die "target directory is missing: $runner_dir"
     if [[ $RESUME_AFTER_UNREGISTER -eq 1 ]]; then
         if [[ -f "$runner_dir/.runner" ]]; then
-            mapfile -t identity < <(read_runner_identity "$runner_dir/.runner")
+            mapfile -t identity < <(python3 "$IDENTITY_READER" "$runner_dir/.runner")
             [[ ${identity[0]-} == "$runner_name" && ${identity[1]-} == "$ORG_URL" ]] \
                 || die "stale local runner identity does not match $ORG_URL / $runner_name: $runner_dir"
             warn "resume is accepting a stale local .runner only because remote absence was independently confirmed: $runner_dir"
@@ -188,7 +172,7 @@ for runner_number in $(seq "$START" "$END"); do
     else
         [[ -f "$runner_dir/.runner" ]] \
             || die "target has no registered runner identity: $runner_dir"
-        mapfile -t identity < <(read_runner_identity "$runner_dir/.runner")
+        mapfile -t identity < <(python3 "$IDENTITY_READER" "$runner_dir/.runner")
         [[ ${identity[0]-} == "$runner_name" && ${identity[1]-} == "$ORG_URL" ]] \
             || die "runner identity does not match $ORG_URL / $runner_name: $runner_dir"
     fi

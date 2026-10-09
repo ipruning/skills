@@ -10,7 +10,7 @@
         "includes": [
             "**",
             "!.metadata.json",
-            "!!.mise/locks",
+            // BEGIN GENERATED LINT EXCLUDES: biome
             "!!skills-beta/cascade",
             "!!skills-beta/code-storage",
             "!!skills-beta/flint-chart-author",
@@ -51,7 +51,9 @@
             "!!skills-stable/longbridge-technical",
             "!!skills-stable/longbridge-value-investing",
             "!!skills-stable/longbridge-watchlist",
-            "!!skillshare"
+            "!!skillshare",
+            // END GENERATED LINT EXCLUDES: biome
+            "!!.mise/locks"
         ],
         "ignoreUnknown": true
     },

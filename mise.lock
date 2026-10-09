@@ -51,23 +51,6 @@ checksum = "sha256:a911efe0640a78c4d95779a81d4f57b4b745c3e77052c9f147b906d4a9b6d
 url = "https://github.com/huacnlee/autocorrect/releases/download/v2.16.3/autocorrect-darwin-arm64.tar.gz"
 url_api = "https://api.github.com/repos/huacnlee/autocorrect/releases/assets/335756985"
 
-[[tools.gum]]
-version = "2.0.2"
-backend = "aqua:charmbracelet/gum"
-specifiers = ["2.0.2"]
-
-[tools.gum."platforms.linux-x64"]
-checksum = "sha256:d842e06d93dbed90af48cb8dd10698db6f22e331fc40346bb37bbc753109edc2"
-url = "https://github.com/charmbracelet/gum/releases/download/v2.0.2/gum_2.0.2_Linux_x86_64.tar.gz"
-url_api = "https://api.github.com/repos/charmbracelet/gum/releases/assets/585508723"
-provenance = "cosign"
-
-[tools.gum."platforms.macos-arm64"]
-checksum = "sha256:4777a69b1170b8db23c95d5889fb32186cfda1a3ac950d339aa17e3513633890"
-url = "https://github.com/charmbracelet/gum/releases/download/v2.0.2/gum_2.0.2_Darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/charmbracelet/gum/releases/assets/585508714"
-provenance = "cosign"
-
 [[tools.jq]]
 version = "1.8.2"
 backend = "aqua:jqlang/jq"

@@ -46,6 +46,8 @@ skillshare sync
 ```bash
 skillshare update --all --dry-run
 skillshare update --all
+mise run update-lint-excludes
+mise run lint
 skillshare sync
 ```
 
@@ -75,3 +77,5 @@ mise run test
 ```
 
 CI 使用相同入口，执行 lint、Python 和 Node 测试，以及 Runner shell 测试。根目录的 Python 依赖只包含检查工具和测试需要的库；Python Skill 脚本需要的第三方运行依赖由各自的内联元数据声明。
+
+第三方包的 lint 排除项由 `.metadata.json` 生成。增删或更新包后运行 `mise run update-lint-excludes`；lint 会检查生成块与元数据是否一致。各工具自己的格式规则仍在对应配置文件中维护。

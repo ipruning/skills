@@ -6,6 +6,7 @@ skill_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly skill_root
 readonly setup_script="$skill_root/scripts/setup-runners.sh"
 readonly remove_script="$skill_root/scripts/remove-runners.sh"
+readonly identity_reader="$skill_root/scripts/read-runner-identity.py"
 readonly deploy_doc="$skill_root/references/deploy-and-remove.md"
 
 tmp_dir="$(mktemp -d)"
@@ -23,31 +24,48 @@ printf '\357\273\277%s\n' \
     >"$bom_file"
 printf '%s\n' '{"agentName":' >"$malformed_file"
 
-read_identity() {
-    local runner_file=$1
-    python3 - "$runner_file" <<'PY'
-import json
-import sys
-
-with open(sys.argv[1], encoding="utf-8-sig") as file:
-    data = json.load(file)
-print(data.get("agentName", ""))
-print(data.get("gitHubUrl", ""))
-PY
-}
-
 expected_identity=$'ci-01\nhttps://github.com/example-org'
-[[ $(read_identity "$plain_file") == "$expected_identity" ]]
-[[ $(read_identity "$bom_file") == "$expected_identity" ]]
-if read_identity "$malformed_file" >"$tmp_dir/malformed.log" 2>&1; then
+[[ $(python3 "$identity_reader" "$plain_file") == "$expected_identity" ]]
+[[ $(python3 "$identity_reader" "$bom_file") == "$expected_identity" ]]
+if python3 "$identity_reader" "$malformed_file" >"$tmp_dir/malformed.log" 2>&1; then
     echo "ERROR malformed runner JSON passed identity parsing" >&2
     exit 1
 fi
 
+# Removed public aliases must fail during parsing, before platform checks or writes.
 for runner_script in "$setup_script" "$remove_script"; do
-    grep -F 'with open(sys.argv[1], encoding="utf-8-sig") as file:' \
-        "$runner_script" >/dev/null
+    for removed_option in --token -t; do
+        status=0
+        bash "$runner_script" "$removed_option" fixture >"$tmp_dir/option.log" 2>&1 || status=$?
+        [[ $status -eq 2 ]]
+        [[ $(<"$tmp_dir/option.log") == *"unknown option: $removed_option"* ]]
+    done
+    bash "$runner_script" --help >"$tmp_dir/help.log"
+    [[ $(<"$tmp_dir/help.log") == *--token-file* ]]
 done
+status=0
+bash "$setup_script" --label fixture >"$tmp_dir/option.log" 2>&1 || status=$?
+[[ $status -eq 2 ]]
+[[ $(<"$tmp_dir/option.log") == *"unknown option: --label"* ]]
+[[ $(bash "$remove_script" --help) == *--resume-after-unregister* ]]
+# A shell-only upload fails before registration or host operations.
+mkdir "$tmp_dir/incomplete-scripts"
+for runner_script in "$setup_script" "$remove_script"; do
+    cp "$runner_script" "$tmp_dir/incomplete-scripts/"
+    status=0
+    bash "$tmp_dir/incomplete-scripts/${runner_script##*/}" --help >"$tmp_dir/package.log" 2>&1 || status=$?
+    [[ $status -eq 1 ]]
+    [[ $(<"$tmp_dir/package.log") == *"copy the entire scripts directory"* ]]
+done
+cp "$identity_reader" "$tmp_dir/incomplete-scripts/"
+for runner_script in "$setup_script" "$remove_script"; do
+    bash "$tmp_dir/incomplete-scripts/${runner_script##*/}" --help >/dev/null
+done
+# The supported spellings still parse without reaching host or network operations.
+bash "$setup_script" --labels fixture --help >/dev/null
+bash "$setup_script" -l fixture --help >/dev/null
+bash "$setup_script" --token-file "$plain_file" --help >/dev/null
+bash "$remove_script" --resume-after-unregister --help >/dev/null
 
 # Portable equivalent of a noexec mount: direct execution is unavailable,
 # while an explicit trusted interpreter can read a root-only helper.

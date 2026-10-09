@@ -2,6 +2,8 @@
 
 用 `scripts/setup-runners.sh` 部署、用 `scripts/remove-runners.sh` 删除，或者其中一个中途失败要收拾时读这份。
 
+远端执行时复制整个 `scripts/` 目录，保留两个 shell 脚本与 `read-runner-identity.py` 的同级关系。两个脚本都调用这个 Python 入口读取 `.runner`，不能只上传单个 shell 文件。仍用 `bash <dir>/scripts/setup-runners.sh` 或 `bash <dir>/scripts/remove-runners.sh` 执行，无须给 helper 执行权限。
+
 ## 开始前要定下来的值
 
 组织、runner 名前缀、数量、Linux 服务用户（默认 `actions`）、label 和 runner group。两个脚本都要 root、systemd 和维护窗口。setup 要求同一 Linux 用户下所有 runner 都已 drain、停掉、没有残留进程。remove 要求目标 runner 已 drain、同用户下目标之外的 runner 已停；目标 unit 由脚本自己停，注销失败时也由它重启。条件不满足，脚本直接拒绝。
@@ -25,11 +27,11 @@ rm -f "$token_file"
 
 删除时把 `registration-token` 换成 `remove-token`，脚本换成 `remove-runners.sh --token-file "$token_file" --org <ORG> --prefix <PREFIX> --count 8 --drained --yes`。
 
-不用 `--token`，也不用 `sudo env GITHUB_RUNNER_TOKEN=...`：sudo 会把完整命令行写进 journal 或 auth log。
+两个脚本只接受 `--token-file`，不从命令行参数或环境变量接收 token；确认远端已注销后的 `--resume-after-unregister` 不传 token。
 
 ## token 怎么交给 runner
 
-脚本用空环境调用 `runuser` 切到服务用户，只给 `HOME`、身份、shell 和一个固定的 `PATH`。这样外层的 `GITHUB_RUNNER_TOKEN`、`SUDO_COMMAND` 和 root 的其他环境变量都不会进 runner 用户的进程树。
+脚本用空环境调用 `runuser` 切到服务用户，只给 `HOME`、身份、shell 和一个固定的 `PATH`。这样外层的 `SUDO_COMMAND` 和 root 的其他环境变量都不会进 runner 用户的进程树。
 
 但 GitHub 的 `config.sh` 运行期间 token 仍在它的 argv 里。argv 本身对本机所有用户可见（除非 `/proc` 挂了 `hidepid`），同 UID 的进程还能读它的环境和内存。所以脚本在交出 token 前要求这个 UID 下没有别的进程，这台机器上也不应有不受信任的本地用户。这道 drain 检查是 token 保护的一部分，不能删。
 

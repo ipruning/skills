@@ -1,3 +1,4 @@
+# BEGIN GENERATED LINT EXCLUDES: autocorrect
 skills-beta/cascade/
 skills-beta/code-storage/
 skills-beta/flint-chart-author/
@@ -39,3 +40,4 @@ skills-stable/longbridge-technical/
 skills-stable/longbridge-value-investing/
 skills-stable/longbridge-watchlist/
 skillshare/
+# END GENERATED LINT EXCLUDES: autocorrect

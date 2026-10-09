@@ -12,14 +12,11 @@ Required:
   -n, --count N                 Number of runners, 1-50
       --drained                 Confirm same-user runners are drained and stopped
 
-Token input (choose one):
+Token input:
       --token-file FILE         Read the registration token from FILE
-  -t, --token TOKEN             Compatibility only; exposes TOKEN in process argv
-                                prefer --token-file
 
 Optional:
-  -l, --label LABEL             One custom label; compatibility alias for --labels
-      --labels LABELS           Comma-separated custom labels; defaults to hostname
+  -l, --labels LABELS           Comma-separated custom labels; defaults to hostname
   -g, --group GROUP             Runner group; defaults to Default
   -p, --prefix PREFIX           Runner name prefix; defaults to the sole label;
                                 required when --labels contains several labels
@@ -55,18 +52,10 @@ validate_plain_value() {
         || die "$value_name must not contain control characters"
 }
 
-read_runner_identity() {
-    local runner_file=$1
-    python3 - "$runner_file" <<'PY'
-import json
-import sys
-
-with open(sys.argv[1], encoding="utf-8-sig") as file:
-    data = json.load(file)
-print(data.get("agentName", ""))
-print(data.get("gitHubUrl", ""))
-PY
-}
+SCRIPTS_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+IDENTITY_READER="$SCRIPTS_DIR/read-runner-identity.py"
+[[ -f "$IDENTITY_READER" && -r "$IDENTITY_READER" ]] \
+    || die "missing runner identity helper; copy the entire scripts directory: $IDENTITY_READER"
 
 ORG=''
 COUNT=''
@@ -77,7 +66,7 @@ RUNNER_USER='actions'
 RUNNER_VERSION=''
 RUNNER_RUNTIME_PATH=''
 PIN_RUNNER_VERSION=0
-TOKEN=${GITHUB_RUNNER_TOKEN-}
+TOKEN=''
 TOKEN_FILE=''
 ASSUME_YES=0
 DRAINED=0
@@ -87,19 +76,13 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         -o|--org) require_value "$1" "${2-}"; ORG=$2; shift 2 ;;
         -n|--count) require_value "$1" "${2-}"; COUNT=$2; shift 2 ;;
-        -l|--label|--labels) require_value "$1" "${2-}"; LABELS=$2; shift 2 ;;
+        -l|--labels) require_value "$1" "${2-}"; LABELS=$2; shift 2 ;;
         -g|--group) require_value "$1" "${2-}"; RUNNER_GROUP=$2; shift 2 ;;
         -p|--prefix) require_value "$1" "${2-}"; PREFIX=$2; shift 2 ;;
         -u|--user) require_value "$1" "${2-}"; RUNNER_USER=$2; shift 2 ;;
         --runner-version) require_value "$1" "${2-}"; RUNNER_VERSION=${2#v}; PIN_RUNNER_VERSION=1; shift 2 ;;
         --runner-path) require_value "$1" "${2-}"; RUNNER_RUNTIME_PATH=$2; shift 2 ;;
         --token-file) require_value "$1" "${2-}"; TOKEN_FILE=$2; shift 2 ;;
-        -t|--token)
-            require_value "$1" "${2-}"
-            TOKEN=$2
-            warn '--token exposes the token in process argv; prefer --token-file'
-            shift 2
-            ;;
         --drained) DRAINED=1; shift ;;
         --accept-inherited-dropins) ACCEPT_INHERITED_DROPINS=1; shift ;;
         -y|--yes) ASSUME_YES=1; shift ;;
@@ -132,7 +115,6 @@ fi
 [[ $DRAINED -eq 1 ]] || die 'refusing deployment without --drained'
 
 if [[ -n "$TOKEN_FILE" ]]; then
-    [[ -z "$TOKEN" ]] || die 'use only one token source'
     [[ -r "$TOKEN_FILE" ]] || die "cannot read token file: $TOKEN_FILE"
     IFS= read -r TOKEN <"$TOKEN_FILE" || [[ -n "$TOKEN" ]]
 fi
@@ -342,7 +324,7 @@ for runner_number in $(seq 1 "$COUNT"); do
         SHELL="$RUNNER_SHELL" PATH="$RUNNER_RUNTIME_PATH" "${config_args[@]}"); then
         die "runner registration failed; directory preserved because local .runner absence cannot prove the remote request did not commit. Check GitHub for $runner_name before cleanup: $runner_dir"
     fi
-    mapfile -t identity < <(read_runner_identity "$runner_dir/.runner")
+    mapfile -t identity < <(python3 "$IDENTITY_READER" "$runner_dir/.runner")
     [[ ${identity[0]-} == "$runner_name" && ${identity[1]-} == "$ORG_URL" ]] \
         || die "registered runner identity does not match $ORG_URL / $runner_name: $runner_dir"
 
