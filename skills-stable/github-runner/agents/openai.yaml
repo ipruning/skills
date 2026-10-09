@@ -1,0 +1,4 @@
+interface:
+  display_name: "GitHub Actions 自托管 Runner 管理"
+  short_description: "在 Linux systemd 上部署、删除、迁移、巡查和排查组织级自托管 Runner 池"
+  default_prompt: "使用 $github-runner 部署、删除、迁移或巡查 GitHub 组织级自托管 Runner：写操作前 drain 并核对 GitHub 上的注册状态，迁移时盘点 workflow 的 label、隐式依赖、监控和容量。"
