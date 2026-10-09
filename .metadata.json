@@ -11,11 +11,6 @@
       "tracked": true,
       "branch": "main"
     },
-    "_jihuanshe-tcg-backend-doc": {
-      "source": "https://github.com/jihuanshe/tcg-backend-doc.git",
-      "tracked": true,
-      "branch": "main"
-    },
     "skills-beta/cascade": {
       "source": "https://github.com/miguelrios/unc-skills.git/cascade/skills/cascade",
       "type": "github-subdir",
