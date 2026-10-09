@@ -12,6 +12,7 @@ gum = "2.0.2"
 jq = "1.8.2"
 ls-lint = "2.3.1"
 markdownlint-cli2 = "0.23.3"
+node = "26.10.0"
 prek = "0.5.4"
 python = "3.14.8"
 shellcheck = "0.11.0"
@@ -42,3 +43,7 @@ run = "scripts/format.sh"
 [tasks.lint]
 description = "Run linters"
 run = "scripts/lint.sh"
+
+[tasks.test]
+description = "Run repository script tests"
+run = "scripts/test.sh"

@@ -28,3 +28,4 @@ jobs:
                   install: true
                   cache: false
             - run: mise run lint
+            - run: mise run test

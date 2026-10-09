@@ -65,3 +65,13 @@ skillshare sync extras --dry-run
 ```
 
 source、target 和同步模式以当前 `config.yaml` 为准。不要直接编辑 target；如果 target 中已有本地改动，确认 dry-run 结果后再同步。
+
+## 检查
+
+```bash
+mise install
+mise run lint
+mise run test
+```
+
+CI 使用相同入口，执行 lint、Python 和 Node 测试，以及 Runner shell 测试。根目录的 Python 依赖只包含检查工具和测试需要的库；Python Skill 脚本需要的第三方运行依赖由各自的内联元数据声明。
