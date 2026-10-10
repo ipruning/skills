@@ -28,9 +28,6 @@ auto_install = false
 lockfile = true
 lockfile_platforms = ["macos-arm64", "linux-x64"]
 
-[settings.ruby]
-compile = false
-
 [tasks.check-lint-excludes]
 description = "Verify generated lint exclusions match Skillshare metadata"
 run = "python scripts/lint-excludes.py"

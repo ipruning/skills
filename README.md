@@ -35,7 +35,7 @@ skillshare sync
 
 ## 日常流程
 
-编辑 source 后同步到 target：
+编辑 Skill source 后同步到 target：
 
 ```bash
 skillshare sync
@@ -51,7 +51,7 @@ mise run lint
 skillshare sync
 ```
 
-`sync` 是 source → target。要把 target 上的文件导回 source，使用：
+`sync` 只将 Skills 从 source 同步到 target。要把 target 上的 Skill 导回 source，使用：
 
 ```bash
 skillshare collect
@@ -59,14 +59,7 @@ skillshare collect
 
 ## Extras
 
-修改 extras 前，先查看当前配置和同步状态：
-
-```bash
-skillshare extras list --json
-skillshare sync extras --dry-run
-```
-
-source、target 和同步模式以当前 `config.yaml` 为准。不要直接编辑 target；如果 target 中已有本地改动，确认 dry-run 结果后再同步。
+全局 Agent 指令的消费位置和同步步骤见 [extras/README.md](extras/README.md)。
 
 ## 检查
 
