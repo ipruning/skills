@@ -1,0 +1,4 @@
+interface:
+  display_name: "WeChat 查询"
+  short_description: "用 wlb 查询本机微信聊天、搜索历史约定、导出记录和提取图片"
+  default_prompt: "使用 $wechat 查询本机微信中指定联系人或群聊的记录，核对相关约定并保留消息时间和来源。"
