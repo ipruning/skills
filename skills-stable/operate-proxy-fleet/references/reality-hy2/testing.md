@@ -33,7 +33,7 @@ Forwarded explicit-proxy test:
 3. **Linux sing-box 先看负载下实际的 UDP socket 和丢包增量**，再决定动不动缓冲，见 [linux-client.md](linux-client.md#udp-缓冲)。客户端的问题不自动要求改服务端；服务端健康也不代表每个客户端都最优。
 4. **固定链路才测方向独立的带宽参数**：一次只改一项，基线和候选交替重复，同时看吞吐、负载下延迟、并发和失败率。留下实测的折中，不承诺所有场景同时达到物理上限。方法见下面「吞吐、延迟和故障切换」。
 5. **Surge、Surfboard 和 sing-box 是不同的实现。** 核对各自版本的官方字段和不写时的行为，不能把 sing-box 的 sysctl 绕法或带宽值照搬到原生客户端。Surge 和 Surfboard 的 `download-bandwidth` 是可选字段，不写不代表证明了用的是同一种拥塞控制。字段依据：[Surge HY2](https://manual.nssurge.com/policies/hysteria2.html)、[Surfboard HY2](https://getsurfboard.com/docs/profile-format/proxy/external-proxy/hysteria2/)。
-6. **改了源头配置，就重建已有的派生产物**，分别记下发布、加载和真实协议验收的状态。只传播协议必需的参数；链路专属的调优要在接收端重新验证，临时绕法写明删除条件和回滚。
+6. **改了源头配置，就重建已有的派生产物**，检查实际要交付的文件与当前源一致，并使用兼容版本的目标平台 parser 验证；临时重建副本通过不能代替交付文件检查。分别记下发布、加载和真实协议验收的状态，未在目标平台检查的部分单独列出。只传播协议必需的参数；链路专属的调优要在接收端重新验证，临时绕法写明删除条件和回滚。
 
 ## 转发流量的数据路径
 
