@@ -3,7 +3,7 @@ name: operate-proxy-fleet
 description: >-
   部署、审计和排查自建代理节点时使用。
 metadata:
-  version: "4"
+  version: "5"
 ---
 
 # 运维自建代理机队
