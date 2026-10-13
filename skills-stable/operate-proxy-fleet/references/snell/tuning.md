@@ -19,7 +19,7 @@ net.ipv4.tcp_syncookies = 1
 ```
 
 - 写之前确认内核支持 BBR、sysctl 可写。
-- `ip_local_reserved_ports` 是整体替换的值。Snell 端口落在实际的 `ip_local_port_range` 里面时才需要预留；预留时把现有的所有预留合并进去，不要覆盖。用真实端口，不用示例里抄来的。
+- `ip_local_reserved_ports` 是整体替换的值。按本次计划生效后的 `ip_local_port_range` 判断是否要预留 Snell 监听端口；例如采用上面的 `20000 65000` 时，当前范围之外、目标范围之内的监听端口也要预留。先把真实监听端口与现有的所有预留合并，再调整端口范围，放在同一次 sysctl 事务中保存并回读，不要覆盖原有预留。
 - `nf_conntrack_max` 不是必调项。只有 Docker、NAT、有状态防火墙规则或实测到 conntrack 压力时才提高。
 - 不要抄大段 TCP buffer、`tcp_tw_reuse`、`tcp_abort_on_overflow` 或几十行的调优清单。它们藏风险，也很少解决真正的瓶颈。
 
