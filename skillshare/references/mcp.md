@@ -357,14 +357,15 @@ printing `Updated config.yaml for 0.23.0 (backup: <path>)`. `--dry-run` writes n
 ## Turn off a global server in one project
 
 Needs a project in scope: `-p`, a folder with `.skillshare/config.yaml`, or a root under
-`mcp.projects` in the global config. It writes just the switch; OpenCode, Kilo Code
+`mcp.projects` in the global config. It writes just the switch; Kilo Code
 and Pi keep the global connection, while OMP suppresses the same-named entry. NAME must be the name in the Agent's own global config;
 Skillshare does not check that it exists there.
 
 | Target | Supported | Written |
 |---|---|---|
 | `claude` | Yes | name added to this project's `disabledMcpServers` in `~/.claude.json` (per machine) |
-| `opencode`, `kilocode` | Yes | `{"enabled": false}` |
+| `opencode` | Yes | Under `mcp.projects`: the global server's `type` and executable name, or URL scheme and host, with `"enabled": false` (OpenCode 2 drops a bare switch). Otherwise `{"enabled": false}`, which OpenCode 2 ignores |
+| `kilocode` | Yes | `{"enabled": false}` |
 | `pi` | Pi 1.0.1+ | `{"enabled": false}`, Pi's project override |
 | `omp` | Yes | `{"enabled": false}`, suppresses the same-named user entry |
 | `codex` | No | see [Codex](#codex) |
@@ -416,8 +417,9 @@ mcp:
   because the Agent reads its global and project files together; do not repeat them. A
   `disabled` entry only switches one off in that folder.
 - No command edits `mcp.projects`; `mcp add` leaves it as written. Edit `config.yaml`, or
-  use the dashboard: the MCP page's **Projects** tab adds and removes projects, turns
-  global servers off per project and edits project servers.
+  use the dashboard: the **Projects** page adds and removes projects, and each project's
+  **MCP** tab turns global servers off there, edits project servers and lists the
+  project's Agent files with **Open folder**, **Open in editor** and **Copy path**.
 - `disabled` under `mcp.projects` cannot target `claude`. Use project mode in that
   folder instead.
 - It is refused inside a project config. A folder whose own `.skillshare/config.yaml`

@@ -3,12 +3,13 @@ name: skillshare
 description: |
   Manage skills, agents, extras, hooks, plugins, and MCP connection settings with the Skillshare CLI.
   Use when the user asks to configure or run Skillshare, install or sync resources
-  across AI tools, manage shared memory notes, import MCP settings, manage targets, audit skills, recover backups,
+  across AI tools, manage shared memory notes, review a session for lessons or dream over saved memories,
+  import MCP settings, manage targets, audit skills, recover backups,
   or troubleshoot Skillshare configuration and sync. Covers global and project modes,
   noninteractive automation, and guidance for the terminal UI.
 argument-hint: "[command] [target] [--json] [--dry-run] [-p|-g]"
 metadata:
-  version: v0.25.3
+  version: v0.25.10
 ---
 
 # Skillshare CLI
@@ -29,6 +30,9 @@ Check `skillshare <command> --help` if the installed version differs from these 
 - Shared memory notes live in the `memory` extra. Use `extras memory` to manage Markdown
   notes and reading guidance; nested paths such as `wiki/architecture.md` are supported.
   Read [extras.md](references/extras.md) for scope, version checks, and agent setup.
+  For a session retrospective or Dreaming across saved notes, read
+  [memory-review.md](references/memory-review.md). The host agent performs the review;
+  Skillshare never launches or schedules an agent.
 - MCP uses its own receiving targets and source definitions. Read [mcp.md](references/mcp.md)
   before editing MCP settings or importing native configurations. Its Agent notes cover
   what is specific to Claude Code, Codex, OpenCode and Pi: scopes and files, names and
@@ -111,6 +115,18 @@ skillshare sync
 Run the requested operation, not this entire example sequence. Quote glob patterns so
 Skillshare receives them unchanged. Disabling uses ignore rules; uninstall uses trash.
 
+### Move skills into folders
+
+```bash
+skillshare move my-skill frontend --dry-run
+skillshare move my-skill other-skill frontend
+skillshare sync
+```
+
+Use `move` instead of `mv` for installed skills: it keeps their install records, so
+nothing is downloaded again. It does not sync; run `sync` afterwards. Read
+[install.md](references/install.md) for refusals and project mode.
+
 ### MCP settings
 
 ```bash
@@ -166,12 +182,13 @@ references for a single task.
 | Complete plugins, native lifecycle, and sync selection | [plugins.md](references/plugins.md) |
 | Init flags | [init.md](references/init.md) |
 | Sync/collect/commit/push/pull | [sync.md](references/sync.md) |
-| Install/update/uninstall/new | [install.md](references/install.md) |
+| Install/update/uninstall/move/new | [install.md](references/install.md) |
 | Status/diff/list/search/check | [status.md](references/status.md) |
 | Security audit | [audit.md](references/audit.md) |
 | Trash | [trash.md](references/trash.md) |
 | Operation log | [log.md](references/log.md) |
 | Targets | [targets.md](references/targets.md) |
 | Extras (rules/commands/prompts) | [extras.md](references/extras.md) |
+| Session retrospectives and Dreaming over saved notes | [memory-review.md](references/memory-review.md) |
 | Backup/restore | [backup.md](references/backup.md) |
 | Troubleshooting | [TROUBLESHOOTING.md](references/TROUBLESHOOTING.md) |
