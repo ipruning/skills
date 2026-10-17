@@ -3,7 +3,7 @@ name: operate-proxy-fleet
 description: >-
   部署、审计和排查自建代理节点时使用。
 metadata:
-  version: "5"
+  version: "6"
 ---
 
 # 运维自建代理机队
@@ -22,9 +22,9 @@ flowchart TD
   R -- Linux 客户端、TUN、转发流量 --> R2[reality-hy2/linux-client.md]
   R -- Android、Windows、macOS Surge --> R3[reality-hy2/clients.md]
   R -- 测速、调优、一次性测试夹具、核对配置和实际运行 --> R4[reality-hy2/testing.md]
-  R -- 长期探测 --> R5[reality-hy2/monitoring.md]
+  R -- 长期探测（各协议通用） --> R5[reality-hy2/monitoring.md]
   B -- 机队 --> F{要做什么}
-  F -- 搬瓦工节点的流量、IP、换被墙 IP --> F1[fleet/bandwagonhost.md]
+  F -- 搬瓦工流量、服务商状态、短时全挂、换被墙 IP --> F1[fleet/bandwagonhost.md]
   F -- 从国内判断是否被墙 --> F2[fleet/cn-reachability.md]
 ```
 

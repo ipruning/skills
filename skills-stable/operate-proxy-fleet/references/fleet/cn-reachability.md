@@ -1,42 +1,44 @@
 # 从国内判断节点是否被墙
 
-判据：从**国内**的探测主机直连节点的服务端口，TCP 连得上就是通，连不上就是被墙。机器本身可能还活着，换 IP 见 [bandwagonhost.md](bandwagonhost.md)。`ping` 只作辅助，ICMP 可能被单独封。
+从国内探测主机直连节点。能经过该节点完成一次认证请求（见 [monitoring.md](../reality-hy2/monitoring.md)），就是通的；这是首选判据。TCP 端口连得上只说明三层可达，协议可能照样被干扰：实测出现过 TCP 一直通、经代理的请求却连续失败。只在没有凭据、拿不到协议探针的主机上退回 TCP 检查。`ping` 只作辅助，ICMP 可能被单独封。
 
-下面是片段，不是成品脚本，按实际主机组装。判定、按首次失败时间去重、告警、systemd timer 和 secret 都按 `$monitoring` 组装。
+TCP 连不上不等于被墙：先按 [bandwagonhost.md](bandwagonhost.md) 排除暂停、IP 黑洞和宿主机冻结，再考虑换 IP。
 
 ## 必须直连，别走代理
 
-探测主机自己常挂着透明代理（sing-box TUN 等），默认所有出站都走代理，那样测到的是「代理可达性」，不是国内真实的可达性。三种拿到直连的办法，按现场选：
+探测主机自己常挂着透明代理（sing-box TUN 等），默认所有出站都走代理，那样测到的是代理的可达性。拿到直连的办法，按现场选：
 
-1. 主机本来就直连，没有代理：直接测。
-2. 代理支持按 uid 或规则放行：让探针的 uid 走 `direct`（sing-box 加 route 规则 `{ user_id:[<probe_uid>], outbound:"direct" }`）。稳，重启后不失效。
-3. 给探测包打上代理的**绕行标记**：不用改代理，但代理重配后可能失效。
+1. 主机本来就直连：直接测。
+2. 代理支持按 uid 放行：让探针的 uid 走 `direct`（sing-box route 规则 `{ user_id:[<probe_uid>], outbound:"direct" }`）。
+3. 探测 socket 打上代理的**绕行标记**（`SO_MARK`）：不用改代理，但代理重配后可能失效。
 
-**别信 `ip route get`**：透明代理常在 nft 的 nat／dnat 层拦截，不在路由层，路由看着是直连，实际仍走代理。绕行标记去 nft 里找：
+绕行标记在 nft 里找：
 
 ```bash
 sudo nft list ruleset   # 在 inet sing-box 链里找 `meta mark 0x... return`，那个 mark 即绕行出口
 ip rule                 # 参考 `fwmark 0x.../0xff0000 lookup main`
 ```
 
-拿到标记（记为 `M`）后，打了标就是直连。**上线前打标和不打标各测一次出口回显，确认真的直连了**：
+透明代理可能在 nft 的 nat 层拦截，`ip route get` 显示直连不代表真直连。拿到标记 `M` 后，上线前打标和不打标各测一次出口回显，确认打标后变成本机国内 ISP 出口：
 
 ```bash
 echo_ip=$(getent hosts myip.ipip.net | awk '{print $1; exit}')
 curl -s --resolve myip.ipip.net:443:"$echo_ip" https://myip.ipip.net           # 不打标：应是代理出口
 sudo iptables -t mangle -I OUTPUT -d "$echo_ip" -j MARK --set-xmark "$M/0xffffffff"
-curl -s --resolve myip.ipip.net:443:"$echo_ip" https://myip.ipip.net           # 打标：应变成本机国内 ISP 出口
+curl -s --resolve myip.ipip.net:443:"$echo_ip" https://myip.ipip.net           # 打标：应是国内 ISP 出口
 sudo iptables -t mangle -D OUTPUT -d "$echo_ip" -j MARK --set-xmark "$M/0xffffffff"
 ```
 
-## 测一个节点
+这段 iptables 只用于这次验证。长期探针直接在 socket 上设 `SO_MARK`，不要每轮增删 iptables 规则：免了 sudo，也不会在 journal 里刷满 sudo 记录。
 
-```bash
-ip=<node-ip>; port=<node-port>; M=<bypass-mark>    # M 为空则不打标（主机本就直连）
-[ -n "$M" ] && sudo iptables -t mangle -I OUTPUT -d "$ip" -j MARK --set-xmark "$M/0xffffffff"
-timeout 5 bash -c "exec 3<>/dev/tcp/$ip/$port" 2>/dev/null && r=up || r=down
-[ -n "$M" ] && sudo iptables -t mangle -D OUTPUT -d "$ip" -j MARK --set-xmark "$M/0xffffffff"
-echo "$ip:$port $r"
+## TCP 检查一个节点
+
+```python
+import socket
+with socket.socket() as s:
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_MARK, M)  # 需要 root 或 CAP_NET_ADMIN
+    s.settimeout(5)
+    s.connect((ip, port))                                 # 超时或拒绝 = down
 ```
 
-节点 IP 每轮从运营商 API 现取（见 [bandwagonhost.md](bandwagonhost.md)），不写死：换 IP 后会变。打标需要 root 或免密 sudo。
+探测的地址用客户端配置里实际写的 IP 和端口，它才是用户连的地方。节点换了 IP 而客户端没跟上时，探针应该报失败，而不是悄悄改测新 IP。

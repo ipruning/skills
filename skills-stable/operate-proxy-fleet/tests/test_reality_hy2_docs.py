@@ -104,45 +104,14 @@ def test_skill_routes_and_owns_the_status_contract():
         assert f"({target})" in skill
 
 
-def test_one_shot_monitor_rejects_existing_listener_and_ties_readiness_to_pid():
+def test_protocol_monitor_uses_one_authenticated_probe():
     monitoring = read("monitoring.md")
 
-    assert "set -euo pipefail" in monitoring
-    assert "--head" in monitoring
-    assert "--noproxy '*'" in monitoring
-    assert "[1-5][0-9][0-9])" in monitoring
-    assert "http3_result=fail" in monitoring
-    assert "tls_result=unknown" in monitoring
-    assert "monitor_result=pass" in monitoring
-    assert "53|58|59|66|77|82) monitor_result=invalid" in monitoring
-    assert "60) tls_result=invalid" in monitoring
-    assert "51|53|58|59|60|64|66|77|80|82|83|90|91" not in monitoring
-    assert "`--disable` 让探针用户的 `.curlrc` 不生效" in monitoring
-    assert monitoring.count("if curl --disable") == 2
-    assert "SecureTransport" in monitoring
-    assert "HTTP/3 probe returned no valid HTTP status" in monitoring
-    assert "local monitor port 2089 is already owned" in monitoring
-    assert 'grep -Fq "pid=$sidecar_pid,"' in monitoring
-    assert "sidecar_listening && break" in monitoring
-    assert "DNS_RESOLVER_IP" in monitoring
-    assert "EGRESS_ECHO_URL" in monitoring
-    assert "不等于同意把它的域名和出口发给第三方 DNS 或 IP 回显服务" in monitoring
+    assert "routing_mark" in monitoring
+    assert "generate_204" in monitoring
+    assert "authentication failed, status code: 403" in monitoring
     assert "配置文件里写了路由排除只是意图，不是运行时证据" in monitoring
-    for run_class in (
-        "AUTH_OR_ECHO_UNREACHABLE",
-        "HTTP3_DEGRADED",
-        "MONITOR_LOCAL_FAILURE",
-        "DIRECT_AND_AUTH_UNREACHABLE",
-        "MONITOR_INCONCLUSIVE",
-        "ECHO_DEPENDENCY_DEGRADED",
-        "AUTH_EGRESS_MISMATCH",
-        "TLS_INVALID",
-    ):
-        assert run_class in monitoring
-    assert "有 HTTP 响应但没有可用 IP" in monitoring
-    assert "可能是 HY2 认证、sidecar 出口或回显服务出了问题" in monitoring
-    assert "最后永远不告警" in monitoring
-    assert "通知成功记为 API 已接受，不算设备已收到" in monitoring
+    assert "不等于同意把它的域名和出口发给第三方 DNS 或 IP 回显服务" in monitoring
     assert "create netlink socket: address family not supported by protocol" in monitoring
 
 
@@ -228,9 +197,8 @@ def test_references_keep_cli_and_surges_runtime_ownership_separate():
 def test_protocol_monitoring_delegates_long_running_monitoring_contract():
     monitoring = read("monitoring.md")
 
-    assert "把类别和证据交给 `$monitoring`" in monitoring
-    assert "那边管探测频率、新鲜度" in monitoring
-    assert "告警送达" in monitoring
+    assert "和 `$monitoring` 一起用" in monitoring
+    assert "交给 `$monitoring` 的约定" in monitoring
 
 
 def test_linux_durable_activation_has_preflight_and_rollback_gates():
