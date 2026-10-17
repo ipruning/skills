@@ -29,7 +29,7 @@ authentication failed, status code: 403            # 认证错
 
 把这条原因和耗时写进探针日志和告警文案，排障时不用再猜。
 
-一个探针覆盖同一类出口的所有节点：Snell、HY2、REALITY 都是同一段代码，只是 outbound 不同。不要为某个协议另写一套探针。
+Snell、HY2、REALITY 用同一个探针，只换 outbound。
 
 ## 探针主机自己挂着 TUN 时
 
@@ -38,7 +38,7 @@ authentication failed, status code: 403            # 认证错
 ## 可选信号，有明确需要才加
 
 - **出口 IP**：只有出口和 `server` 不同（NAT、链式代理、住宅中转）时才需要。经 sidecar 请求 IP 回显服务并比对预期值。同意监控这台服务，不等于同意把它的域名和出口发给第三方 DNS 或 IP 回显服务；回显端点先写进监控约定再用。
-- **证书余量**：证书过期后认证请求本身就会失败，主信号兜得住。要提前预警，就在服务端监控 Certbot 续期失败（`certbot.service` 失败即告警），或者用 `openssl x509 -checkend` 检查服务端正在用的证书。先确认检查的是 sing-box 配置里 `certificate_path` 指向的那一张：旧名字的证书续期失败不影响服务，只会制造告警噪音。
+- **证书余量**：证书过期后认证请求本身就会失败，主信号兜得住。要提前预警，就在服务端监控 Certbot 续期失败（`certbot.service` 失败即告警），或者用 `openssl x509 -checkend` 检查服务端正在用的证书。检查 sing-box 配置里 `certificate_path` 指向的那一张。
 - **公网 DNS**：只有客户端拨域名而不是 IP 时才查。
 
 ## 交给 `$monitoring` 的约定

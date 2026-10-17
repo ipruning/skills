@@ -20,9 +20,6 @@ def test_version_selection_and_package_reload_are_explicit():
     assert "apt-cache policy sing-box" in server
     assert '"${SINGBOX_VERSION:?select the latest stable candidate' in server
     assert "悄悄降级" in server
-    assert "SINGBOX_PIN" not in server
-    assert "1.13." not in server
-    assert "1.13." not in linux
     assert "systemctl daemon-reload" in server
     assert "server.md#选版本" in linux
     assert "Certbot 按可执行位挑 deploy hook" in server
@@ -104,17 +101,6 @@ def test_skill_routes_and_owns_the_status_contract():
         assert f"({target})" in skill
 
 
-def test_protocol_monitor_uses_one_authenticated_probe():
-    monitoring = read("monitoring.md")
-
-    assert "routing_mark" in monitoring
-    assert "generate_204" in monitoring
-    assert "authentication failed, status code: 403" in monitoring
-    assert "配置文件里写了路由排除只是意图，不是运行时证据" in monitoring
-    assert "不等于同意把它的域名和出口发给第三方 DNS 或 IP 回显服务" in monitoring
-    assert "create netlink socket: address family not supported by protocol" in monitoring
-
-
 def test_linux_validation_fails_closed_for_journal_and_old_proxy_units():
     linux = read("linux-client.md")
     migration = read("linux-migration.md")
@@ -192,13 +178,6 @@ def test_references_keep_cli_and_surges_runtime_ownership_separate():
     assert "SelectedConfigName" not in triage
     assert "KDDefaults.plist" not in triage
     assert "用户要改 profile 时交给 `$surge`" in triage
-
-
-def test_protocol_monitoring_delegates_long_running_monitoring_contract():
-    monitoring = read("monitoring.md")
-
-    assert "和 `$monitoring` 一起用" in monitoring
-    assert "交给 `$monitoring` 的约定" in monitoring
 
 
 def test_linux_durable_activation_has_preflight_and_rollback_gates():

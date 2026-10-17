@@ -1,6 +1,6 @@
 # 从国内判断节点是否被墙
 
-从国内探测主机直连节点。能经过该节点完成一次认证请求（见 [monitoring.md](../reality-hy2/monitoring.md)），就是通的；这是首选判据。TCP 端口连得上只说明三层可达，协议可能照样被干扰：实测出现过 TCP 一直通、经代理的请求却连续失败。只在没有凭据、拿不到协议探针的主机上退回 TCP 检查。`ping` 只作辅助，ICMP 可能被单独封。
+从国内探测主机直连节点。能经过该节点完成一次认证请求（见 [monitoring.md](../reality-hy2/monitoring.md)），就是通的；这是首选判据。TCP 端口连得上只说明三层可达，协议可能照样被干扰。只在没有凭据、拿不到协议探针的主机上退回 TCP 检查。`ping` 只作辅助，ICMP 可能被单独封。
 
 TCP 连不上不等于被墙：先按 [bandwagonhost.md](bandwagonhost.md) 排除暂停、IP 黑洞和宿主机冻结，再考虑换 IP。
 
@@ -29,7 +29,7 @@ curl -s --resolve myip.ipip.net:443:"$echo_ip" https://myip.ipip.net           #
 sudo iptables -t mangle -D OUTPUT -d "$echo_ip" -j MARK --set-xmark "$M/0xffffffff"
 ```
 
-这段 iptables 只用于这次验证。长期探针直接在 socket 上设 `SO_MARK`，不要每轮增删 iptables 规则：免了 sudo，也不会在 journal 里刷满 sudo 记录。
+这段 iptables 只用于这次验证。长期探针直接在 socket 上设 `SO_MARK`。
 
 ## TCP 检查一个节点
 

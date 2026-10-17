@@ -36,7 +36,7 @@ print(f"{pct:.0f}%", "suspended" if d["suspended"] else "", d["ip_nullroutes"] o
 
 登录 `bandwagonhost.com` 客户区 → **Export all services with private API keys**（`whmcsExportServiceInfoCsv.php`），得到七列 CSV：`VEID,VM_TYPE,HOSTNAME,PRIMARY_IP,IS_TERMINATED,IS_2FA_ENABLED,API_KEY`。`IS_TERMINATED=1` 的行跳过；客户区显示「将于某日取消」的服务导出里仍是 `0`，以客户区列表为准。
 
-`API_KEY` 是私钥：不写进 tracked 文件、日志和对话，读 CSV 时只取需要的列，别 `cut` 出 key 那一列。探针主机上存成 `chmod 600` 的文件。用完删掉下载的导出文件。
+`API_KEY` 是私钥：不写进 tracked 文件、日志和对话。探针主机上存成 `chmod 600` 的文件。用完删掉下载的导出文件。
 
 客户区登录挂着 Cloudflare 和新设备邮箱验证码，无头 curl 过不去，要真实浏览器。只有导出 key 时需要；之后全靠 `api.64clouds.com`。
 
