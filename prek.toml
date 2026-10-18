@@ -84,7 +84,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/crate-ci/typos"
-rev = "v1.50.3"
+rev = "v1.51.1"
 hooks = [{ id = "typos", name = "typos", stages = ["pre-push"], priority = 20 }]
 
 [[repos]]
