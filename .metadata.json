@@ -25,20 +25,6 @@
         "SKILL.md": "sha256:277fcbf73c90e470d60c4e84ca95001e48ad8cd536e7ba11a19000f2548791de"
       }
     },
-    "agent/herdr": {
-      "source": "https://github.com/herdrdev/herdr.git/skills/herdr",
-      "type": "github-subdir",
-      "group": "agent",
-      "installed_at": "2026-10-09T09:12:10.397649875Z",
-      "repo_url": "https://github.com/herdrdev/herdr.git",
-      "subdir": "skills/herdr",
-      "version": "2563803",
-      "tree_hash": "67042ed7910d4177a9000e0679e78b0346060927",
-      "commit": "2563803dca97c040beaf3dc3acdcb5a3221b4238",
-      "file_hashes": {
-        "SKILL.md": "sha256:b16ba0d9a22adbaf259d2022cd323801f8e51d530c94cb0cd23a69069292506b"
-      }
-    },
     "agent/sherlog": {
       "source": "https://github.com/catoncat/sherlog.git/skill-packages/sherlog",
       "type": "github-subdir",
@@ -87,20 +73,6 @@
         "references/targets.md": "sha256:14738fb5fbb3d67471c1c9c28d0162b3437c5216f24776b946c684992ef8eeb0",
         "references/trash.md": "sha256:97f69a115db2880f936c5202c54f5fd97be33078058eae4068fd244520a4ea22",
         "scripts/run.sh": "sha256:e434ebdb7d3ae0b37c00ddc36687bc975da9e766b8cb863f9aed9a624ebbdfa9"
-      }
-    },
-    "code/code-storage": {
-      "source": "https://github.com/pierrecomputer/sdk.git/skills/code-storage",
-      "type": "github-subdir",
-      "group": "code",
-      "installed_at": "2026-10-09T09:12:20.83802061Z",
-      "repo_url": "https://github.com/pierrecomputer/sdk.git",
-      "subdir": "skills/code-storage",
-      "version": "c1bc584",
-      "tree_hash": "b7b83d1d9be0833a411d8b4a5a8d0611e91242df",
-      "commit": "c1bc584644fb623d43b38025a428558133f787dc",
-      "file_hashes": {
-        "SKILL.md": "sha256:8b92ca1373d704e3ded7a8a65705a305d30699c1e126a1ea50751709f3cbea1c"
       }
     },
     "code/flint-chart-author": {
@@ -175,6 +147,34 @@
       "file_hashes": {
         "LICENSE": "sha256:835f233f1d6ed84a9b9a351aba0689b47644a4137d6316911fc7957bde523b02",
         "SKILL.md": "sha256:71ea90d7906c6554c4f4c460ef7361b2d26f59116ccdae986dc6d997b9389f52"
+      }
+    },
+    "run/herdr": {
+      "source": "https://github.com/herdrdev/herdr.git/skills/herdr",
+      "type": "github-subdir",
+      "group": "run",
+      "installed_at": "2026-10-09T09:12:10.397649875Z",
+      "repo_url": "https://github.com/herdrdev/herdr.git",
+      "subdir": "skills/herdr",
+      "version": "2563803",
+      "tree_hash": "67042ed7910d4177a9000e0679e78b0346060927",
+      "commit": "2563803dca97c040beaf3dc3acdcb5a3221b4238",
+      "file_hashes": {
+        "SKILL.md": "sha256:b16ba0d9a22adbaf259d2022cd323801f8e51d530c94cb0cd23a69069292506b"
+      }
+    },
+    "ship/code-storage": {
+      "source": "https://github.com/pierrecomputer/sdk.git/skills/code-storage",
+      "type": "github-subdir",
+      "group": "ship",
+      "installed_at": "2026-10-09T09:12:20.83802061Z",
+      "repo_url": "https://github.com/pierrecomputer/sdk.git",
+      "subdir": "skills/code-storage",
+      "version": "c1bc584",
+      "tree_hash": "b7b83d1d9be0833a411d8b4a5a8d0611e91242df",
+      "commit": "c1bc584644fb623d43b38025a428558133f787dc",
+      "file_hashes": {
+        "SKILL.md": "sha256:8b92ca1373d704e3ded7a8a65705a305d30699c1e126a1ea50751709f3cbea1c"
       }
     },
     "think/show-me": {

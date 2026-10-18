@@ -1,5 +1,5 @@
 ---
-name: operating-tailscale-services
+name: tailscale-services
 description: >-
   创建、迁移和排查 Tailscale Service（svc:、TailVIP）时使用。
 ---

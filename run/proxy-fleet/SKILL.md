@@ -1,5 +1,5 @@
 ---
-name: operate-proxy-fleet
+name: proxy-fleet
 description: >-
   部署、审计和排查自建代理节点时使用。
 metadata:

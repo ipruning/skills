@@ -1,8 +1,7 @@
 ---
-name: capturing-evidence-recordings
+name: evidence-recordings
 description: >-
-  把真实系统的运行过程做成可复核的终端录屏、浏览器截图和交付包，用于专利佐证、审计取证、
-  客户演示或交接材料；用户要求录屏、截图、录 GIF/MP4、把系统运行过程做成证据包或材料包时使用。
+  把真实系统的运行过程录成可复核的终端录屏、浏览器截图、GIF/MP4 和证据包时使用。
 ---
 
 # 录屏取证与材料打包

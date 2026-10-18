@@ -4,15 +4,15 @@ extend-exclude = [
     ".mise/locks/",  # Generated dependency graphs contain package names, not prose.
     # BEGIN GENERATED LINT EXCLUDES: typos
     "agent/cascade/",
-    "agent/herdr/",
     "agent/sherlog/",
     "agent/skillshare/",
-    "code/code-storage/",
     "code/flint-chart-author/",
     "code/flint-theme-author/",
     "code/frontend-design/",
     "code/ip-as-logo-skill/",
     "code/typesafe-ai/",
+    "run/herdr/",
+    "ship/code-storage/",
     "think/show-me/",
     # END GENERATED LINT EXCLUDES: typos
 ]

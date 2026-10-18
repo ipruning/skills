@@ -1,4 +1,4 @@
 interface:
   display_name: "Things"
-  short_description: "Read-only local Things queries"
-  default_prompt: "Use $things to show my Things Today list and summarize what needs attention."
+  short_description: "只读查询本机 Things 任务"
+  default_prompt: "使用 $things 列出我 Things 里的 Today，并总结需要处理的事。"

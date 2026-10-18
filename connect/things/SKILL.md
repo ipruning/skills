@@ -1,6 +1,7 @@
 ---
 name: things
-description: "Read-only local macOS Things queries and summaries when the user asks about their Things tasks, Today list, Inbox, projects, tags, completed or logbook history, or task search. Read-only, never writes."
+description: >-
+  只读查询本机 Things 的任务、Today、Inbox、项目、标签和完成记录并做汇总时使用。
 metadata:
   version: "3"
 ---

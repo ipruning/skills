@@ -1,7 +1,7 @@
 ---
-name: operating-jetkvm-tailscale
+name: jetkvm-tailscale
 description: >-
-  运维 JetKVM 上的 Tailscale 远程访问，或诊断其 HTTPS Certificates、Serve、证书签发、精简固件兼容和重启持久化。用户提到 JetKVM 与 Tailscale 的安装、升级、故障、远程访问或 HTTPS 时使用。不用于普通 Tailscale 节点、JetKVM 视频或 USB 硬件故障，也不用于主动配置 Funnel 公网发布。
+  安装、升级和排查 JetKVM 上的 Tailscale，包括 tailnet 内的 HTTPS Serve、证书和重启后持久化时使用。
 metadata:
   version: "1"
 ---

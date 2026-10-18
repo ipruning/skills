@@ -1,5 +1,5 @@
 ---
-name: maintaining-github-repository-fleets
+name: github-fleet
 description: 在一个 GitHub 用户或组织的大量仓库上批量扫描代码、批量改动开 PR、合并并回查结果，或派多个子 Agent 分仓处理时使用。
 ---
 

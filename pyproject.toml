@@ -18,15 +18,15 @@ dev = [
 exclude = [
     # BEGIN GENERATED LINT EXCLUDES: ruff
     "agent/cascade/",
-    "agent/herdr/",
     "agent/sherlog/",
     "agent/skillshare/",
-    "code/code-storage/",
     "code/flint-chart-author/",
     "code/flint-theme-author/",
     "code/frontend-design/",
     "code/ip-as-logo-skill/",
     "code/typesafe-ai/",
+    "run/herdr/",
+    "ship/code-storage/",
     "think/show-me/",
     # END GENERATED LINT EXCLUDES: ruff
 ]
@@ -44,7 +44,7 @@ unfixable = ["F401"]
 # Things uses the host's local calendar date, not a timezone-normalized instant.
 "connect/things/scripts/things_query.py" = ["DTZ011"]
 # Multi-line remote shell snippets and journal fixtures read better as one line per list item.
-"run/operate-proxy-fleet/**" = ["FLY002"]
+"run/proxy-fleet/**" = ["FLY002"]
 
 [tool.ruff.format]
 skip-magic-trailing-comma = false
@@ -55,15 +55,15 @@ docstring-code-line-length = "dynamic"
 exclude = [
     # BEGIN GENERATED LINT EXCLUDES: tombi
     "agent/cascade/**",
-    "agent/herdr/**",
     "agent/sherlog/**",
     "agent/skillshare/**",
-    "code/code-storage/**",
     "code/flint-chart-author/**",
     "code/flint-theme-author/**",
     "code/frontend-design/**",
     "code/ip-as-logo-skill/**",
     "code/typesafe-ai/**",
+    "run/herdr/**",
+    "ship/code-storage/**",
     "think/show-me/**",
     # END GENERATED LINT EXCLUDES: tombi
 ]
@@ -87,15 +87,15 @@ unresolved-import = "warn"
 exclude = [
     # BEGIN GENERATED LINT EXCLUDES: ty
     "agent/cascade/",
-    "agent/herdr/",
     "agent/sherlog/",
     "agent/skillshare/",
-    "code/code-storage/",
     "code/flint-chart-author/",
     "code/flint-theme-author/",
     "code/frontend-design/",
     "code/ip-as-logo-skill/",
     "code/typesafe-ai/",
+    "run/herdr/",
+    "ship/code-storage/",
     "think/show-me/",
     # END GENERATED LINT EXCLUDES: ty
 ]
