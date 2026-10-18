@@ -17,17 +17,17 @@ dev = [
 [tool.ruff]
 exclude = [
     # BEGIN GENERATED LINT EXCLUDES: ruff
-    "skills-beta/cascade/",
-    "skills-beta/code-storage/",
-    "skills-beta/flint-chart-author/",
-    "skills-beta/flint-theme-author/",
-    "skills-beta/frontend-design/",
-    "skills-beta/herdr/",
-    "skills-beta/ip-as-logo-skill/",
-    "skills-beta/sherlog/",
-    "skills-beta/show-me/",
-    "skills-beta/typesafe-ai/",
-    "skillshare/",
+    "agent/cascade/",
+    "agent/herdr/",
+    "agent/sherlog/",
+    "agent/skillshare/",
+    "code/code-storage/",
+    "code/flint-chart-author/",
+    "code/flint-theme-author/",
+    "code/frontend-design/",
+    "code/ip-as-logo-skill/",
+    "code/typesafe-ai/",
+    "think/show-me/",
     # END GENERATED LINT EXCLUDES: ruff
 ]
 indent-width = 4
@@ -42,9 +42,9 @@ unfixable = ["F401"]
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402"]
 # Things uses the host's local calendar date, not a timezone-normalized instant.
-"skills-beta/things/scripts/things_query.py" = ["DTZ011"]
+"connect/things/scripts/things_query.py" = ["DTZ011"]
 # Multi-line remote shell snippets and journal fixtures read better as one line per list item.
-"skills-stable/operate-proxy-fleet/**" = ["FLY002"]
+"run/operate-proxy-fleet/**" = ["FLY002"]
 
 [tool.ruff.format]
 skip-magic-trailing-comma = false
@@ -54,17 +54,17 @@ docstring-code-line-length = "dynamic"
 [tool.tombi.files]
 exclude = [
     # BEGIN GENERATED LINT EXCLUDES: tombi
-    "skills-beta/cascade/**",
-    "skills-beta/code-storage/**",
-    "skills-beta/flint-chart-author/**",
-    "skills-beta/flint-theme-author/**",
-    "skills-beta/frontend-design/**",
-    "skills-beta/herdr/**",
-    "skills-beta/ip-as-logo-skill/**",
-    "skills-beta/sherlog/**",
-    "skills-beta/show-me/**",
-    "skills-beta/typesafe-ai/**",
-    "skillshare/**",
+    "agent/cascade/**",
+    "agent/herdr/**",
+    "agent/sherlog/**",
+    "agent/skillshare/**",
+    "code/code-storage/**",
+    "code/flint-chart-author/**",
+    "code/flint-theme-author/**",
+    "code/frontend-design/**",
+    "code/ip-as-logo-skill/**",
+    "code/typesafe-ai/**",
+    "think/show-me/**",
     # END GENERATED LINT EXCLUDES: tombi
 ]
 
@@ -86,16 +86,16 @@ unresolved-import = "warn"
 [tool.ty.src]
 exclude = [
     # BEGIN GENERATED LINT EXCLUDES: ty
-    "skills-beta/cascade/",
-    "skills-beta/code-storage/",
-    "skills-beta/flint-chart-author/",
-    "skills-beta/flint-theme-author/",
-    "skills-beta/frontend-design/",
-    "skills-beta/herdr/",
-    "skills-beta/ip-as-logo-skill/",
-    "skills-beta/sherlog/",
-    "skills-beta/show-me/",
-    "skills-beta/typesafe-ai/",
-    "skillshare/",
+    "agent/cascade/",
+    "agent/herdr/",
+    "agent/sherlog/",
+    "agent/skillshare/",
+    "code/code-storage/",
+    "code/flint-chart-author/",
+    "code/flint-theme-author/",
+    "code/frontend-design/",
+    "code/ip-as-logo-skill/",
+    "code/typesafe-ai/",
+    "think/show-me/",
     # END GENERATED LINT EXCLUDES: ty
 ]

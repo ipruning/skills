@@ -6,7 +6,7 @@ cd "$(git rev-parse --show-toplevel)"
 
 uv run --locked pytest -q \
     tests \
-    skills-stable/operate-proxy-fleet/tests
-node --test skills-stable/sub2api-admin/tests/sub2api-admin.test.js
-bash skills-stable/github-runner/tests/test-github-actions-runner-removal.sh
-bash skills-beta/maintaining-github-repository-fleets/tests/test-clone-org.sh
+    run/operate-proxy-fleet/tests
+node --test run/sub2api-admin/tests/sub2api-admin.test.js
+bash run/github-runner/tests/test-github-actions-runner-removal.sh
+bash ship/maintaining-github-repository-fleets/tests/test-clone-org.sh
