@@ -5,7 +5,7 @@
 default_install_hook_types = ["pre-commit", "pre-push"]
 default_stages = ["pre-commit", "pre-push"]
 # BEGIN GENERATED LINT EXCLUDES: prek
-exclude = "^agent/skillshare/|^code/flint\\-chart\\-author/|^code/flint\\-theme\\-author/|^code/frontend\\-design/|^code/ip\\-as\\-logo/|^code/typesafe\\-ai/|^run/herdr/|^ship/code\\-storage/|^think/show\\-me/"
+exclude = "^agent/skillshare/|^code/flint\\-chart\\-author/|^code/flint\\-theme\\-author/|^code/typesafe\\-ai/|^run/herdr/|^ship/code\\-storage/|^think/show\\-me/"
 # END GENERATED LINT EXCLUDES: prek
 fail_fast = false
 

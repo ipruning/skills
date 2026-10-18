@@ -70,37 +70,6 @@
         "SKILL.md": "sha256:066bc3d4fbf60dcc5766cb1600e638446437fb7a6eb7ca10688b8a4f78d284e7"
       }
     },
-    "code/frontend-design": {
-      "source": "https://github.com/anthropics/skills.git/skills/frontend-design",
-      "type": "github-subdir",
-      "group": "code",
-      "installed_at": "2026-10-09T09:12:08.29908936Z",
-      "repo_url": "https://github.com/anthropics/skills.git",
-      "subdir": "skills/frontend-design",
-      "version": "683bc88",
-      "tree_hash": "d79e2a5bb4df4a386c2adcdd9ab8709bba28c3f6",
-      "commit": "683bc88e56f3e09ba94f7055977f3d3aa499f202",
-      "file_hashes": {
-        "LICENSE.txt": "sha256:0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594",
-        "SKILL.md": "sha256:d91970639e9f5c37682ac7ab60094d35f1c7c1f38d731bd56396563aee10c1d3"
-      }
-    },
-    "code/ip-as-logo": {
-      "source": "https://github.com/s1dashu/ip-as-logo-skill.git",
-      "type": "github",
-      "group": "code",
-      "installed_at": "2026-10-18T15:14:08.167974+08:00",
-      "repo_url": "https://github.com/s1dashu/ip-as-logo-skill.git",
-      "version": "acb834c",
-      "commit": "acb834c717bcd0a487c49732d08397ba280d690b",
-      "file_hashes": {
-        ".gitignore": "sha256:fd9e4a80457e0613c2b3fec550672447929bd4972e906faa6132c24a5fcd8b6e",
-        "LICENSE": "sha256:b8f39925b1c36ca531c5e663aeb7ba427f94a526495785b4d1b2797fae8f2546",
-        "README.md": "sha256:01fdc4729a1d7c13c5f5a71414d4a28756b142458a727a1f75e41c161fba4179",
-        "SKILL.md": "sha256:468429f9391c29dc5ead2cde9159a831435afcdae464631498eabce2ff1c9695",
-        "assets/ip-as-logo-wall.webp": "sha256:80e4b0e1fecb4648f53be77a1ec1efc6f2ca4a7c01f19305eec28c812df78fd1"
-      }
-    },
     "code/typesafe-ai": {
       "source": "https://github.com/typesafe-ai/skills.git/skills/typesafe-ai",
       "type": "github-subdir",
