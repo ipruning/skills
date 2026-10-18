@@ -45,7 +45,8 @@ def test_check_is_read_only(checkout: Path) -> None:
 def test_package_changes_regenerate_all_configs(checkout: Path) -> None:
     path = checkout / ".metadata.json"
     metadata = json.loads(path.read_text())
-    del metadata["entries"]["agent/cascade"]
+    removed = next(key for key in metadata["entries"] if not key.startswith("_"))
+    del metadata["entries"][removed]
     metadata["entries"]["vendor/example.v2"] = {}
     metadata["entries"]["_ignored-package"] = {}
     path.write_text(json.dumps(metadata))
@@ -59,7 +60,7 @@ def test_package_changes_regenerate_all_configs(checkout: Path) -> None:
     for name in before.keys() - {".metadata.json"}:
         source = (checkout / name).read_text()
         assert "vendor/example.v2" in source or r"vendor/example\\.v2" in source
-        assert "agent/cascade" not in source
+        assert f"{removed}/" not in source
         assert "_ignored-package" not in source
 
     typos = tomllib.loads((checkout / ".typos.toml").read_text())
