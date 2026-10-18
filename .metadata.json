@@ -11,20 +11,6 @@
       "tracked": true,
       "branch": "main"
     },
-    "agent/cascade": {
-      "source": "https://github.com/miguelrios/unc-skills.git/cascade/skills/cascade",
-      "type": "github-subdir",
-      "group": "agent",
-      "installed_at": "2026-10-09T09:12:19.878314011Z",
-      "repo_url": "https://github.com/miguelrios/unc-skills.git",
-      "subdir": "cascade/skills/cascade",
-      "version": "31b804c",
-      "tree_hash": "7a86fe41841cd3aad1af3c40c17283bf77d0b9e0",
-      "commit": "31b804ccb999ccee809e65590b48c1220c8d0ddd",
-      "file_hashes": {
-        "SKILL.md": "sha256:277fcbf73c90e470d60c4e84ca95001e48ad8cd536e7ba11a19000f2548791de"
-      }
-    },
     "agent/sherlog": {
       "source": "https://github.com/catoncat/sherlog.git/skill-packages/sherlog",
       "type": "github-subdir",

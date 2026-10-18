@@ -1,5 +1,4 @@
 # BEGIN GENERATED LINT EXCLUDES: autocorrect
-agent/cascade/
 agent/sherlog/
 agent/skillshare/
 code/flint-chart-author/
