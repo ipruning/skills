@@ -70,21 +70,6 @@
       "file_hashes": {
         "SKILL.md": "sha256:b16ba0d9a22adbaf259d2022cd323801f8e51d530c94cb0cd23a69069292506b"
       }
-    },
-    "think/show-me": {
-      "source": "https://github.com/humanlayer/skills.git/plugins/show-me/skills/show-me",
-      "type": "github-subdir",
-      "group": "think",
-      "installed_at": "2026-10-09T09:12:04.996658021Z",
-      "repo_url": "https://github.com/humanlayer/skills.git",
-      "subdir": "plugins/show-me/skills/show-me",
-      "version": "653b641",
-      "tree_hash": "362200ac2fb3c17b765049444e88de73767e6d08",
-      "commit": "653b6411c1f70c275a18e37673b042ff99f67ceb",
-      "file_hashes": {
-        "SKILL.md": "sha256:434a2346cc95e313b0d367d477dda2e23ba642dd2181757415a09500664af100",
-        "agents/openai.yaml": "sha256:a1499d95abd8447558c535fe5554adcc3c9b988a0a39264a6283d430effe1e94"
-      }
     }
   },
   "audit_accepted": {

@@ -8,7 +8,6 @@ ignores:
     - "agent/skillshare/"
     - "code/typesafe-ai/"
     - "run/herdr/"
-    - "think/show-me/"
     # END GENERATED LINT EXCLUDES: markdownlint
 
 config:
