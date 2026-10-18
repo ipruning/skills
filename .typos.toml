@@ -9,7 +9,7 @@ extend-exclude = [
     "code/flint-chart-author/",
     "code/flint-theme-author/",
     "code/frontend-design/",
-    "code/ip-as-logo-skill/",
+    "code/ip-as-logo/",
     "code/typesafe-ai/",
     "run/herdr/",
     "ship/code-storage/",

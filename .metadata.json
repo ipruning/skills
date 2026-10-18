@@ -118,11 +118,11 @@
         "SKILL.md": "sha256:d91970639e9f5c37682ac7ab60094d35f1c7c1f38d731bd56396563aee10c1d3"
       }
     },
-    "code/ip-as-logo-skill": {
+    "code/ip-as-logo": {
       "source": "https://github.com/s1dashu/ip-as-logo-skill.git",
       "type": "github",
       "group": "code",
-      "installed_at": "2026-10-09T09:12:02.295353256Z",
+      "installed_at": "2026-10-18T15:14:08.167974+08:00",
       "repo_url": "https://github.com/s1dashu/ip-as-logo-skill.git",
       "version": "acb834c",
       "commit": "acb834c717bcd0a487c49732d08397ba280d690b",
