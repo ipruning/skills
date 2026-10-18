@@ -1,9 +1,6 @@
 # BEGIN GENERATED LINT EXCLUDES: autocorrect
 agent/skillshare/
-code/flint-chart-author/
-code/flint-theme-author/
 code/typesafe-ai/
 run/herdr/
-ship/code-storage/
 think/show-me/
 # END GENERATED LINT EXCLUDES: autocorrect

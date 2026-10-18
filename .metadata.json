@@ -42,34 +42,6 @@
         "scripts/run.sh": "sha256:e434ebdb7d3ae0b37c00ddc36687bc975da9e766b8cb863f9aed9a624ebbdfa9"
       }
     },
-    "code/flint-chart-author": {
-      "source": "https://github.com/microsoft/flint-chart.git/agent-skills/flint-chart-author",
-      "type": "github-subdir",
-      "group": "code",
-      "installed_at": "2026-10-09T09:12:23.241929179Z",
-      "repo_url": "https://github.com/microsoft/flint-chart.git",
-      "subdir": "agent-skills/flint-chart-author",
-      "version": "683d5de",
-      "tree_hash": "96bb957355624d5517b755c04f92e7f378b2fde2",
-      "commit": "683d5de1ffd0c1a76001ca5aa044f297276d7734",
-      "file_hashes": {
-        "SKILL.md": "sha256:2886e9057da56c251f9a1bfc7f5f5cbd199cf1ea0428d02ae2e6cc46d2370c0a"
-      }
-    },
-    "code/flint-theme-author": {
-      "source": "https://github.com/microsoft/flint-chart.git/agent-skills/flint-theme-author",
-      "type": "github-subdir",
-      "group": "code",
-      "installed_at": "2026-10-09T09:12:23.165496507Z",
-      "repo_url": "https://github.com/microsoft/flint-chart.git",
-      "subdir": "agent-skills/flint-theme-author",
-      "version": "683d5de",
-      "tree_hash": "c9afe00cb9e9ff61f8876c92cdde8ec1925756fe",
-      "commit": "683d5de1ffd0c1a76001ca5aa044f297276d7734",
-      "file_hashes": {
-        "SKILL.md": "sha256:066bc3d4fbf60dcc5766cb1600e638446437fb7a6eb7ca10688b8a4f78d284e7"
-      }
-    },
     "code/typesafe-ai": {
       "source": "https://github.com/typesafe-ai/skills.git/skills/typesafe-ai",
       "type": "github-subdir",
@@ -97,20 +69,6 @@
       "commit": "2563803dca97c040beaf3dc3acdcb5a3221b4238",
       "file_hashes": {
         "SKILL.md": "sha256:b16ba0d9a22adbaf259d2022cd323801f8e51d530c94cb0cd23a69069292506b"
-      }
-    },
-    "ship/code-storage": {
-      "source": "https://github.com/pierrecomputer/sdk.git/skills/code-storage",
-      "type": "github-subdir",
-      "group": "ship",
-      "installed_at": "2026-10-09T09:12:20.83802061Z",
-      "repo_url": "https://github.com/pierrecomputer/sdk.git",
-      "subdir": "skills/code-storage",
-      "version": "c1bc584",
-      "tree_hash": "b7b83d1d9be0833a411d8b4a5a8d0611e91242df",
-      "commit": "c1bc584644fb623d43b38025a428558133f787dc",
-      "file_hashes": {
-        "SKILL.md": "sha256:8b92ca1373d704e3ded7a8a65705a305d30699c1e126a1ea50751709f3cbea1c"
       }
     },
     "think/show-me": {
