@@ -1,4 +1,4 @@
-min_version = { hard = "2026.10.2" }
+min_version = { hard = "2026.10.13" }
 
 [tool_alias]
 skillshare = "aqua:runkids/skillshare"
@@ -9,19 +9,20 @@ uv = "aqua:astral-sh/uv"
 actionlint = "1.7.12"
 biome = "2.5.15"
 jq = "1.8.2"
-ls-lint = "2.3.1"
+ls-lint = "2.3.2"
 markdownlint-cli2 = "0.23.3"
-node = "26.10.0"
-prek = "0.5.4"
-python = "3.14.8"
+node = "26.12.0"
+prek = "0.5.5"
+python = "3.15.0"
 shellcheck = "0.11.0"
-skillshare = "0.25.0"
-tombi = "1.7.2"
-usage = "6.12.0"
-uv = "0.12.23"
+skillshare = "0.25.13"
+tombi = "1.8.7"
+usage = "7.0.2"
+uv = "0.13.1"
 
 [env]
 _.python.venv = { path = ".venv" }
+TOMBI_SCHEMA_TRUSTED_HOSTS = "www.schemastore.org,mise.jdx.dev,raw.githubusercontent.com"
 
 [settings]
 auto_install = false
