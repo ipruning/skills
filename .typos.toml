@@ -3,7 +3,6 @@ extend-exclude = [
     ".metadata.json",
     ".mise/locks/",  # Generated dependency graphs contain package names, not prose.
     # BEGIN GENERATED LINT EXCLUDES: typos
-    "agent/sherlog/",
     "agent/skillshare/",
     "code/flint-chart-author/",
     "code/flint-theme-author/",

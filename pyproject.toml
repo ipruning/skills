@@ -17,7 +17,6 @@ dev = [
 [tool.ruff]
 exclude = [
     # BEGIN GENERATED LINT EXCLUDES: ruff
-    "agent/sherlog/",
     "agent/skillshare/",
     "code/flint-chart-author/",
     "code/flint-theme-author/",
@@ -53,7 +52,6 @@ docstring-code-line-length = "dynamic"
 [tool.tombi.files]
 exclude = [
     # BEGIN GENERATED LINT EXCLUDES: tombi
-    "agent/sherlog/**",
     "agent/skillshare/**",
     "code/flint-chart-author/**",
     "code/flint-theme-author/**",
@@ -84,7 +82,6 @@ unresolved-import = "warn"
 [tool.ty.src]
 exclude = [
     # BEGIN GENERATED LINT EXCLUDES: ty
-    "agent/sherlog/",
     "agent/skillshare/",
     "code/flint-chart-author/",
     "code/flint-theme-author/",

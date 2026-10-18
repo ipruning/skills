@@ -5,7 +5,6 @@ globs:
 
 ignores:
     # BEGIN GENERATED LINT EXCLUDES: markdownlint
-    - "agent/sherlog/"
     - "agent/skillshare/"
     - "code/flint-chart-author/"
     - "code/flint-theme-author/"

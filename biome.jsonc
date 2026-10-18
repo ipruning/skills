@@ -11,7 +11,6 @@
             "**",
             "!.metadata.json",
             // BEGIN GENERATED LINT EXCLUDES: biome
-            "!!agent/sherlog",
             "!!agent/skillshare",
             "!!code/flint-chart-author",
             "!!code/flint-theme-author",

@@ -11,25 +11,6 @@
       "tracked": true,
       "branch": "main"
     },
-    "agent/sherlog": {
-      "source": "https://github.com/catoncat/sherlog.git/skill-packages/sherlog",
-      "type": "github-subdir",
-      "group": "agent",
-      "installed_at": "2026-10-09T09:12:04.064207192Z",
-      "repo_url": "https://github.com/catoncat/sherlog.git",
-      "subdir": "skill-packages/sherlog",
-      "version": "1c60715",
-      "tree_hash": "4a170f1ade3ebc3e2a0f51ff039ac01586427beb",
-      "commit": "1c6071587d9c2fd2e2116b3b8ccf0b711d5c534f",
-      "file_hashes": {
-        "SKILL.md": "sha256:24a21a5b474253a2bb549c6f7058a9a7a101a579e57eb0b3fbef1b0241d95682",
-        "references/advanced-queries.md": "sha256:3ab969ae59a3d72e36c5be5916aa41e8683b808b46fffbb2ba5dee2d5293b82a",
-        "references/cli-surface.md": "sha256:07c46c1c1d7dff566bebd5ff32cf4d1081afbf4e8be3db90832c4edde3108285",
-        "references/failure-cookbook.md": "sha256:a0485ed3c14f33fd5ab665c11bd3837f8d1ef2e7b6dddbca25a4044b63695be3",
-        "references/json-schema.md": "sha256:f18c3bf4401273c5a34df18bdfb38b4aeda655300ed3492f9864085fc2ec9370",
-        "references/progressive-workflow.md": "sha256:70fc99153e771b6e89ac58b315a60560d1b30f40c18863332964cff634113a43"
-      }
-    },
     "agent/skillshare": {
       "source": "github.com/runkids/skillshare/skills/skillshare",
       "type": "github-subdir",

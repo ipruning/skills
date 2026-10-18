@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent 会话记录"
+  short_description: "搜 Codex、Claude Code、pi、Amp 的会话历史，或看另一个 Agent 正在做什么"
+  default_prompt: "使用 $agent-traces 找出隔壁 Codex 在这个仓库最近 30 分钟做了什么，附上会话和时间点。"
